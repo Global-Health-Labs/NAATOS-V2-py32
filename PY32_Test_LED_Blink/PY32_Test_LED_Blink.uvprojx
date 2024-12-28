@@ -10,13 +10,13 @@
       <TargetName>Target 1</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
-      <pCCUsed>6210000::V6.21::ARMCLANG</pCCUsed>
+      <pCCUsed>6220000::V6.22::ARMCLANG</pCCUsed>
       <uAC6>1</uAC6>
       <TargetOption>
         <TargetCommonOption>
           <Device>PY32F003x6</Device>
           <Vendor>Puya</Vendor>
-          <PackID>Puya.PY32F0xx_DFP.1.2.0</PackID>
+          <PackID>Puya.PY32F0xx_DFP.1.2.2</PackID>
           <PackURL>https://www.puyasemi.com/uploadfiles/</PackURL>
           <Cpu>IRAM(0x20000000,0x00001000) IROM(0x08000000,0x00008000) CPUTYPE("Cortex-M0+") CLOCK(12000000) ELITTLE</Cpu>
           <FlashUtilSpec></FlashUtilSpec>
@@ -134,11 +134,11 @@
             <RunIndependent>0</RunIndependent>
             <UpdateFlashBeforeDebugging>1</UpdateFlashBeforeDebugging>
             <Capability>1</Capability>
-            <DriverSelection>-1</DriverSelection>
+            <DriverSelection>4100</DriverSelection>
           </Flash1>
-          <bUseTDR>1</bUseTDR>
-          <Flash2>BIN\UL2CM3.DLL</Flash2>
-          <Flash3></Flash3>
+          <bUseTDR>0</bUseTDR>
+          <Flash2>Segger\JL2CM3.dll</Flash2>
+          <Flash3>"" ()</Flash3>
           <Flash4></Flash4>
           <pFcarmOut></pFcarmOut>
           <pFcarmGrp></pFcarmGrp>
@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define>PY32F003x6</Define>
               <Undefine></Undefine>
-              <IncludePath>.\Objects;..\PY32F0xx_Firmware-master\PY32F0xx_Firmware-master\Drivers\PY32F0xx_HAL_Driver\Inc</IncludePath>
+              <IncludePath>.\Inc;..\PY32F0xx_Firmware-master\PY32F0xx_Firmware-master\Drivers\PY32F0xx_HAL_Driver\Inc</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -385,34 +385,34 @@
           <GroupName>Source Group 1</GroupName>
           <Files>
             <File>
-              <FileName>main.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Objects\main.c</FilePath>
-            </File>
-            <File>
-              <FileName>py32f0xx_hal_msp.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Objects\py32f0xx_hal_msp.c</FilePath>
-            </File>
-            <File>
-              <FileName>py32f0xx_it.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>.\Objects\py32f0xx_it.c</FilePath>
-            </File>
-            <File>
               <FileName>main.h</FileName>
               <FileType>5</FileType>
-              <FilePath>.\Objects\main.h</FilePath>
+              <FilePath>.\Inc\main.h</FilePath>
             </File>
             <File>
               <FileName>py32f0xx_hal_conf.h</FileName>
               <FileType>5</FileType>
-              <FilePath>.\Objects\py32f0xx_hal_conf.h</FilePath>
+              <FilePath>.\Inc\py32f0xx_hal_conf.h</FilePath>
             </File>
             <File>
               <FileName>py32f0xx_it.h</FileName>
               <FileType>5</FileType>
-              <FilePath>.\Objects\py32f0xx_it.h</FilePath>
+              <FilePath>.\Inc\py32f0xx_it.h</FilePath>
+            </File>
+            <File>
+              <FileName>main.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Src\main.c</FilePath>
+            </File>
+            <File>
+              <FileName>py32f0xx_hal_msp.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Src\py32f0xx_hal_msp.c</FilePath>
+            </File>
+            <File>
+              <FileName>py32f0xx_it.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\Src\py32f0xx_it.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -578,18 +578,18 @@
       </component>
     </components>
     <files>
-      <file attr="config" category="source" condition="PY32F003x6 ARMCC" name="Drivers\CMSIS\Device\Puya\PY32F0xx\Source\Templates\arm\startup_py32f003x6.s" version="0.0.1">
+      <file attr="config" category="source" condition="PY32F003x6 ARMCC" name="Drivers\CMSIS\Device\PY32F0xx\Source\arm\startup_py32f003x6.s" version="1.0.0">
         <instance index="0">RTE\Device\PY32F003x6\startup_py32f003x6.s</instance>
         <component Cclass="Device" Cgroup="Startup" Cvendor="Puya" Cversion="1.0.0" condition="PY32F0 CMSIS"/>
-        <package name="PY32F0xx_DFP" schemaVersion="1.7.27" url="https://www.puyasemi.com/uploadfiles/" vendor="Puya" version="1.2.0"/>
+        <package name="PY32F0xx_DFP" schemaVersion="1.7.27" url="https://www.puyasemi.com/uploadfiles/" vendor="Puya" version="1.2.2"/>
         <targetInfos>
           <targetInfo name="Target 1"/>
         </targetInfos>
       </file>
-      <file attr="config" category="source" name="Drivers\CMSIS\Device\Puya\PY32F0xx\Source\Templates\system_py32f0xx.c" version="0.0.1">
+      <file attr="config" category="source" condition="PY32F003x6 ARMCC" name="Drivers\CMSIS\Device\PY32F0xx\Source\system_py32f0xx.c" version="1.0.0">
         <instance index="0">RTE\Device\PY32F003x6\system_py32f0xx.c</instance>
         <component Cclass="Device" Cgroup="Startup" Cvendor="Puya" Cversion="1.0.0" condition="PY32F0 CMSIS"/>
-        <package name="PY32F0xx_DFP" schemaVersion="1.7.27" url="https://www.puyasemi.com/uploadfiles/" vendor="Puya" version="1.2.0"/>
+        <package name="PY32F0xx_DFP" schemaVersion="1.7.27" url="https://www.puyasemi.com/uploadfiles/" vendor="Puya" version="1.2.2"/>
         <targetInfos>
           <targetInfo name="Target 1"/>
         </targetInfos>

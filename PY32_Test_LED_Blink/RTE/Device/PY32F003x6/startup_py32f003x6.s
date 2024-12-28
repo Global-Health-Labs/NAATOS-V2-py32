@@ -1,46 +1,31 @@
 ;****************************************************************************** 
-;* @file              : startup_py32f003xx.s
-;* @brief             : PY32F003xx devices vector table for MDK-ARM toolchain.
-;*                      This module performs:
-;*                      - Set the initial SP
-;*                      - Set the initial PC == Reset_Handler
-;*                      - Set the vector table entries with the exceptions ISR address
-;*                      - Branches to __main in the C library (which eventually
-;*                        calls main()).
-;*                      After Reset the CortexM0+ processor is in Thread mode,
-;*                      priority is Privileged, and the Stack is set to Main.
-;* <<< Use Configuration Wizard in Context Menu >>>
+;* @file    startup_py32f003x6.s
+;* @author  MCU Application Team
+;* @brief   PY32F003xx devices vector table for MDK-ARM toolchain.
+;*          This module performs:
+;*          - Set the initial SP
+;*          - Set the initial PC == Reset_Handler
+;*          - Set the vector table entries with the exceptions ISR address
+;*          - Branches to __main in the C library (which eventually
+;*            calls main()).
+;*          After Reset the CortexM0+ processor is in Thread mode,
+;*          priority is Privileged, and the Stack is set to Main.
 ;****************************************************************************** 
 ;* @attention
 ;*
-;*      Copyright (c) 2021, Puya Semiconductor Inc.
+;* <h2><center>&copy; Copyright (c) Puya Semiconductor Co.
+;* All rights reserved.</center></h2>
 ;*
-;*      All rights reserved.
+;* <h2><center>&copy; Copyright (c) 2016 STMicroelectronics.
+;* All rights reserved.</center></h2>
 ;*
-;*      Redistribution and use in source and binary forms, with or without modification,
-;*  are permitted provided that the following conditions are met:
+;* This software component is licensed by ST under BSD 3-Clause license,
+;* the "License"; You may not use this file except in compliance with the
+;* License. You may obtain a copy of the License at:
+;*                        opensource.org/licenses/BSD-3-Clause
 ;*
-;* 1. Redistributions of source code must retain the above copyright notice,
-;*      this list of conditions and the following disclaimer.
-;*   2. Redistributions in binary form must reproduce the above copyright notice,
-;*      this list of conditions and the following disclaimer in the documentation
-;*      and/or other materials provided with the distribution.
-;*   3. Neither the name of the copyright holder nor the names of its contributors
-;*      may be used to endorse or promote products derived from this software
-;*      without specific prior written permission.
-;*
-;* 	THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-;* AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-;* IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
-;* DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE
-;* FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
-;* DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
-;* SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-;* CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
-;* OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-;* OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-;*
-;****************************************************************************** 
+;******************************************************************************
+;* <<< Use Configuration Wizard in Context Menu >>>
 
 ; Amount of memory (in bytes) allocated for Stack
 ; Tailor this value to your application needs
