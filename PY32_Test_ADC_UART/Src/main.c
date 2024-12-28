@@ -38,6 +38,8 @@ uint32_t adcReading = 0;
 char adcReadingStr[5];
 char outputStr[100];
 
+uint32_t TIM1_cb_count;
+uint32_t TIM1_cb_flag;
 
 /* Private user code ---------------------------------------------------------*/
 void Timer_config(void);
@@ -67,12 +69,12 @@ int main(void)
 	TIMER_Init();
 	UART_Init();
 	ADC_Init();
-    //Timer_config();
+    Timer_config();
 	
     for (loop_count = 0; loop_count < 10; loop_count++)
     {
 		ADC_tests();
-        //Timer_tests();		
+        Timer_tests();		
 		HAL_Delay(2000);
     }
     
@@ -85,11 +87,11 @@ int main(void)
 uint32_t Wait_until_tick(uint32_t tick, uint32_t max_wait)
 {
     uint32_t start_tick, current_tick, wait_time;
-	start_tick = HAL_GetTick();
+	start_tick = TIM1_cb_count;
     if (start_tick >= tick) return 0;
     
     do {
-        current_tick = HAL_GetTick();
+        current_tick = TIM1_cb_count;
         wait_time = current_tick - start_tick;
     } while (current_tick < tick  && wait_time < max_wait);
     return wait_time;
@@ -98,6 +100,9 @@ uint32_t Wait_until_tick(uint32_t tick, uint32_t max_wait)
 void Timer_config(void)
 {
 	uint32_t freq, freq_new;
+    
+    TIM1_cb_count = 0;
+    TIM1_cb_flag = 0;
     
 	freq = HAL_GetTickFreq();
     HAL_SetTickFreq(1);     // set the tick timer to 1 MHz (1 msec per tick)
@@ -123,9 +128,9 @@ void Timer_tests(void)
 
   	HAL_Delay(100);
 
-	start_tick = HAL_GetTick();
+	start_tick = TIM1_cb_count;
 	tick_wait_count = Wait_until_tick(start_tick + 1, 10);
-	end_tick = HAL_GetTick();
+	end_tick = TIM1_cb_count;
 	
     sprintf(outputStr, "Wait_until_tick start tick: %d end_tick: %d tick_wait_count: %d\r\n", start_tick, end_tick, tick_wait_count);		
 	HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
@@ -222,7 +227,10 @@ void TIMER_Init(void)
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {
-  HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_5);
+    TIM1_cb_count++;
+    TIM1_cb_flag = 1;
+
+    HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_5);
 }
 
 
