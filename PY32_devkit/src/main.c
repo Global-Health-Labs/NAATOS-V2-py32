@@ -40,14 +40,28 @@ char outputStr[100];
 
 uint32_t TIM1_cb_count;
 uint32_t TIM1_cb_flag;
+#define LOOP_INTERVAL_TICKS 2000        // 2000 TIM1 ticks per second (500usec tick interval)
+
+GPIO_PinState pushbutton_value, last_pushbutton_value;
+int pushbutton_flag;
 
 /* Private user code ---------------------------------------------------------*/
 void Timer_config(void);
 void Timer_tests(void);
-void ADC_tests(void);
+void ADC_Read(int count);
 uint32_t Wait_until_tick(uint32_t tick, uint32_t max_wait);
 
-/* Private macro -------------------------------------------------------------*/
+/* Private structures ---------------------------------------------------------*/
+typedef struct {
+    uint8_t enabled;
+    GPIO_TypeDef *GPIOx;
+    uint16_t GPIO_Pin;
+    uint8_t pwm_setting;
+} Pin_pwm_t;
+
+Pin_pwm_t pwm_pb6;
+Pin_pwm_t pwm_pb7;
+
 /* Private function prototypes -----------------------------------------------*/
 static void APP_SystemClockConfig(void);
 void TIMER_Init(void);
@@ -59,6 +73,8 @@ void TIMER_Init(void);
 int main(void)
 {
     uint32_t loop_count;
+    uint32_t start_tick;
+    uint32_t test_active = 0;
     
     HAL_Init();
   
@@ -70,18 +86,40 @@ int main(void)
 	UART_Init();
 	ADC_Init();
     Timer_config();
-	
-    for (loop_count = 0; loop_count < 10; loop_count++)
+    
+    pwm_pb6.enabled = 0;
+    pwm_pb7.enabled = 0;        
+  	start_tick = TIM1_cb_count;
+    
+    sprintf(outputStr, "NAATOS V2 PY32F003 Devkit tests.\r\n");		
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
+    	
+    while (1) 
     {
-		ADC_tests();
-        Timer_tests();		
-		HAL_Delay(2000);
-    }
-    
-    sprintf(outputStr, "End of tests.\r\n");		
-	HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
-    
-    while (1);
+        //Timer_tests();		
+        Wait_until_tick(start_tick + LOOP_INTERVAL_TICKS, LOOP_INTERVAL_TICKS*2);
+        start_tick += LOOP_INTERVAL_TICKS;
+		if (test_active) {
+            ADC_Read(loop_count);
+            loop_count++;
+        }
+        
+        if (pushbutton_flag == 1) {
+            pushbutton_flag = 0;   
+
+            if (test_active) {
+                test_active = 0;
+                pwm_pb6.enabled = 0;
+                pwm_pb7.enabled = 0;    
+                sprintf(outputStr, "Test stopped.\r\n");		
+            } else {
+                sprintf(outputStr, "Test started.\r\n");		
+                test_active = 1;
+                loop_count = 0;
+            }                
+            HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
+        }
+    }    
 }
 
 // Wait_until_tick uses the Timer1 callback variable TIM1_cb_count for precise timing delays
@@ -100,25 +138,17 @@ uint32_t Wait_until_tick(uint32_t tick, uint32_t max_wait)
 
 void Timer_config(void)
 {
-	uint32_t freq, freq_new;
-    
     TIM1_cb_count = 0;
     TIM1_cb_flag = 0;
     
-	freq = HAL_GetTickFreq();
-    HAL_SetTickFreq(1);     // set the tick timer to 1 MHz (1 msec per tick)
-    
-	freq_new = HAL_GetTickFreq();
-    sprintf(outputStr, "timer tick freq: %d new: %d\r\n", freq, freq_new);		
-	HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
+    HAL_SetTickFreq(1);     // set the tick timer to 1 MHz (1 msec per tick)    
 }
 
 void Timer_tests(void)
 {
     uint32_t start_tick;
     uint32_t end_tick;
-    uint32_t tick_wait_count;
-    
+    uint32_t tick_wait_count;    
 	
 	start_tick = HAL_GetTick();
 	HAL_Delay(1);
@@ -137,22 +167,15 @@ void Timer_tests(void)
 	HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
 }
 
-void ADC_tests(void)
+void ADC_Read(int count)
 {
-    uint32_t start_tick;
-    uint32_t end_tick;
-    
-	start_tick = HAL_GetTick();
-    
     //Sample with ADC in polling mode
     HAL_ADC_Start(&AdcHandle);
     HAL_ADC_PollForConversion(&AdcHandle, 1000);
     adcReading = HAL_ADC_GetValue(&AdcHandle);
 
-	end_tick = HAL_GetTick();
-    
     //Compile string to send over UART
-    sprintf(outputStr, "ADC %i #ticks: %d\r\n", adcReading, (end_tick-start_tick));
+    sprintf(outputStr, "%d ADC: %i\r\n", count, adcReading);
     
     //Send string over UART
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
@@ -160,9 +183,16 @@ void ADC_tests(void)
 
 void GPIO_Init(void)
 {
-	//Configure GPIO for ADC, UART
-	//PA0 is TX
-	//PA1 is RX
+	//Configure GPIO for ADC, UART, PWM outputs
+
+    // Devkit pins:
+	//  PA0 is TX
+	//  PA1 is RX
+    //  PA2 is ADC in
+    //  PA12 is the pushbutton input
+    //  PB5 is the LED
+    //  PB6 is PWM output1
+    //  PB7 is PWM output2
 	
 	//Enable clocks
 	__HAL_RCC_GPIOA_CLK_ENABLE();
@@ -175,10 +205,7 @@ void GPIO_Init(void)
 	GpioInitStruct.Pull = GPIO_PULLUP;
 	GpioInitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
 	GpioInitStruct.Alternate = GPIO_AF9_USART2;
-	
-	//Initialize
 	HAL_GPIO_Init(GPIOA, &GpioInitStruct);
-	
 	
 	//Pin settings for ADC input
 	__HAL_RCC_ADC_CLK_ENABLE();
@@ -186,18 +213,47 @@ void GPIO_Init(void)
 	AdcPinStruct.Pin = GPIO_PIN_2;
 	AdcPinStruct.Mode = GPIO_MODE_ANALOG;
 	AdcPinStruct.Pull = GPIO_NOPULL;
-	
-	//Initialize
-	HAL_GPIO_Init(GPIOA, &AdcPinStruct);
-    
+	HAL_GPIO_Init(GPIOA, &AdcPinStruct);    
     GPIO_InitTypeDef GPIO_InitStruct;
 
     GPIO_InitStruct.Pin = GPIO_PIN_5;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_PULLUP;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
-
     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);    
+
+    GPIO_InitStruct.Pin = GPIO_PIN_6;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);    
+    
+    pwm_pb6.enabled = 0;
+    pwm_pb6.GPIOx = GPIOB;
+    pwm_pb6.GPIO_Pin = 6;
+    pwm_pb6.pwm_setting = 128;   
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
+    
+    GPIO_InitStruct.Pin = GPIO_PIN_7;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);    
+    HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_RESET);
+    
+    pwm_pb7.enabled = 0;
+    pwm_pb7.GPIOx = GPIOB;
+    pwm_pb7.GPIO_Pin = 6;
+    pwm_pb7.pwm_setting = 128;   
+
+    GPIO_InitStruct.Pin = GPIO_PIN_12;
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);    
+    pushbutton_value = GPIO_PIN_SET;
+    last_pushbutton_value = GPIO_PIN_SET;
+    pushbutton_flag = 0;    
 }
 
 void TIMER_Init(void)
@@ -232,6 +288,29 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     TIM1_cb_flag = 1;
 
     HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_5);
+    
+    if (pwm_pb6.enabled) {
+        if ((TIM1_cb_count & 0xFF)  < pwm_pb6.pwm_setting)
+            HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_SET);
+        else
+            HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
+    } else {
+        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
+    }
+
+    if (pwm_pb7.enabled) {
+        if ((TIM1_cb_count & 0xFF)  < pwm_pb7.pwm_setting)
+            HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_SET);
+        else
+            HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_RESET);
+    } else {
+        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_RESET);
+    }
+    
+    // Latch the pushbutton_flag when the button is pressed (falling edge of PA12)
+    pushbutton_value = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_12);
+    if (pushbutton_value == GPIO_PIN_RESET && last_pushbutton_value == GPIO_PIN_SET) pushbutton_flag = 1;
+    last_pushbutton_value = pushbutton_value;    
 }
 
 
@@ -241,7 +320,7 @@ void UART_Init(void)
 	//PA0 is TX
 	//PA1 is RX
 	
-	UartHandle.Instance          = USART2;
+  UartHandle.Instance          = USART2;
   UartHandle.Init.BaudRate     = 115200;
   UartHandle.Init.WordLength   = UART_WORDLENGTH_8B;
   UartHandle.Init.StopBits     = UART_STOPBITS_1;
@@ -295,13 +374,19 @@ void ADC_Init(void)
 	
 	//Now set ADC rank and channel
 	AdcChanConf.Rank = 0; //highest rank, only using one channel
-	AdcChanConf.Channel = ADC_CHANNEL_2; //for PA2
+	AdcChanConf.Channel = ADC_CHANNEL_VREFINT; 
+    
+    // ADC_CHANNEL_2; //for PA2
+    //ADC_CHANNEL_TEMPSENSOR 
+    //ADC_CHANNEL_VREFINT
 	
 	if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
 	{
 		APP_ErrorHandler();
 	}
 }
+
+
 
 static void APP_SystemClockConfig(void)
 {
