@@ -34,7 +34,7 @@ ADC_HandleTypeDef AdcHandle;
 ADC_ChannelConfTypeDef AdcChanConf;
 TIM_HandleTypeDef tim1Handle;
 
-uint32_t adcReading = 0;
+uint32_t adcReading[5] = {0, 0, 0, 0, 0};
 char adcReadingStr[5];
 char outputStr[100];
 
@@ -62,6 +62,8 @@ typedef struct {
 Pin_pwm_t pwm_pb6;
 Pin_pwm_t pwm_pb7;
 
+float temperature_cal;
+    
 /* Private function prototypes -----------------------------------------------*/
 static void APP_SystemClockConfig(void);
 void TIMER_Init(void);
@@ -87,8 +89,6 @@ int main(void)
 	ADC_Init();
     Timer_config();
     
-    pwm_pb6.enabled = 0;
-    pwm_pb7.enabled = 0;        
   	start_tick = TIM1_cb_count;
     
     sprintf(outputStr, "NAATOS V2 PY32F003 Devkit tests.\r\n");		
@@ -113,6 +113,8 @@ int main(void)
                 pwm_pb7.enabled = 0;    
                 sprintf(outputStr, "Test stopped.\r\n");		
             } else {
+                pwm_pb6.enabled = 1;
+                pwm_pb7.enabled = 1;        
                 sprintf(outputStr, "Test started.\r\n");		
                 test_active = 1;
                 loop_count = 0;
@@ -167,17 +169,54 @@ void Timer_tests(void)
 	HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
 }
 
+#define VREFINT_V 1.20
+
+float ADC_Vrefint_to_Vcc(uint32_t adc_val)
+{
+    float f;    
+    f = (float) 4096.0 / (float) adc_val;
+    return VREFINT_V * f;    
+}
+
+float ADC_to_Volts(uint32_t adc_val, float Vcc)
+{
+    float f;    
+    f = (float) adc_val / (float) 4096.0;
+    return Vcc * f;        
+}
+
+// PY32 temperature conversion formula:
+// temp_c = ((85c - 30c) / (HAL_ADC_TSCAL2 - HAL_ADC_TSCAL1)) * (ADC_TEMP - HAL_ADC_TSCAL1) - 30
+//      The first part of this equation is pre-calculated and stored in: temperature_cal
+float ADC_Temp_to_degC(uint32_t adc_temp)
+{
+    float temp_c;    
+    temp_c = temperature_cal * ((float) adc_temp - (float) HAL_ADC_TSCAL1) + 30.0f;
+    return temp_c;
+}
+
 void ADC_Read(int count)
 {
+    float temp_c, vcc, pa2_v;
+    
     //Sample with ADC in polling mode
     HAL_ADC_Start(&AdcHandle);
     HAL_ADC_PollForConversion(&AdcHandle, 1000);
-    adcReading = HAL_ADC_GetValue(&AdcHandle);
-
-    //Compile string to send over UART
-    sprintf(outputStr, "%d ADC: %i\r\n", count, adcReading);
+    adcReading[0] = HAL_ADC_GetValue(&AdcHandle); // PA2
     
-    //Send string over UART
+    HAL_ADC_Start(&AdcHandle);
+    HAL_ADC_PollForConversion(&AdcHandle, 1000);
+    adcReading[1] = HAL_ADC_GetValue(&AdcHandle); // MCU Temp sensor
+    
+    HAL_ADC_Start(&AdcHandle);
+    HAL_ADC_PollForConversion(&AdcHandle, 1000);
+    adcReading[2] = HAL_ADC_GetValue(&AdcHandle); // MCU VrefInt
+
+    vcc = ADC_Vrefint_to_Vcc(adcReading[2]);
+    temp_c = ADC_Temp_to_degC(adcReading[1]);
+    pa2_v = ADC_to_Volts (adcReading[0], vcc);
+    
+    sprintf(outputStr, "%4d ADC: %u %u %u Vcc: %1.2f Temp: %1.2f PA2: %1.2f\r\n", count, adcReading[0], adcReading[1], adcReading[2], vcc, temp_c, pa2_v);
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
 }
 
@@ -231,7 +270,7 @@ void GPIO_Init(void)
     pwm_pb6.enabled = 0;
     pwm_pb6.GPIOx = GPIOB;
     pwm_pb6.GPIO_Pin = 6;
-    pwm_pb6.pwm_setting = 128;   
+    pwm_pb6.pwm_setting = 192;   
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
     
     GPIO_InitStruct.Pin = GPIO_PIN_7;
@@ -243,8 +282,8 @@ void GPIO_Init(void)
     
     pwm_pb7.enabled = 0;
     pwm_pb7.GPIOx = GPIOB;
-    pwm_pb7.GPIO_Pin = 6;
-    pwm_pb7.pwm_setting = 128;   
+    pwm_pb7.GPIO_Pin = 7;
+    pwm_pb7.pwm_setting = 192;   
 
     GPIO_InitStruct.Pin = GPIO_PIN_12;
     GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
@@ -283,12 +322,9 @@ void TIMER_Init(void)
 }
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{
-    TIM1_cb_count++;
-    TIM1_cb_flag = 1;
-
-    HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_5);
-    
+{   
+    // Control the PB6 PWM output
+    // This is aligned with the start of the 125 usec PWM period
     if (pwm_pb6.enabled) {
         if ((TIM1_cb_count & 0xFF)  < pwm_pb6.pwm_setting)
             HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_SET);
@@ -298,8 +334,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
     }
 
+    // Control the PB7 PWM output
+    // This is aligned with the end of the 125 usec PWM period
     if (pwm_pb7.enabled) {
-        if ((TIM1_cb_count & 0xFF)  < pwm_pb7.pwm_setting)
+        if ((TIM1_cb_count & 0xFF)  > (255 - pwm_pb7.pwm_setting))
             HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_SET);
         else
             HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_RESET);
@@ -311,6 +349,18 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     pushbutton_value = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_12);
     if (pushbutton_value == GPIO_PIN_RESET && last_pushbutton_value == GPIO_PIN_SET) pushbutton_flag = 1;
     last_pushbutton_value = pushbutton_value;    
+
+    // blink the LED (at 12.5% duty cycle) if either PWM is enabled:
+    if ((pwm_pb6.enabled > 0 || (pwm_pb7.enabled > 0)) && (TIM1_cb_count & 0x100) < 0x80) {
+        //HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_5);
+        if ((TIM1_cb_count & 0x7) == 0) HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_RESET);
+        else HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_SET);
+    } else {
+        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_SET);
+    }
+    
+    TIM1_cb_count++;
+    TIM1_cb_flag = 1;
 }
 
 
@@ -352,14 +402,14 @@ void ADC_Init(void)
 		}
 	
 	//Populate ADC init data
-	AdcHandle.Init.ClockPrescaler = ADC_CLOCK_ASYNC_HSI_DIV1; //Full HSI speed
+	AdcHandle.Init.ClockPrescaler = ADC_CLOCK_ASYNC_HSI_DIV8; //HSI = 24 MHz (ADC Clock = 24 MHz / 8)
 	AdcHandle.Init.Resolution = ADC_RESOLUTION_12B; //12 bits
 	AdcHandle.Init.DataAlign = ADC_DATAALIGN_RIGHT; //Right aligned
 	AdcHandle.Init.ScanConvMode = ADC_SCAN_DIRECTION_FORWARD; //Don't plan to use
 	AdcHandle.Init.EOCSelection = ADC_EOC_SINGLE_CONV; //single conversion
 	AdcHandle.Init.LowPowerAutoWait = DISABLE; //use all the power
 	AdcHandle.Init.ContinuousConvMode = DISABLE; //don't need for polling
-	AdcHandle.Init.DiscontinuousConvMode = DISABLE; //don't need for polling
+	AdcHandle.Init.DiscontinuousConvMode = ENABLE; 
 	AdcHandle.Init.ExternalTrigConv = ADC_SOFTWARE_START; //Will start ADC in code
 	AdcHandle.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE; //not going to use external trigger
 	AdcHandle.Init.DMAContinuousRequests = DISABLE; //Not using DMA
@@ -371,21 +421,40 @@ void ADC_Init(void)
 	{
 		APP_ErrorHandler();
 	}
+
+    //ADC_CHANNEL_2             (PA2)
+    //ADC_CHANNEL_TEMPSENSOR    (ch 11, 9 usec min sample time)
+    //ADC_CHANNEL_VREFINT       (ch 12)
 	
-	//Now set ADC rank and channel
-	AdcChanConf.Rank = 0; //highest rank, only using one channel
-	AdcChanConf.Channel = ADC_CHANNEL_VREFINT; 
+	// Set ADC rank and channel
+	AdcChanConf.Rank = ADC_CHANNEL_2; 
+	AdcChanConf.Channel = ADC_CHANNEL_2;     
+	
+	if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
+	{
+		APP_ErrorHandler();
+	}
+	// Set ADC rank and channel
+	AdcChanConf.Rank = ADC_CHANNEL_TEMPSENSOR; 
+	AdcChanConf.Channel = ADC_CHANNEL_TEMPSENSOR;     
+	
+	if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
+	{
+		APP_ErrorHandler();
+	}
     
-    // ADC_CHANNEL_2; //for PA2
-    //ADC_CHANNEL_TEMPSENSOR 
-    //ADC_CHANNEL_VREFINT
+    // precalculate part of the temperature calculation:
+    temperature_cal = (float) (85 - 30) / (float) (HAL_ADC_TSCAL2 - HAL_ADC_TSCAL1);
+    
+	// Set ADC rank and channel
+	AdcChanConf.Rank = ADC_CHANNEL_VREFINT; 
+	AdcChanConf.Channel = ADC_CHANNEL_VREFINT;     
 	
 	if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
 	{
 		APP_ErrorHandler();
 	}
 }
-
 
 
 static void APP_SystemClockConfig(void)
