@@ -4,3 +4,8 @@ PY32_Test_ADC_UART/RTE/
 PY32_Test_LED_Blink/Objects/
 PY32_Test_LED_Blink/Listings/
 PY32_Test_LED_Blink/RTE/
+PY32_devkit/Objects/
+PY32_devkit/Listings/
+PY32_devkit/RTE/
+PY32_devkit/JLinkLog.txt
+*.scvd

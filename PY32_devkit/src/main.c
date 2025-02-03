@@ -50,13 +50,16 @@ void Timer_config(void);
 void Timer_tests(void);
 void ADC_Read(int count);
 uint32_t Wait_until_tick(uint32_t tick, uint32_t max_wait);
+void Distribute_PWM_Bits(uint8_t pwm_val, uint64_t *pwm_bit_array);
 
 /* Private structures ---------------------------------------------------------*/
 typedef struct {
     uint8_t enabled;
+    uint8_t pwm_setting;
     GPIO_TypeDef *GPIOx;
     uint16_t GPIO_Pin;
-    uint8_t pwm_setting;
+    uint16_t pwm_state;
+    uint64_t pwm_bits[4];
 } Pin_pwm_t;
 
 Pin_pwm_t pwm_pb6;
@@ -94,12 +97,19 @@ int main(void)
     sprintf(outputStr, "NAATOS V2 PY32F003 Devkit tests.\r\n");		
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
     	
+    //Distribute_PWM_Bits((uint8_t) 3, (uint64_t *) pwm_pb6.pwm_bits);    
+    //Distribute_PWM_Bits((uint8_t) 7, (uint64_t *) pwm_pb6.pwm_bits);    
+    Distribute_PWM_Bits((uint8_t) 254, (uint64_t *) pwm_pb6.pwm_bits);    
+    
     while (1) 
     {
         //Timer_tests();		
         Wait_until_tick(start_tick + LOOP_INTERVAL_TICKS, LOOP_INTERVAL_TICKS*2);
         start_tick += LOOP_INTERVAL_TICKS;
 		if (test_active) {
+            if (pwm_pb6.enabled && pwm_pb6.pwm_setting > 0) {
+                while (pwm_pb6.pwm_state < 10);        // wait until the next active PWM cycle
+            }
             ADC_Read(loop_count);
             loop_count++;
         }
@@ -169,6 +179,111 @@ void Timer_tests(void)
 	HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
 }
 
+#define PWM_BITS 8
+#define PWM_BITFIELD_SIZE 256
+
+/**
+ * Shifts a 256-bit unsigned integer (represented as an array of four 64-bit unsigned integers)
+ * to the left by shift_val bits.
+ *
+ * Parameters:
+ * - input (uint64_t*): Pointer to an array of four 64-bit unsigned integers.
+ * - shift_val (uint8_t): Number of bits to shift to the left (0-255).
+ *
+ * Returns:
+ * - The input array is modified in place to reflect the shifted value.
+ */
+void Shift_left_256(uint64_t *input, uint8_t shift_val) {
+
+    if (shift_val == 0) {
+        return;
+    }
+
+    int word_shift = shift_val / 64;      // Number of 64-bit words to shift
+    int bit_shift = shift_val % 64;       // Number of bits to shift within words
+
+    // Temporary array to store the result
+    uint64_t result[4] = {0, 0, 0, 0};
+
+    // Perform the bit shift
+    for (int i = 3; i >= 0; i--) {
+        if (i - word_shift >= 0) {
+            result[i] = input[i - word_shift] << bit_shift;
+            if (bit_shift > 0 && i - word_shift - 1 >= 0) {
+                // Add the carry bits from the lower word
+                result[i] |= input[i - word_shift - 1] >> (64 - bit_shift);
+            }
+        }
+    }
+
+    // Copy (OR) the result back to the input array
+    for (int i = 0; i < 4; i++) {
+        input[i] |= result[i];
+    }
+}
+
+// Distribute_PWM_Bits takes an 8 bit PWM value and distributes the bits (energy) evenly across 256 timeslots.
+void Distribute_PWM_Bits(uint8_t pwm_val, uint64_t *pwm_bit_array)
+{
+    uint64_t sub_bitfield[4];
+    uint32_t data_pos, bit_pos;   
+    uint32_t base_val, shift;
+
+    sprintf(outputStr, "Distribute_PWM_Bits %d\r\n", pwm_val);
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);        
+    
+    pwm_bit_array[0] = 0;
+    pwm_bit_array[1] = 0;
+    pwm_bit_array[2] = 0;
+    pwm_bit_array[3] = 0;
+    
+    if (pwm_val == 0x0) return;
+    else if (pwm_val == 0xFF) {
+        pwm_bit_array[0] = 0xFFFFFFFFFFFFFFFF;
+        pwm_bit_array[1] = 0xFFFFFFFFFFFFFFFF;
+        pwm_bit_array[2] = 0xFFFFFFFFFFFFFFFF;
+        pwm_bit_array[3] = 0xFFFFFFFFFFFFFFFF;
+        return;
+    }    
+    
+    data_pos = 1;    
+    for (uint32_t i=0; i< PWM_BITS; i++) {
+        bit_pos = PWM_BITS - i - 1;
+        if (((pwm_val>>bit_pos) & 0x1) == 0x01) {
+            base_val = PWM_BITFIELD_SIZE / (1<<bit_pos);
+            sub_bitfield[0] = 0;
+            sub_bitfield[1] = 0;
+            sub_bitfield[2] = 0;
+            sub_bitfield[3] = 0;
+            if (data_pos < 64) sub_bitfield[0] = (uint64_t)(1<<data_pos);
+            else if (data_pos < 2*64) sub_bitfield[1] = (uint64_t)(1<<(data_pos-64));
+            else if (data_pos < 3*64) sub_bitfield[2] = (uint64_t)(1<<(data_pos-2*64));
+            else sub_bitfield[3] = (uint64_t)(1<<(data_pos-3*64));
+
+            shift = base_val;
+            for (uint32_t j=1; j < (bit_pos+1); j++) {
+                //sub_bitfield[0] |= (sub_bitfield[0] << shift);
+                Shift_left_256(sub_bitfield, shift);
+                shift *= 2;
+            }           
+            pwm_bit_array[0] |= sub_bitfield[0];
+            pwm_bit_array[1] |= sub_bitfield[1];
+            pwm_bit_array[2] |= sub_bitfield[2];
+            pwm_bit_array[3] |= sub_bitfield[3];
+        }
+        data_pos *= 2;
+    }    
+    
+    sprintf(outputStr, "0: %32llx\r\n", pwm_bit_array[0]);
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);        
+    sprintf(outputStr, "1: %32llx\r\n", pwm_bit_array[1]);
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);        
+    sprintf(outputStr, "2: %32llx\r\n", pwm_bit_array[2]);
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);        
+    sprintf(outputStr, "3: %32llx\r\n", pwm_bit_array[3]);
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);        
+}
+    
 #define VREFINT_V 1.20
 
 float ADC_Vrefint_to_Vcc(uint32_t adc_val)
@@ -195,9 +310,19 @@ float ADC_Temp_to_degC(uint32_t adc_temp)
     return temp_c;
 }
 
+// TMP235: temperature is 10 mv per deg_c with a 500 mv offset
+//  (deg_c) = (v_in - 0.5) / .01
+float TMP235_V_to_degC(float vin)
+{
+    float temp_c;
+    temp_c = (vin - 0.5) / 0.01;
+    return temp_c;
+}
+
 void ADC_Read(int count)
 {
-    float temp_c, vcc, pa2_v;
+    float temp_c_int, temp_c_h1, temp_c_h2;
+    float vcc, pa2_v, pa3_v, pa4_v;
     
     //Sample with ADC in polling mode
     HAL_ADC_Start(&AdcHandle);
@@ -206,17 +331,31 @@ void ADC_Read(int count)
     
     HAL_ADC_Start(&AdcHandle);
     HAL_ADC_PollForConversion(&AdcHandle, 1000);
-    adcReading[1] = HAL_ADC_GetValue(&AdcHandle); // MCU Temp sensor
+    adcReading[1] = HAL_ADC_GetValue(&AdcHandle); // PA3
     
     HAL_ADC_Start(&AdcHandle);
     HAL_ADC_PollForConversion(&AdcHandle, 1000);
-    adcReading[2] = HAL_ADC_GetValue(&AdcHandle); // MCU VrefInt
-
-    vcc = ADC_Vrefint_to_Vcc(adcReading[2]);
-    temp_c = ADC_Temp_to_degC(adcReading[1]);
-    pa2_v = ADC_to_Volts (adcReading[0], vcc);
+    adcReading[2] = HAL_ADC_GetValue(&AdcHandle); // PA4
     
-    sprintf(outputStr, "%4d ADC: %u %u %u Vcc: %1.2f Temp: %1.2f PA2: %1.2f\r\n", count, adcReading[0], adcReading[1], adcReading[2], vcc, temp_c, pa2_v);
+    HAL_ADC_Start(&AdcHandle);
+    HAL_ADC_PollForConversion(&AdcHandle, 1000);
+    adcReading[3] = HAL_ADC_GetValue(&AdcHandle); // MCU Temp sensor
+    
+    HAL_ADC_Start(&AdcHandle);
+    HAL_ADC_PollForConversion(&AdcHandle, 1000);
+    adcReading[4] = HAL_ADC_GetValue(&AdcHandle); // MCU VrefInt
+
+    vcc = ADC_Vrefint_to_Vcc(adcReading[4]);
+    temp_c_int = ADC_Temp_to_degC(adcReading[3]);
+    pa2_v = ADC_to_Volts (adcReading[0], vcc);
+    pa3_v = ADC_to_Volts (adcReading[1], vcc);
+    pa4_v = ADC_to_Volts (adcReading[2], vcc);
+    
+    temp_c_h1 = TMP235_V_to_degC(pa3_v);
+    temp_c_h2 = TMP235_V_to_degC(pa4_v);
+    
+    //sprintf(outputStr, "%4d ADC: %u %u %u Vcc: %1.2f Temp: %1.2f PA2: %1.2f\r\n", count, adcReading[0], adcReading[1], adcReading[2], vcc, temp_c, pa2_v);
+    sprintf(outputStr, "%4d Vcc: %1.2f Temp: %1.2f PA2: %1.4f t_h1: %1.1f t_h2: %1.1f \r\n", count, vcc, temp_c_int, pa2_v, temp_c_h1, temp_c_h2);
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
 }
 
@@ -249,12 +388,23 @@ void GPIO_Init(void)
 	//Pin settings for ADC input
 	__HAL_RCC_ADC_CLK_ENABLE();
 	
+	AdcPinStruct.Pin = GPIO_PIN_1;
+	AdcPinStruct.Mode = GPIO_MODE_ANALOG;
+	AdcPinStruct.Pull = GPIO_NOPULL;
+	HAL_GPIO_Init(GPIOA, &AdcPinStruct);    
+
 	AdcPinStruct.Pin = GPIO_PIN_2;
 	AdcPinStruct.Mode = GPIO_MODE_ANALOG;
 	AdcPinStruct.Pull = GPIO_NOPULL;
 	HAL_GPIO_Init(GPIOA, &AdcPinStruct);    
-    GPIO_InitTypeDef GPIO_InitStruct;
 
+	AdcPinStruct.Pin = GPIO_PIN_3;
+	AdcPinStruct.Mode = GPIO_MODE_ANALOG;
+	AdcPinStruct.Pull = GPIO_NOPULL;
+	HAL_GPIO_Init(GPIOA, &AdcPinStruct);    
+    
+    GPIO_InitTypeDef GPIO_InitStruct;
+    
     GPIO_InitStruct.Pin = GPIO_PIN_5;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_PULLUP;
@@ -271,6 +421,7 @@ void GPIO_Init(void)
     pwm_pb6.GPIOx = GPIOB;
     pwm_pb6.GPIO_Pin = 6;
     pwm_pb6.pwm_setting = 192;   
+    pwm_pb6.pwm_state = 0;
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
     
     GPIO_InitStruct.Pin = GPIO_PIN_7;
@@ -284,6 +435,7 @@ void GPIO_Init(void)
     pwm_pb7.GPIOx = GPIOB;
     pwm_pb7.GPIO_Pin = 7;
     pwm_pb7.pwm_setting = 192;   
+    pwm_pb7.pwm_state = 0;
 
     GPIO_InitStruct.Pin = GPIO_PIN_12;
     GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
@@ -326,23 +478,31 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     // Control the PB6 PWM output
     // This is aligned with the start of the 125 usec PWM period
     if (pwm_pb6.enabled) {
-        if ((TIM1_cb_count & 0xFF)  < pwm_pb6.pwm_setting)
+        if ((TIM1_cb_count & 0xFF)  < pwm_pb6.pwm_setting) {
             HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_SET);
-        else
+            pwm_pb6.pwm_state++;
+        } else {
             HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
+            pwm_pb6.pwm_state = 0;
+        }
     } else {
         HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
+        pwm_pb6.pwm_state = 0;
     }
 
     // Control the PB7 PWM output
     // This is aligned with the end of the 125 usec PWM period
     if (pwm_pb7.enabled) {
-        if ((TIM1_cb_count & 0xFF)  > (255 - pwm_pb7.pwm_setting))
+        if ((TIM1_cb_count & 0xFF)  > (255 - pwm_pb7.pwm_setting)) {
             HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_SET);
-        else
+            pwm_pb7.pwm_state++;
+        } else {
             HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_RESET);
+            pwm_pb7.pwm_state = 0;
+        }
     } else {
         HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_RESET);
+        pwm_pb7.pwm_state = 0;
     }
     
     // Latch the pushbutton_flag when the button is pressed (falling edge of PA12)
@@ -386,7 +546,6 @@ void UART_Init(void)
 
 void ADC_Init(void)
 {
-	//Setup ADC to sample pin PA2 (channel 2)
 	
 	//Enable Clocks
 	__HAL_RCC_ADC_FORCE_RESET();
@@ -422,13 +581,29 @@ void ADC_Init(void)
 		APP_ErrorHandler();
 	}
 
-    //ADC_CHANNEL_2             (PA2)
+    //ADC_CHANNEL_2             (PA2, pin 1 on PY32F003F1)
+    //ADC_CHANNEL_3             (PA3, pin 2 on PY32F003F1)
+    //ADC_CHANNEL_4             (PA4, pin 3 on PY32F003F1)
     //ADC_CHANNEL_TEMPSENSOR    (ch 11, 9 usec min sample time)
     //ADC_CHANNEL_VREFINT       (ch 12)
 	
 	// Set ADC rank and channel
 	AdcChanConf.Rank = ADC_CHANNEL_2; 
 	AdcChanConf.Channel = ADC_CHANNEL_2;     
+	
+	if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
+	{
+		APP_ErrorHandler();
+	}
+	AdcChanConf.Rank = ADC_CHANNEL_3; 
+	AdcChanConf.Channel = ADC_CHANNEL_3;     
+	
+	if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
+	{
+		APP_ErrorHandler();
+	}
+	AdcChanConf.Rank = ADC_CHANNEL_4; 
+	AdcChanConf.Channel = ADC_CHANNEL_4;     
 	
 	if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
 	{
