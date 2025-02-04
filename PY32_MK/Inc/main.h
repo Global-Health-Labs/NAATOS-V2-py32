@@ -25,30 +25,30 @@
 #ifndef __MAIN_H
 #define __MAIN_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
 /* Includes ------------------------------------------------------------------*/
+#include "timers.h"
 #include "py32f0xx_hal.h"
 #include "app_data.h"
 
 /* Defines ------------------------------------------------------------------*/
-#define TICKS_PER_MSEC 2
-#define TICKS_PER_SEC (1000 * TICKS_PER_MSEC)
-#define LOOP_INTERVAL_TICKS 2000        // 2000 TIM1 ticks per second (500usec tick interval)
 
-/* Exported variables prototypes ------
----------------------------------------*/
+/* Exported variables prototypes ---------------------------------------------*/
 extern struct app_data_t data;
 extern struct flags_t flags;
     
-extern TIM_HandleTypeDef tim1Handle;
 /* Exported functions prototypes ---------------------------------------------*/
 void APP_ErrorHandler(void);
 
 void GPIO_Init(void);
 void UART_Init(void);
+
+void PWMTimer_ISR(void);
+void LEDTimer_ISR(void);
+void SecondTimer_ISR(void);
+void MinuteTimer_ISR(void);
+void DataCollection_ISR(void);
+void DelayedStart_ISR(void);
+void Pushbutton_ISR(void);
 
 void print_log_data(void);
 
@@ -62,10 +62,6 @@ typedef struct {
 } Pin_pwm_t;
 
     
-#ifdef __cplusplus
-}
-#endif
-
 #endif /* __MAIN_H */
 
 /************************ (C) COPYRIGHT Puya *****END OF FILE******************/

@@ -330,7 +330,7 @@
             <uGnu>1</uGnu>
             <useXO>0</useXO>
             <v6Lang>3</v6Lang>
-            <v6LangP>1</v6LangP>
+            <v6LangP>3</v6LangP>
             <vShortEn>1</vShortEn>
             <vShortWch>1</vShortWch>
             <v6Lto>0</v6Lto>
@@ -448,6 +448,16 @@
               <FileName>main.cpp</FileName>
               <FileType>8</FileType>
               <FilePath>.\Src\main.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>timers.cpp</FileName>
+              <FileType>8</FileType>
+              <FilePath>.\Src\timers.cpp</FilePath>
+            </File>
+            <File>
+              <FileName>timers.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>.\Inc\timers.h</FilePath>
             </File>
           </Files>
         </Group>

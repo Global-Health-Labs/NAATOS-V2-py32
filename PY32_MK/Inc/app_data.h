@@ -9,6 +9,7 @@
 
 #include <stdbool.h>
 #include "main.h"
+#include "timers.h"
 
 #define AMPLIFICATION_TIME_MIN          15
 #define ACUTATION_PREP_TIME_MIN         1    // Pre-heat VH during the last minute of amplification.
@@ -88,15 +89,18 @@
 
 
 // Timer related
-#define TICK_TIMER_INTERVAL             60000L
-#define PID_TIMER_INTERVAL              500L
-#define TEMPERATURE_TIMER_INTERVAL      100L
-#define LOGGING_TIMER_INTERVAL          1000L
-#define LED_TIMER_INTERVAL              200L
+#define PWM_TIMER_INTERVAL              1L
+#define MINUTE_TIMER_INTERVAL           (60000L * TICKS_PER_MSEC)
+#define SECOND_TIMER_INTERVAL           (1000L * TICKS_PER_MSEC)
 
-#define STARTUP_DELAY_MS                5000L
+#define PID_TIMER_INTERVAL              (500L * TICKS_PER_MSEC)
+#define DATA_COLLECTION_TIMER_INTERVAL  (500L * TICKS_PER_MSEC)
+#define LED_TIMER_INTERVAL              (200L * TICKS_PER_MSEC)
+#define PUSHBUTTON_TIMER_INTERVAL       (10L * TICKS_PER_MSEC)
+                                        
+#define STARTUP_DELAY_MS                (5000L * TICKS_PER_MSEC)
 
-#define ATTINY_8BIT_PWM_MAX             255
+#define PWM_MAX                         255
 
 #define numProcess                      5  
 
@@ -113,6 +117,7 @@ struct CONTROL
 
 typedef struct app_data_t {
     // structure containing application data, for passing through LOG and DEBUG interfaces
+    bool test_active;
     uint8_t sample_heater_pwm_value;
     uint8_t valve_heater_pwm_value;
     float sample_temperature_c;
@@ -130,25 +135,14 @@ typedef struct app_data_t {
 } app_data_t;
 
 typedef struct flags_t {
+    volatile bool flag_1second;
+    volatile bool flag_1minute;
     volatile bool flagDataCollection;
-    volatile bool flagUpdateTemperature;
     volatile bool flagUpdatePID;
-    volatile bool flagSendLog;
-    volatile bool flagUpdateLed;
+    volatile bool flagUpdateLED;
     volatile bool flagDelayedStart;
-    volatile bool flag_1msec;
-    volatile bool flag_1sec;
-    volatile bool flag_Pushbutton;
+    volatile bool flagPushbutton;
 } flags_t;
-
-typedef void (*irqCallback) ();
-typedef struct 
-  {
-    irqCallback   irqCallbackFunc;
-    uint32_t      TimerInterval;
-    unsigned long deltaMillis;
-    unsigned long previousMillis;
-  } ISRTimerData_t;
 
 
 #endif /*APP_DATA_H_*/

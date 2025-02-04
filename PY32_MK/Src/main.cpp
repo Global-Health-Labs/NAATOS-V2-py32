@@ -1,5 +1,5 @@
 /*
-*   File: main.c
+*   File: main.cpp
 *   Project: NAATOS
 *   Copyright 2025, Global Health Labs
 */
@@ -14,19 +14,26 @@
 #include "pid.h"
 #include "adc.h"
 #include "app_data.h"
+#include "timers.h"
 
 /* Private define ------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 UART_HandleTypeDef UartHandle;
 GPIO_InitTypeDef GpioInitStruct;
 GPIO_InitTypeDef AdcPinStruct;
-TIM_HandleTypeDef tim1Handle;
 
 char outputStr[100];
 app_data_t data;
 flags_t flags;
 
-uint32_t TIM1_cb_count;
+int8_t PWMTimerNumber;
+int8_t LEDTimerNumber;
+int8_t SecondTimerNumber;
+int8_t MinuteTimerNumber;
+int8_t DelayStartTimerNumber;
+int8_t DataCollectionTimerNumber;
+int8_t DelayedStartTimerNumber;
+int8_t PushbuttonTimerNumber;
 
 GPIO_PinState pushbutton_value, last_pushbutton_value;
 
@@ -65,8 +72,6 @@ CONTROL valve_amp_control[numProcess] =
 
 /* Private user code ---------------------------------------------------------*/
 void Data_init(void);
-void Timer_config(void);
-uint32_t Wait_until_tick(uint32_t tick, uint32_t max_wait);
 void Distribute_PWM_Bits(uint8_t pwm_val, uint64_t *pwm_bit_array);
 
 void start_naat_test(void);
@@ -75,9 +80,6 @@ void naat_test_control(void);
 
 Pin_pwm_t pwm_pb6;
 Pin_pwm_t pwm_pb7; 
-
-static void APP_SystemClockConfig(void);
-void TIMER_Init(void);
 
 // PID structure holder
 pid_controller_t sample_zone;
@@ -91,7 +93,7 @@ void pid_init(pid_controller_t &pid, CONTROL pid_settings){
     pid_settings.kp,
     pid_settings.ki,
     pid_settings.kd,
-    ATTINY_8BIT_PWM_MAX,
+    PWM_MAX,
     SLEW_RATE_LIMIT);
 }
 
@@ -106,14 +108,30 @@ void system_setup() {
 	UART_Init();
 	ADC_Init();
     Data_init();
-    Timer_config();
 
     sprintf(outputStr, "NAATOS V2 PY32F003 MK. %s %s\r\n", FW_VERSION_STR, BUILD_HW_STR);		
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
     
+    // set up the timers:
+    PWMTimerNumber = Register_timer(PWMTimer_ISR,  PWM_TIMER_INTERVAL);
+    LEDTimerNumber = Register_timer(LEDTimer_ISR,  LED_TIMER_INTERVAL);    
+    SecondTimerNumber = Register_timer(SecondTimer_ISR,  SECOND_TIMER_INTERVAL);
+    MinuteTimerNumber = Register_timer(MinuteTimer_ISR,  MINUTE_TIMER_INTERVAL);
+    DataCollectionTimerNumber = Register_timer(DataCollection_ISR,  DATA_COLLECTION_TIMER_INTERVAL);
+    DelayedStartTimerNumber = Register_timer(DelayedStart_ISR,  STARTUP_DELAY_MS);
+    PushbuttonTimerNumber = Register_timer(Pushbutton_ISR,  PUSHBUTTON_TIMER_INTERVAL);
+    
     // INIT PID Structure
     pid_init(sample_zone,sample_amp_control[data.state]);
     pid_init(valve_zone,valve_amp_control[data.state]);
+    
+    // start the timers:
+    Enable_timer(LEDTimerNumber);
+    Enable_timer(SecondTimerNumber);
+    Enable_timer(MinuteTimerNumber);
+    Enable_timer(PushbuttonTimerNumber);
+    Enable_timer(DataCollectionTimerNumber);
+    Enable_timer(PWMTimerNumber);
 }
 
 /**
@@ -122,12 +140,11 @@ void system_setup() {
   */
 int main(void)
 {
-    uint32_t start_tick;
-    uint32_t test_active = 0;
+    //uint32_t start_tick;
     
     system_setup();
     
-  	start_tick = TIM1_cb_count;    
+  	//start_tick = TIM1_tick_count;    
     	
     //Distribute_PWM_Bits((uint8_t) 3, (uint64_t *) pwm_pb6.pwm_bits);    
     //Distribute_PWM_Bits((uint8_t) 7, (uint64_t *) pwm_pb6.pwm_bits);    
@@ -137,28 +154,22 @@ int main(void)
     {
         //Wait_until_tick(start_tick + TICKS_PER_SEC, TICKS_PER_SEC*2);
         //start_tick += TICKS_PER_SEC;
-        if (flags.flag_1sec) {
-            flags.flag_1sec = false;
+        if (flags.flag_1second) {
+            flags.flag_1second = false;
             
-            if (test_active) {
+            if (data.test_active) {
                 naat_test_control();
             }
         }
         
-        if (flags.flag_1msec) {
-            flags.flag_1msec = false;
-            if (flags.flag_Pushbutton) {
-                flags.flag_Pushbutton = false;   
+        if (flags.flagPushbutton) {
+            flags.flagPushbutton = false;   
 
-                if (test_active) {
-                    test_active = 0;
-                    stop_naat_test();
-                } else {
-                    test_active = 1;
-                    start_naat_test();
-                }                
-                HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
-            }
+            if (data.test_active) {
+                stop_naat_test();
+            } else {
+                start_naat_test();
+            }                
         }
     }    
 }
@@ -174,10 +185,13 @@ void start_naat_test(void) {
     
     pwm_pb6.enabled = 1;
     pwm_pb7.enabled = 1;        
+    data.test_active = true;
     sprintf(outputStr, "Test started.\r\n");		   
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
 }
 
 void stop_naat_test(void) {
+    data.test_active = false;
     data.state = low_power;
     data.sample_heater_pwm_value = 0;
     data.valve_heater_pwm_value = 0;
@@ -186,6 +200,7 @@ void stop_naat_test(void) {
     pwm_pb6.enabled = 0;
     pwm_pb7.enabled = 0;    
     sprintf(outputStr, "Test stopped.\r\n");		
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
 }
 
 void naat_test_control(void) {
@@ -199,15 +214,14 @@ void naat_test_control(void) {
 void Data_init(void)
 {    
     flags.flagDataCollection = false;
-    flags.flagUpdateTemperature = false;
     flags.flagUpdatePID = false;
-    flags.flagSendLog = false;
-    flags.flagUpdateLed = false;
+    flags.flagUpdateLED = false;
     flags.flagDelayedStart = false;
-    flags.flag_Pushbutton = false;
-    flags.flag_1msec = false;
-    flags.flag_1sec = false;
+    flags.flagPushbutton = false;
+    flags.flag_1second = false;
+    flags.flag_1minute = false;
     
+    data.test_active = false;
     data.state = low_power;
     data.alarm = no_alarm;
     
@@ -228,27 +242,6 @@ void print_log_data(void)
 {
     sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.sample_temperature_c, sample_zone.setpoint, data.sample_heater_pwm_value, data.valve_temperature_c, valve_zone.setpoint, data.valve_heater_pwm_value, data.battery_voltage, data.state);
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
-}
-
-// Wait_until_tick uses the Timer1 callback variable TIM1_cb_count for precise timing delays
-uint32_t Wait_until_tick(uint32_t tick, uint32_t max_wait)
-{
-    uint32_t start_tick, current_tick, wait_time;
-	start_tick = TIM1_cb_count;
-    if (start_tick >= tick) return 0;
-    
-    do {
-        current_tick = TIM1_cb_count;
-        wait_time = current_tick - start_tick;
-    } while (current_tick < tick  && wait_time < max_wait);
-    return wait_time;
-}
-
-void Timer_config(void)
-{
-    TIM1_cb_count = 0;
-    
-    HAL_SetTickFreq(1);     // set the tick timer to 1 MHz (1 msec per tick)    
 }
 
 
@@ -445,94 +438,6 @@ void GPIO_Init(void)
     last_pushbutton_value = GPIO_PIN_SET;
 }
 
-void TIMER_Init(void)
-{
-	/* 	Trigger 4x per second, or every 250ms
-			Clock at 24MHz -> 8 million cycles
-			Period to 10,000, prescaler to 800
-			10,000*800=8,000,000 */
-	
-	tim1Handle.Instance = TIM1;																						//Timer 1 advanced timer
-    tim1Handle.Init.Period            = 15 - 1;				    //Timer count = (period+1)*(prescaler+1), Period of 30 = 1 msec and 15 = 500 usec
-    tim1Handle.Init.Prescaler         = 800 - 1;
-    tim1Handle.Init.ClockDivision     = TIM_CLOCKDIVISION_DIV1;						//Use full clock rate
-    tim1Handle.Init.CounterMode       = TIM_COUNTERMODE_UP;
-    tim1Handle.Init.RepetitionCounter = 1 - 1;
-    tim1Handle.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
-
-    if (HAL_TIM_Base_Init(&tim1Handle) != HAL_OK)
-    {
-    APP_ErrorHandler();
-    }
-
-    if (HAL_TIM_Base_Start_IT(&tim1Handle) != HAL_OK)
-    {
-    APP_ErrorHandler();
-    }
-}
-
-void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
-{   
-    static uint8_t msec_subcounter = 0;
-    
-    // Control the PB6 PWM output (sample heater)
-    // This is aligned with the start of the 125 usec PWM period
-    if (pwm_pb6.enabled) {
-        if ((TIM1_cb_count & 0xFF)  < pwm_pb6.pwm_setting) {
-            HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_SET);
-            pwm_pb6.pwm_state++;
-        } else {
-            HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
-            pwm_pb6.pwm_state = 0;
-        }
-    } else {
-        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
-        pwm_pb6.pwm_state = 0;
-    }
-
-    // Control the PB7 PWM output (valve heater)
-    // This is aligned with the end of the 125 usec PWM period
-    if (pwm_pb7.enabled) {
-        if ((TIM1_cb_count & 0xFF)  > (255 - pwm_pb7.pwm_setting)) {
-            HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_SET);
-            pwm_pb7.pwm_state++;
-        } else {
-            HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_RESET);
-            pwm_pb7.pwm_state = 0;
-        }
-    } else {
-        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_RESET);
-        pwm_pb7.pwm_state = 0;
-    }
-    
-    // Latch the pushbutton_flag when the button is pressed (falling edge of PA12)
-    pushbutton_value = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_12);
-    if (pushbutton_value == GPIO_PIN_RESET && last_pushbutton_value == GPIO_PIN_SET) flags.flag_Pushbutton = true;
-    last_pushbutton_value = pushbutton_value;    
-
-    // blink the LED (at 12.5% duty cycle) if either PWM is enabled:
-    if ((pwm_pb6.enabled > 0 || (pwm_pb7.enabled > 0)) && (TIM1_cb_count & 0x100) < 0x80) {
-        //HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_5);
-        if ((TIM1_cb_count & 0x7) == 0) HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_RESET);
-        else HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_SET);
-    } else {
-        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_SET);
-    }
-    
-    TIM1_cb_count++;
-    if (msec_subcounter == (TICKS_PER_MSEC - 1)) {
-        msec_subcounter = 0;
-        data.msec_tick_count++;
-        flags.flag_1msec = true;
-        if ((data.msec_tick_count % 1000) == 0) {
-            flags.flag_1sec = true;
-        }
-    } else {
-        msec_subcounter++;
-    }
-}
-
-
 void UART_Init(void)
 {
 	//Configure UART1
@@ -553,37 +458,90 @@ void UART_Init(void)
   }
 }
 
+// Timer ISR functions are called from the HAL_TIM ISR.
+// Only time critical code should be run in these routines.
+// It is recommended to set a flag in the ISR that enables lower priority code to run in user space.
 
-static void APP_SystemClockConfig(void)
+void PWMTimer_ISR(void)
+{   
+    // Control the PB6 PWM output (sample heater)
+    // This is aligned with the start of the 125 usec PWM period
+    if (pwm_pb6.enabled) {
+        if ((TIM1_tick_count & 0xFF)  < pwm_pb6.pwm_setting) {
+            HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_SET);
+            pwm_pb6.pwm_state++;
+        } else {
+            HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
+            pwm_pb6.pwm_state = 0;
+        }
+    } else {
+        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
+        pwm_pb6.pwm_state = 0;
+    }
+
+    // Control the PB7 PWM output (valve heater)
+    // This is aligned with the end of the 125 usec PWM period
+    if (pwm_pb7.enabled) {
+        if ((TIM1_tick_count & 0xFF)  > (255 - pwm_pb7.pwm_setting)) {
+            HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_SET);
+            pwm_pb7.pwm_state++;
+        } else {
+            HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_RESET);
+            pwm_pb7.pwm_state = 0;
+        }
+    } else {
+        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_RESET);
+        pwm_pb7.pwm_state = 0;
+    }
+        
+}
+
+void LEDTimer_ISR(void)
 {
-  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+    if (data.test_active) {
+        HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_5);
+    } else {
+        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_RESET);
+    }
+    
+    /*
+    // blink the LED (at 12.5% duty cycle) if either PWM is enabled:
+    if ((pwm_pb6.enabled > 0 || (pwm_pb7.enabled > 0)) && (TIM1_tick_count & 0x100) < 0x80) {
+        //HAL_GPIO_TogglePin(GPIOB, GPIO_PIN_5);
+        if ((TIM1_tick_count & 0x7) == 0) HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_RESET);
+        else HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_SET);
+    } else {
+        HAL_GPIO_WritePin(GPIOB, GPIO_PIN_5, GPIO_PIN_SET);
+    }
+    */
+    
+}
+void SecondTimer_ISR(void)
+{
+    flags.flag_1second = true;
+}
 
-  /* 振荡器配置 */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE | RCC_OSCILLATORTYPE_HSI | RCC_OSCILLATORTYPE_LSI; /* 选择振荡器HSE,HSI,LSI */
-  RCC_OscInitStruct.HSIState = RCC_HSI_ON;                          /* 开启HSI */
-  RCC_OscInitStruct.HSIDiv = RCC_HSI_DIV1;                          /* HSI 1分频 */
-  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_24MHz;  /* Clock at 24MHz */
-  RCC_OscInitStruct.HSEState = RCC_HSE_OFF;                         /* 关闭HSE */
-  /*RCC_OscInitStruct.HSEFreq = RCC_HSE_16_32MHz;*/
-  RCC_OscInitStruct.LSIState = RCC_LSI_OFF;                         /* 关闭LSI */
+void MinuteTimer_ISR(void)
+{
+    flags.flag_1minute = true;
+}
 
-  /* 配置振荡器 */
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
-    APP_ErrorHandler();
-  }
+void DataCollection_ISR(void)
+{
+    flags.flagDataCollection = true;
+}
 
-  /* 时钟源配置 */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1; /* 选择配置时钟 HCLK,SYSCLK,PCLK1 */
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_HSI; /* 选择HSI作为系统时钟 */
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;     /* AHB时钟 1分频 */
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;      /* APB时钟 1分频 */
-  /* 配置时钟源 */
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
-  {
-    APP_ErrorHandler();
-  }
+void DelayedStart_ISR(void)
+{
+    flags.flagDelayedStart = true;
+}
+
+void Pushbutton_ISR(void)
+{
+    // Latch the pushbutton_flag when the button is pressed (falling edge of PA12)
+    pushbutton_value = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_12);
+    if (pushbutton_value == GPIO_PIN_RESET && last_pushbutton_value == GPIO_PIN_SET) flags.flagPushbutton = true;
+    last_pushbutton_value = pushbutton_value;    
 }
 
 void APP_ErrorHandler(void)

@@ -1,5 +1,5 @@
 /*
-*   File: adc.c
+*   File: adc.cpp
 *   Project: NAATOS
 *   Copyright 2025, Global Health Labs
 */

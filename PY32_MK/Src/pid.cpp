@@ -1,10 +1,11 @@
 /*
-*   File: pid.c
+*   File: pid.cpp
 *   Project: NAATOS
 *   Copyright 2025, Global Health Labs
 */
 
 #include "pid.h"
+#include "timers.h"
 
 float constrain(float input_val, float min_val, float max_val) 
 {
