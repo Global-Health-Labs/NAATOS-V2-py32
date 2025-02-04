@@ -27,10 +27,8 @@ app_data_t data;
 flags_t flags;
 
 uint32_t TIM1_cb_count;
-uint32_t TIM1_cb_flag;
 
 GPIO_PinState pushbutton_value, last_pushbutton_value;
-int pushbutton_flag;
 
 #define SH_FIXED_PWM_TEST 128
 #define VH_FIXED_PWM_TEST 255
@@ -71,18 +69,12 @@ void Timer_config(void);
 uint32_t Wait_until_tick(uint32_t tick, uint32_t max_wait);
 void Distribute_PWM_Bits(uint8_t pwm_val, uint64_t *pwm_bit_array);
 
-typedef struct {
-    uint8_t enabled;
-    uint8_t pwm_setting;
-    GPIO_TypeDef *GPIOx;
-    uint16_t GPIO_Pin;
-    uint16_t pwm_state;
-    uint64_t pwm_bits[4];
-} Pin_pwm_t;
+void start_naat_test(void);
+void stop_naat_test(void);
+void naat_test_control(void);
 
 Pin_pwm_t pwm_pb6;
-Pin_pwm_t pwm_pb7;
-    
+Pin_pwm_t pwm_pb7; 
 
 static void APP_SystemClockConfig(void);
 void TIMER_Init(void);
@@ -130,7 +122,6 @@ void system_setup() {
   */
 int main(void)
 {
-    uint32_t loop_count = 0;
     uint32_t start_tick;
     uint32_t test_active = 0;
     
@@ -144,35 +135,65 @@ int main(void)
     
     while (1) 
     {
-        Wait_until_tick(start_tick + TICKS_PER_SEC, TICKS_PER_SEC*2);
-        start_tick += TICKS_PER_SEC;
-		if (test_active) {
-            if (pwm_pb6.enabled && pwm_pb6.pwm_setting > 0) {
-                while (pwm_pb6.pwm_state < 10);        // wait until the next active PWM cycle
+        //Wait_until_tick(start_tick + TICKS_PER_SEC, TICKS_PER_SEC*2);
+        //start_tick += TICKS_PER_SEC;
+        if (flags.flag_1sec) {
+            flags.flag_1sec = false;
+            
+            if (test_active) {
+                naat_test_control();
             }
-            ADC_Read();
-            print_log_data();
-            loop_count++;
         }
         
-        if (pushbutton_flag == 1) {
-            pushbutton_flag = 0;   
+        if (flags.flag_1msec) {
+            flags.flag_1msec = false;
+            if (flags.flag_Pushbutton) {
+                flags.flag_Pushbutton = false;   
 
-            if (test_active) {
-                test_active = 0;
-                pwm_pb6.enabled = 0;
-                pwm_pb7.enabled = 0;    
-                sprintf(outputStr, "Test stopped.\r\n");		
-            } else {
-                pwm_pb6.enabled = 1;
-                pwm_pb7.enabled = 1;        
-                sprintf(outputStr, "Test started.\r\n");		
-                test_active = 1;
-                loop_count = 0;
-            }                
-            HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
+                if (test_active) {
+                    test_active = 0;
+                    stop_naat_test();
+                } else {
+                    test_active = 1;
+                    start_naat_test();
+                }                
+                HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
+            }
         }
     }    
+}
+
+void start_naat_test(void) {
+    data.msec_test_count = 0;
+    data.state = low_power;
+    
+    data.sample_heater_pwm_value = 192;
+    data.valve_heater_pwm_value = 192;
+    pwm_pb6.pwm_setting = data.sample_heater_pwm_value;   
+    pwm_pb7.pwm_setting = data.valve_heater_pwm_value;   
+    
+    pwm_pb6.enabled = 1;
+    pwm_pb7.enabled = 1;        
+    sprintf(outputStr, "Test started.\r\n");		   
+}
+
+void stop_naat_test(void) {
+    data.state = low_power;
+    data.sample_heater_pwm_value = 0;
+    data.valve_heater_pwm_value = 0;
+    pwm_pb6.pwm_setting = data.sample_heater_pwm_value;   
+    pwm_pb7.pwm_setting = data.valve_heater_pwm_value;   
+    pwm_pb6.enabled = 0;
+    pwm_pb7.enabled = 0;    
+    sprintf(outputStr, "Test stopped.\r\n");		
+}
+
+void naat_test_control(void) {
+    if (pwm_pb6.enabled && pwm_pb6.pwm_setting > 0) {
+        while (pwm_pb6.pwm_state < 10);        // wait until the next active PWM cycle
+    }
+    ADC_Read();
+    print_log_data();
 }
 
 void Data_init(void)
@@ -183,6 +204,9 @@ void Data_init(void)
     flags.flagSendLog = false;
     flags.flagUpdateLed = false;
     flags.flagDelayedStart = false;
+    flags.flag_Pushbutton = false;
+    flags.flag_1msec = false;
+    flags.flag_1sec = false;
     
     data.state = low_power;
     data.alarm = no_alarm;
@@ -193,7 +217,8 @@ void Data_init(void)
     data.valve_temperature_c = 0;
     data.py32_temperature_c = 0;
     data.test_adc_voltage = 0;
-    data.current_time_msec = 0;
+    data.msec_tick_count = 0;
+    data.msec_test_count = 0;
     data.battery_voltage = 0;
     data.valve_max_temperature_c = 0;
     data.valve_ramp_time = 0;    
@@ -201,7 +226,7 @@ void Data_init(void)
 
 void print_log_data(void) 
 {
-    sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.current_time_msec, data.sample_temperature_c, sample_zone.setpoint, data.sample_heater_pwm_value, data.valve_temperature_c, valve_zone.setpoint, data.valve_heater_pwm_value, data.battery_voltage, data.state);
+    sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.sample_temperature_c, sample_zone.setpoint, data.sample_heater_pwm_value, data.valve_temperature_c, valve_zone.setpoint, data.valve_heater_pwm_value, data.battery_voltage, data.state);
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
 }
 
@@ -222,7 +247,6 @@ uint32_t Wait_until_tick(uint32_t tick, uint32_t max_wait)
 void Timer_config(void)
 {
     TIM1_cb_count = 0;
-    TIM1_cb_flag = 0;
     
     HAL_SetTickFreq(1);     // set the tick timer to 1 MHz (1 msec per tick)    
 }
@@ -395,7 +419,7 @@ void GPIO_Init(void)
     pwm_pb6.enabled = 0;
     pwm_pb6.GPIOx = GPIOB;
     pwm_pb6.GPIO_Pin = 6;
-    pwm_pb6.pwm_setting = 192;   
+    pwm_pb6.pwm_setting = 0;   
     pwm_pb6.pwm_state = 0;
     HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
     
@@ -409,7 +433,7 @@ void GPIO_Init(void)
     pwm_pb7.enabled = 0;
     pwm_pb7.GPIOx = GPIOB;
     pwm_pb7.GPIO_Pin = 7;
-    pwm_pb7.pwm_setting = 192;   
+    pwm_pb7.pwm_setting = 0;   
     pwm_pb7.pwm_state = 0;
 
     GPIO_InitStruct.Pin = GPIO_PIN_12;
@@ -419,7 +443,6 @@ void GPIO_Init(void)
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);    
     pushbutton_value = GPIO_PIN_SET;
     last_pushbutton_value = GPIO_PIN_SET;
-    pushbutton_flag = 0;    
 }
 
 void TIMER_Init(void)
@@ -450,7 +473,9 @@ void TIMER_Init(void)
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {   
-    // Control the PB6 PWM output
+    static uint8_t msec_subcounter = 0;
+    
+    // Control the PB6 PWM output (sample heater)
     // This is aligned with the start of the 125 usec PWM period
     if (pwm_pb6.enabled) {
         if ((TIM1_cb_count & 0xFF)  < pwm_pb6.pwm_setting) {
@@ -465,7 +490,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
         pwm_pb6.pwm_state = 0;
     }
 
-    // Control the PB7 PWM output
+    // Control the PB7 PWM output (valve heater)
     // This is aligned with the end of the 125 usec PWM period
     if (pwm_pb7.enabled) {
         if ((TIM1_cb_count & 0xFF)  > (255 - pwm_pb7.pwm_setting)) {
@@ -482,7 +507,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     
     // Latch the pushbutton_flag when the button is pressed (falling edge of PA12)
     pushbutton_value = HAL_GPIO_ReadPin(GPIOA, GPIO_PIN_12);
-    if (pushbutton_value == GPIO_PIN_RESET && last_pushbutton_value == GPIO_PIN_SET) pushbutton_flag = 1;
+    if (pushbutton_value == GPIO_PIN_RESET && last_pushbutton_value == GPIO_PIN_SET) flags.flag_Pushbutton = true;
     last_pushbutton_value = pushbutton_value;    
 
     // blink the LED (at 12.5% duty cycle) if either PWM is enabled:
@@ -495,7 +520,16 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     }
     
     TIM1_cb_count++;
-    TIM1_cb_flag = 1;
+    if (msec_subcounter == (TICKS_PER_MSEC - 1)) {
+        msec_subcounter = 0;
+        data.msec_tick_count++;
+        flags.flag_1msec = true;
+        if ((data.msec_tick_count % 1000) == 0) {
+            flags.flag_1sec = true;
+        }
+    } else {
+        msec_subcounter++;
+    }
 }
 
 

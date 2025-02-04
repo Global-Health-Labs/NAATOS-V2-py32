@@ -51,6 +51,16 @@ void GPIO_Init(void);
 void UART_Init(void);
 
 void print_log_data(void);
+
+typedef struct {
+    uint8_t enabled;
+    uint8_t pwm_setting;
+    GPIO_TypeDef *GPIOx;
+    uint16_t GPIO_Pin;
+    uint16_t pwm_state;
+    uint64_t pwm_bits[4];
+} Pin_pwm_t;
+
     
 #ifdef __cplusplus
 }

@@ -121,7 +121,8 @@ typedef struct app_data_t {
     float test_adc_voltage;
     uint8_t state;
     uint8_t alarm;
-    volatile uint8_t current_time_msec;
+    volatile uint32_t msec_tick_count;
+    volatile uint32_t msec_test_count;
 
     float battery_voltage;
     float valve_max_temperature_c;
@@ -135,6 +136,9 @@ typedef struct flags_t {
     volatile bool flagSendLog;
     volatile bool flagUpdateLed;
     volatile bool flagDelayedStart;
+    volatile bool flag_1msec;
+    volatile bool flag_1sec;
+    volatile bool flag_Pushbutton;
 } flags_t;
 
 typedef void (*irqCallback) ();
