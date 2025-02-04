@@ -94,12 +94,12 @@ int main(void)
     
   	start_tick = TIM1_cb_count;
     
-    sprintf(outputStr, "NAATOS V2 PY32F003 Devkit tests.\r\n");		
+    sprintf(outputStr, "NAATOS V2 PY32F003 Devkit tests. %s\r\n", FW_VERSION);		
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
     	
     //Distribute_PWM_Bits((uint8_t) 3, (uint64_t *) pwm_pb6.pwm_bits);    
     //Distribute_PWM_Bits((uint8_t) 7, (uint64_t *) pwm_pb6.pwm_bits);    
-    Distribute_PWM_Bits((uint8_t) 254, (uint64_t *) pwm_pb6.pwm_bits);    
+    //Distribute_PWM_Bits((uint8_t) 254, (uint64_t *) pwm_pb6.pwm_bits);    
     
     while (1) 
     {
