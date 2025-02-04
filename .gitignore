@@ -8,4 +8,7 @@ PY32_devkit/Objects/
 PY32_devkit/Listings/
 PY32_devkit/RTE/
 PY32_devkit/JLinkLog.txt
+PY32_MK/Objects/
+PY32_MK/Listings/
+PY32_MK/JLinkLog.txt
 *.scvd
