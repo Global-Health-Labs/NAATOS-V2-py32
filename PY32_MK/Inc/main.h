@@ -44,13 +44,15 @@ void UART_Init(void);
 
 void PWMTimer_ISR(void);
 void LEDTimer_ISR(void);
-void SecondTimer_ISR(void);
+void PIDTimer_ISR(void);
 void MinuteTimer_ISR(void);
 void DataCollection_ISR(void);
 void DelayedStart_ISR(void);
 void Pushbutton_ISR(void);
+void LogData_ISR(void);
 
 void print_log_data(void);
+void send_vh_max_temp(void);
 
 typedef struct {
     uint8_t enabled;

@@ -122,7 +122,7 @@ float ADC_to_Volts(uint32_t adc_val, float Vcc)
 void ADC_Read(void)
 {
     float vcc, pa2_v, pa3_v, pa4_v;
-    
+            
     //Sample with ADC in polling mode
     HAL_ADC_Start(&AdcHandle);
     HAL_ADC_PollForConversion(&AdcHandle, 1000);

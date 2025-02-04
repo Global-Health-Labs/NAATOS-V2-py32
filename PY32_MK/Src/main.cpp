@@ -28,12 +28,13 @@ flags_t flags;
 
 int8_t PWMTimerNumber;
 int8_t LEDTimerNumber;
-int8_t SecondTimerNumber;
+int8_t PIDTimerNumber;
 int8_t MinuteTimerNumber;
 int8_t DelayStartTimerNumber;
 int8_t DataCollectionTimerNumber;
 int8_t DelayedStartTimerNumber;
 int8_t PushbuttonTimerNumber;
+int8_t LogTimerNumber;
 
 GPIO_PinState pushbutton_value, last_pushbutton_value;
 
@@ -76,7 +77,6 @@ void Distribute_PWM_Bits(uint8_t pwm_val, uint64_t *pwm_bit_array);
 
 void start_naat_test(void);
 void stop_naat_test(void);
-void naat_test_control(void);
 
 Pin_pwm_t pwm_pb6;
 Pin_pwm_t pwm_pb7; 
@@ -115,11 +115,12 @@ void system_setup() {
     // set up the timers:
     PWMTimerNumber = Register_timer(PWMTimer_ISR,  PWM_TIMER_INTERVAL);
     LEDTimerNumber = Register_timer(LEDTimer_ISR,  LED_TIMER_INTERVAL);    
-    SecondTimerNumber = Register_timer(SecondTimer_ISR,  SECOND_TIMER_INTERVAL);
+    PIDTimerNumber = Register_timer(PIDTimer_ISR,  PID_TIMER_INTERVAL);
     MinuteTimerNumber = Register_timer(MinuteTimer_ISR,  MINUTE_TIMER_INTERVAL);
     DataCollectionTimerNumber = Register_timer(DataCollection_ISR,  DATA_COLLECTION_TIMER_INTERVAL);
     DelayedStartTimerNumber = Register_timer(DelayedStart_ISR,  STARTUP_DELAY_MS);
     PushbuttonTimerNumber = Register_timer(Pushbutton_ISR,  PUSHBUTTON_TIMER_INTERVAL);
+    LogTimerNumber = Register_timer(LogData_ISR,  LOG_TIMER_INTERVAL);
     
     // INIT PID Structure
     pid_init(sample_zone,sample_amp_control[data.state]);
@@ -127,11 +128,9 @@ void system_setup() {
     
     // start the timers:
     Enable_timer(LEDTimerNumber);
-    Enable_timer(SecondTimerNumber);
     Enable_timer(MinuteTimerNumber);
     Enable_timer(PushbuttonTimerNumber);
     Enable_timer(DataCollectionTimerNumber);
-    Enable_timer(PWMTimerNumber);
 }
 
 /**
@@ -152,41 +151,142 @@ int main(void)
     
     while (1) 
     {
-        //Wait_until_tick(start_tick + TICKS_PER_SEC, TICKS_PER_SEC*2);
-        //start_tick += TICKS_PER_SEC;
-        if (flags.flag_1second) {
-            flags.flag_1second = false;
-            
-            if (data.test_active) {
-                naat_test_control();
-            }
-        }
-        
         if (flags.flagPushbutton) {
             flags.flagPushbutton = false;   
 
             if (data.test_active) {
                 stop_naat_test();
             } else {
-                start_naat_test();
+                Enable_timer(DelayedStartTimerNumber);
+                Enable_timer(LogTimerNumber);                
             }                
+        }
+        
+        if (flags.flagDelayedStart) {
+            flags.flagDelayedStart = false;
+            Disable_timer(DelayedStartTimerNumber);
+            
+            // Start the test:
+            start_naat_test();
+            Enable_timer(PWMTimerNumber);
+        }                
+
+        if (flags.flag_1minute) {
+            flags.flag_1minute = false;
+            data.minute_test_count++;
+            
+            if (data.minute_test_count >= AMPLIFICATION_TIME_MIN) {
+                if (data.minute_test_count >= AMPLIFICATION_TIME_MIN + ACUTATION_TIME_MIN) {
+                    // in detection
+                    if (data.state != detection) {
+                        data.state = detection;
+                        pid_init(sample_zone,sample_amp_control[data.state]);
+                        pid_init(valve_zone,valve_amp_control[data.state]);
+                        // turn both LEDs off during detection
+                    }
+                    if (data.minute_test_count  >= AMPLIFICATION_TIME_MIN + ACUTATION_TIME_MIN + DETECTION_TIME_MIN) {
+                        // final state -- END
+                        if (data.state != low_power) {
+                            // SHUT DOWN LOADS!!!!
+                            data.state = low_power;
+                            pid_init(sample_zone,sample_amp_control[data.state]);
+                            pid_init(valve_zone,valve_amp_control[data.state]);
+                            stop_naat_test();
+        
+                            send_vh_max_temp();
+                            if (data.valve_max_temperature_c < VALVE_ZONE_MIN_VALID_TEMP_C) {
+                                // blink both LEDs to indicate that the minimum valve temperature was not reached.
+                                data.alarm = valve_min_temp_not_reached;
+                            } 
+                            // change LEDs to opposite states so they can blink opposite of each other (in alarm)
+        
+                            // Enable the LED timer so they can blink at the end
+                        }
+                    }
+                } else if (data.minute_test_count >= AMPLIFICATION_TIME_MIN) {
+                    if (data.state != actuation) {
+                        data.state = actuation;
+                        pid_init(sample_zone,sample_amp_control[data.state]);
+                        pid_init(valve_zone,valve_amp_control[data.state]);
+        
+                        // Change UI (both LEDs are on during valve activation)
+                    }
+                }
+            } else if (data.minute_test_count >= AMPLIFICATION_TIME_MIN - ACUTATION_PREP_TIME_MIN) {
+                  // Pre-heat VH during the last minute of amplification.
+                  if (data.state != actuation_prep) {
+                      data.state = actuation_prep;
+                      pid_init(sample_zone,sample_amp_control[data.state]);
+                      pid_init(valve_zone,valve_amp_control[data.state]);
+                  }        
+            } 
+        }
+
+        /*UPDATE INPUT::TEMPERATURE SENSORS*/
+        if (flags.flagDataCollection){
+          flags.flagDataCollection = false;
+
+          if (pwm_pb6.enabled && pwm_pb6.pwm_setting > 0) {
+              while (pwm_pb6.pwm_state < 10);        // wait until the next active PWM cycle
+          }
+            
+          ADC_Read();
+          // Measure the number of seconds it takes to ramp to the minimum valve temperature:
+          if (data.state == actuation && data.valve_ramp_time == 0 && data.valve_temperature_c >= VALVE_ZONE_MIN_VALID_TEMP_C) {
+            data.valve_ramp_time = data.msec_tick_count / 1000 - (AMPLIFICATION_TIME_MIN * 60);
+          }
+        }
+
+        /*UPDATE OUTPUT:HEATER LOAD*/
+        if (flags.flagUpdatePID) {
+            flags.flagUpdatePID = false;
+            if (data.test_active) {
+                data.msec_test_count += (PID_TIMER_INTERVAL / TICKS_PER_MSEC);
+            }
+            
+            //compute(&sample_zone,data.sample_temperature_c);
+            pid_controller_compute(&sample_zone,data.sample_temperature_c);
+            pid_controller_compute(&valve_zone,data.valve_temperature_c);
+          
+            //data.sample_heater_pwm_value = SH_FIXED_PWM_TEST;
+            //data.valve_heater_pwm_value = VH_FIXED_PWM_TEST;
+            data.sample_heater_pwm_value = sample_zone.out;
+            data.valve_heater_pwm_value = valve_zone.out;
+            pwm_pb6.pwm_setting = data.sample_heater_pwm_value;   
+            pwm_pb7.pwm_setting = data.valve_heater_pwm_value;   
+        }
+        
+        if (flags.flagSendLogData) {
+            flags.flagSendLogData = false;
+            print_log_data();
         }
     }    
 }
 
 void start_naat_test(void) {
     data.msec_test_count = 0;
+    data.minute_test_count = 0;
     data.state = low_power;
     
-    data.sample_heater_pwm_value = 192;
-    data.valve_heater_pwm_value = 192;
+    data.sample_heater_pwm_value = 0;
+    data.valve_heater_pwm_value = 0;
     pwm_pb6.pwm_setting = data.sample_heater_pwm_value;   
     pwm_pb7.pwm_setting = data.valve_heater_pwm_value;   
     
     pwm_pb6.enabled = 1;
     pwm_pb7.enabled = 1;        
     data.test_active = true;
-    sprintf(outputStr, "Test started.\r\n");		   
+    if (data.state != amplification) {
+        data.state = amplification;
+        pid_init(sample_zone,sample_amp_control[data.state]);
+        pid_init(valve_zone,valve_amp_control[data.state]);
+        sprintf(outputStr, "Starting Test\r\n");		   
+    } else {
+        sprintf(outputStr, "Err: Invalid test starting state.\r\n");		   
+    }
+      
+    Enable_timer(PIDTimerNumber);
+    
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
 }
 
@@ -195,20 +295,17 @@ void stop_naat_test(void) {
     data.state = low_power;
     data.sample_heater_pwm_value = 0;
     data.valve_heater_pwm_value = 0;
+    
     pwm_pb6.pwm_setting = data.sample_heater_pwm_value;   
     pwm_pb7.pwm_setting = data.valve_heater_pwm_value;   
     pwm_pb6.enabled = 0;
-    pwm_pb7.enabled = 0;    
+    pwm_pb7.enabled = 0;   
+    
+    Disable_timer(LogTimerNumber);                
+    Disable_timer(MinuteTimerNumber);
+    
     sprintf(outputStr, "Test stopped.\r\n");		
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
-}
-
-void naat_test_control(void) {
-    if (pwm_pb6.enabled && pwm_pb6.pwm_setting > 0) {
-        while (pwm_pb6.pwm_state < 10);        // wait until the next active PWM cycle
-    }
-    ADC_Read();
-    print_log_data();
 }
 
 void Data_init(void)
@@ -218,12 +315,12 @@ void Data_init(void)
     flags.flagUpdateLED = false;
     flags.flagDelayedStart = false;
     flags.flagPushbutton = false;
-    flags.flag_1second = false;
     flags.flag_1minute = false;
     
     data.test_active = false;
     data.state = low_power;
     data.alarm = no_alarm;
+    data.minute_test_count = 0;
     
     data.sample_heater_pwm_value = 0;
     data.valve_heater_pwm_value = 0;
@@ -241,6 +338,11 @@ void Data_init(void)
 void print_log_data(void) 
 {
     sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.sample_temperature_c, sample_zone.setpoint, data.sample_heater_pwm_value, data.valve_temperature_c, valve_zone.setpoint, data.valve_heater_pwm_value, data.battery_voltage, data.state);
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
+}
+
+void send_vh_max_temp(void) {
+    sprintf(outputStr, "VH_MAX: %1.2f valve_ramp_time: %d\r\n", data.valve_max_temperature_c, data.valve_ramp_time);
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
 }
 
@@ -516,9 +618,9 @@ void LEDTimer_ISR(void)
     */
     
 }
-void SecondTimer_ISR(void)
+void PIDTimer_ISR(void)
 {
-    flags.flag_1second = true;
+    flags.flagUpdatePID = true;
 }
 
 void MinuteTimer_ISR(void)
@@ -534,6 +636,11 @@ void DataCollection_ISR(void)
 void DelayedStart_ISR(void)
 {
     flags.flagDelayedStart = true;
+}
+
+void LogData_ISR(void)
+{
+    flags.flagSendLogData = true;
 }
 
 void Pushbutton_ISR(void)
