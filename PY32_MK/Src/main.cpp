@@ -157,6 +157,8 @@ int main(void)
             if (data.test_active) {
                 stop_naat_test();
             } else {
+                data.msec_test_count = 0;
+                data.minute_test_count = 0;
                 Enable_timer(DelayedStartTimerNumber);
                 Enable_timer(LogTimerNumber);                
             }                
@@ -226,14 +228,22 @@ int main(void)
         if (flags.flagDataCollection){
           flags.flagDataCollection = false;
 
-          if (pwm_pb6.enabled && pwm_pb6.pwm_setting > 0) {
-              while (pwm_pb6.pwm_state < 10);        // wait until the next active PWM cycle
+          // Turn off the heaters while reading the ADCs (to minimize noise)
+          if (pwm_pb6.enabled && pwm_pb6.pwm_setting > 0) {              
+              pwm_pb6.enabled = 0;
+              pwm_pb7.enabled = 0;
+              HAL_GPIO_WritePin(GPIOB, GPIO_PIN_6, GPIO_PIN_RESET);
+              HAL_GPIO_WritePin(GPIOB, GPIO_PIN_7, GPIO_PIN_RESET);
+              ADC_Read();
+              pwm_pb6.enabled = 1;
+              pwm_pb7.enabled = 1;              
+          } else {            
+            ADC_Read();
           }
-            
-          ADC_Read();
+          
           // Measure the number of seconds it takes to ramp to the minimum valve temperature:
           if (data.state == actuation && data.valve_ramp_time == 0 && data.valve_temperature_c >= VALVE_ZONE_MIN_VALID_TEMP_C) {
-            data.valve_ramp_time = data.msec_tick_count / 1000 - (AMPLIFICATION_TIME_MIN * 60);
+            data.valve_ramp_time = data.msec_test_count / 1000 - (AMPLIFICATION_TIME_MIN * 60);
           }
         }
 
@@ -267,6 +277,8 @@ void start_naat_test(void) {
     data.msec_test_count = 0;
     data.minute_test_count = 0;
     data.state = low_power;
+    data.valve_max_temperature_c = 0;
+    data.valve_ramp_time = 0;    
     
     data.sample_heater_pwm_value = 0;
     data.valve_heater_pwm_value = 0;

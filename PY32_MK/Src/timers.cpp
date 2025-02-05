@@ -69,7 +69,14 @@ int8_t Register_timer(TimerCallback CallbackFunc, uint32_t TickInterval)
 bool Enable_timer(int8_t TimerNumber) {
     if (TimerNumber < 0 || TimerNumber >= Registered_ISRTimers) return false;
     
-    ISRTimers[TimerNumber].TimerNextTickTime = TIM1_tick_count + ISRTimers[TimerNumber].TimerTickInterval;
+    ISRTimers[TimerNumber].TimerLastTickTime = 0;
+    
+    // align timers >= 1 second on the 1 second boundary:
+    if (ISRTimers[TimerNumber].TimerTickInterval >= TICKS_PER_SEC) {
+        ISRTimers[TimerNumber].TimerNextTickTime = TIM1_tick_count + TICKS_PER_SEC - (TIM1_tick_count%TICKS_PER_SEC) + ISRTimers[TimerNumber].TimerTickInterval;
+    } else {
+        ISRTimers[TimerNumber].TimerNextTickTime = TIM1_tick_count + ISRTimers[TimerNumber].TimerTickInterval;
+    }
     ISRTimers[TimerNumber].enabled = true;
     return true;
 }
@@ -103,7 +110,14 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     for (int timer=0; timer < MAX_REGISTERED_TIMERS; timer++) {
         if (ISRTimers[timer].enabled) {
             if (TIM1_tick_count >= ISRTimers[timer].TimerNextTickTime) {
-                ISRTimers[timer].TimerNextTickTime += ISRTimers[timer].TimerTickInterval;
+                ISRTimers[timer].TimerLastTickTime = ISRTimers[timer].TimerNextTickTime;
+                ISRTimers[timer].TimerNextTickTime = ISRTimers[timer].TimerLastTickTime + ISRTimers[timer].TimerTickInterval;
+                
+                // This means that we are not keeping up or that the timer has just been enabled:
+                if (ISRTimers[timer].TimerNextTickTime <= TIM1_tick_count) {        
+                    ISRTimers[timer].TimerNextTickTime = TIM1_tick_count + ISRTimers[timer].TimerTickInterval;
+                }
+                
                 if (ISRTimers[timer].TimerCallbackFunc)
                     ISRTimers[timer].TimerCallbackFunc();  // call the callback function
             }

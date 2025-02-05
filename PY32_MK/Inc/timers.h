@@ -26,6 +26,7 @@ typedef struct
     bool          enabled;
     TimerCallback TimerCallbackFunc;
     uint32_t      TimerTickInterval;
+    uint32_t      TimerLastTickTime;
     uint32_t      TimerNextTickTime;
   } ISRTimerData_t;
   

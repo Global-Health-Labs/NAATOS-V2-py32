@@ -154,6 +154,11 @@ void ADC_Read(void)
     data.test_adc_voltage = pa2_v;    
     data.sample_temperature_c = TMP235_V_to_degC(pa3_v);
     data.valve_temperature_c = TMP235_V_to_degC(pa4_v);    
+    
+    if (data.valve_temperature_c > data.valve_max_temperature_c) {
+        data.valve_max_temperature_c = data.valve_temperature_c;
+    }
+    
 }
 
 
