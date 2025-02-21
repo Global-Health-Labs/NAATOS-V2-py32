@@ -16,8 +16,10 @@
 #define ACUTATION_TIME_MIN              2
 #define DETECTION_TIME_MIN              1
 
-#define BOARDCONFIG_PY32_MK0
-#define FW_VERSION_STR                  "FW:v0.1"
+#define BOARDCONFIG_MK5_MK6
+#define FW_VERSION_STR                  "FW:v0.2"
+
+#define PUSHBUTTON_UI_ENABLED           1      
 
 /*MK Generation Calibration CONST*/
 #ifdef BOARDCONFIG_MK1_1
@@ -26,28 +28,29 @@
 #define SAMPLE_ZONE_VALVE_SOAK_TARGET_C 68
 #define VALVE_ZONE_VALVE_PREP_TARGET_C  70
 #define VALVE_ZONE_VALVE_SOAK_TARGET_C  97
-#define VALVE_ZONE_MIN_VALID_TEMP_C     85
+#define VALVE_ZONE_MIN_VALID_TEMP_C     89
 #define HEATER_SHUTDOWN_C               0
 #define SLEW_RATE_LIMIT                 255
 #define BUILD_HW_STR                    "HW:MK1_1_B10"
+
 #elif defined(BOARDCONFIG_MK2)
 #define SAMPLE_ZONE_AMP_SOAK_TARGET_C   68
 #define VALVE_ZONE_AMP_SOAK_TARGET_C    70
 #define SAMPLE_ZONE_VALVE_SOAK_TARGET_C 68
 #define VALVE_ZONE_VALVE_PREP_TARGET_C  70
 #define VALVE_ZONE_VALVE_SOAK_TARGET_C  97
-#define VALVE_ZONE_MIN_VALID_TEMP_C     85
+#define VALVE_ZONE_MIN_VALID_TEMP_C     89
 #define HEATER_SHUTDOWN_C               0
 #define SLEW_RATE_LIMIT                 255
 #define BUILD_HW_STR                    "HW:MK2_Bx"
-#elif defined(BOARDCONFIG_MK3)
 
+#elif defined(BOARDCONFIG_MK3)
 #define SAMPLE_ZONE_AMP_SOAK_TARGET_C   68
 #define VALVE_ZONE_AMP_SOAK_TARGET_C    50
 #define SAMPLE_ZONE_VALVE_SOAK_TARGET_C 40
 #define VALVE_ZONE_VALVE_PREP_TARGET_C  70
 #define VALVE_ZONE_VALVE_SOAK_TARGET_C  97
-#define VALVE_ZONE_MIN_VALID_TEMP_C     85
+#define VALVE_ZONE_MIN_VALID_TEMP_C     89
 #define HEATER_SHUTDOWN_C               0
 #define SLEW_RATE_LIMIT                 255
 #define BUILD_HW_STR                    "HW:MK3_B4"
@@ -70,6 +73,17 @@
 #define VALVE_ZONE_VALVE_PREP_TARGET_C  70
 #define VALVE_ZONE_VALVE_SOAK_TARGET_C  97
 #define VALVE_ZONE_MIN_VALID_TEMP_C     85
+#define HEATER_SHUTDOWN_C               0
+#define SLEW_RATE_LIMIT                 255
+#define BUILD_HW_STR                    "HW:MK4_Bx"
+
+#elif defined(BOARDCONFIG_MK5_MK6)
+#define SAMPLE_ZONE_AMP_SOAK_TARGET_C   68
+#define VALVE_ZONE_AMP_SOAK_TARGET_C    70
+#define SAMPLE_ZONE_VALVE_SOAK_TARGET_C 68
+#define VALVE_ZONE_VALVE_PREP_TARGET_C  70
+#define VALVE_ZONE_VALVE_SOAK_TARGET_C  97
+#define VALVE_ZONE_MIN_VALID_TEMP_C     89
 #define HEATER_SHUTDOWN_C               0
 #define SLEW_RATE_LIMIT                 255
 #define BUILD_HW_STR                    "HW:MK4_Bx"

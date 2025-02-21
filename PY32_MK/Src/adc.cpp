@@ -53,29 +53,29 @@ void ADC_Init(void)
 		APP_ErrorHandler();
 	}
 
-    //ADC_CHANNEL_2             (PA2, pin 1 on PY32F003F1)
-    //ADC_CHANNEL_3             (PA3, pin 2 on PY32F003F1)
-    //ADC_CHANNEL_4             (PA4, pin 3 on PY32F003F1)
-    //ADC_CHANNEL_TEMPSENSOR    (ch 11, 9 usec min sample time)
-    //ADC_CHANNEL_VREFINT       (ch 12)
+    // CHANNEL_AMP_TEMP_V           (PA2, on PY32F003F1)
+    // CHANNEL_VALVE_TEMP_V         (PA3, on PY32F003F1)
+    // CHANNEL_V_BATT_SENSE         (PA6, on PY32F003F1)
+    // ADC_CHANNEL_TEMPSENSOR       (ch 11, 9 usec min sample time)
+    // ADC_CHANNEL_VREFINT          (ch 12)
 	
 	// Set ADC rank and channel
-	AdcChanConf.Rank = ADC_CHANNEL_2; 
-	AdcChanConf.Channel = ADC_CHANNEL_2;     
+	AdcChanConf.Rank = Pins.ADC_CHANNEL_AMP_TEMP_V; 
+	AdcChanConf.Channel = Pins.ADC_CHANNEL_AMP_TEMP_V;     
 	
 	if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
 	{
 		APP_ErrorHandler();
 	}
-	AdcChanConf.Rank = ADC_CHANNEL_3; 
-	AdcChanConf.Channel = ADC_CHANNEL_3;     
+	AdcChanConf.Rank = Pins.ADC_CHANNEL_VALVE_TEMP_V; 
+	AdcChanConf.Channel = Pins.ADC_CHANNEL_VALVE_TEMP_V;     
 	
 	if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
 	{
 		APP_ErrorHandler();
 	}
-	AdcChanConf.Rank = ADC_CHANNEL_4; 
-	AdcChanConf.Channel = ADC_CHANNEL_4;     
+	AdcChanConf.Rank = Pins.ADC_CHANNEL_V_BATT_SENSE; 
+	AdcChanConf.Channel = Pins.ADC_CHANNEL_V_BATT_SENSE;     
 	
 	if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
 	{
@@ -126,15 +126,15 @@ void ADC_Read(void)
     //Sample with ADC in polling mode
     HAL_ADC_Start(&AdcHandle);
     HAL_ADC_PollForConversion(&AdcHandle, 1000);
-    adcReading[0] = HAL_ADC_GetValue(&AdcHandle); // PA2, test ADC input
+    adcReading[0] = HAL_ADC_GetValue(&AdcHandle); // Sample temperature
     
     HAL_ADC_Start(&AdcHandle);
     HAL_ADC_PollForConversion(&AdcHandle, 1000);
-    adcReading[1] = HAL_ADC_GetValue(&AdcHandle); // PA3, Sample temperature
+    adcReading[1] = HAL_ADC_GetValue(&AdcHandle); // Valve temperature
     
     HAL_ADC_Start(&AdcHandle);
     HAL_ADC_PollForConversion(&AdcHandle, 1000);
-    adcReading[2] = HAL_ADC_GetValue(&AdcHandle); // PA4, Valve temperature
+    adcReading[2] = HAL_ADC_GetValue(&AdcHandle); // V_BATT_SENSE
     
     HAL_ADC_Start(&AdcHandle);
     HAL_ADC_PollForConversion(&AdcHandle, 1000);

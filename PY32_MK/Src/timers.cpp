@@ -58,7 +58,7 @@ int8_t Register_timer(TimerCallback CallbackFunc, uint32_t TickInterval)
 {
     if (Registered_ISRTimers >= MAX_REGISTERED_TIMERS) 
         return -1;
-    
+     
     ISRTimers[Registered_ISRTimers].enabled = false;
     ISRTimers[Registered_ISRTimers].TimerCallbackFunc = CallbackFunc;
     ISRTimers[Registered_ISRTimers].TimerTickInterval = TickInterval;
