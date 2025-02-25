@@ -56,7 +56,6 @@ typedef struct {
     bool    enabled;
     bool    suspended;
     bool    heater_level_high;
-    uint8_t pwm_setting;
     uint16_t pwm_state;
     uint64_t pwm_bits[4];
 } Pin_pwm_t;

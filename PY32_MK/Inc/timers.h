@@ -11,9 +11,8 @@
 #include <stdbool.h>
 #include "py32f0xx_hal.h"
 
-#define TICKS_PER_MSEC 2
+#define TICKS_PER_MSEC 1
 #define TICKS_PER_SEC (1000 * TICKS_PER_MSEC)
-#define LOOP_INTERVAL_TICKS 2000        // 2000 TIM1 ticks per second (500usec tick interval)
 
 #define MAX_REGISTERED_TIMERS 12
 

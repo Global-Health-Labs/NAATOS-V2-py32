@@ -42,6 +42,9 @@ void HAL_MspInit(void)
 
 void HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim)
 {
+  /* Prevent unused argument(s) compilation warning */
+  UNUSED(htim);    
+    
   __HAL_RCC_TIM1_CLK_ENABLE();                          /* 使能TIM1时钟 */
   HAL_NVIC_SetPriority(TIM1_BRK_UP_TRG_COM_IRQn, 0, 0); /* 设置中断优先级 */
   HAL_NVIC_EnableIRQ(TIM1_BRK_UP_TRG_COM_IRQn);         /* 使能TIM1中断 */

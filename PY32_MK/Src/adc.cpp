@@ -166,11 +166,11 @@ void ADC_Read(void)
     //Sample with ADC in polling mode
     HAL_ADC_Start(&AdcHandle);
     HAL_ADC_PollForConversion(&AdcHandle, 1000);
-    data.adcReading[0] = HAL_ADC_GetValue(&AdcHandle); // Sample temperature
+    data.adcReading[1] = HAL_ADC_GetValue(&AdcHandle); // Sample temperature
     
     HAL_ADC_Start(&AdcHandle);
     HAL_ADC_PollForConversion(&AdcHandle, 1000);
-    data.adcReading[1] = HAL_ADC_GetValue(&AdcHandle); // Valve temperature
+    data.adcReading[0] = HAL_ADC_GetValue(&AdcHandle); // Valve temperature
 
     if (data.usb_cc_adc_read_enabled) {
         HAL_ADC_Start(&AdcHandle);

@@ -31,13 +31,13 @@ void TIMER_Init(void)
     // This is not currently used.
     HAL_SetTickFreq(1);     // set the tick timer to 1 KHz (1 msec per tick)    
     
-	/* 	Trigger 4x per second, or every 250ms
+	/* 	Trigger 1000x per second, or every 1 ms
 			Clock at 24MHz -> 8 million cycles
 			Period to 10,000, prescaler to 800
 			10,000*800=8,000,000 */
 	
 	tim1Handle.Instance = TIM1;																						//Timer 1 advanced timer
-    tim1Handle.Init.Period            = 15 - 1;				    //Timer count = (period+1)*(prescaler+1), Period of 30 = 1 msec and 15 = 500 usec
+    tim1Handle.Init.Period            = 30 - 1;				    //Timer count = (period+1)*(prescaler+1), Period of 30 = 1 msec and 15 = 500 usec
     tim1Handle.Init.Prescaler         = 800 - 1;
     tim1Handle.Init.ClockDivision     = TIM_CLOCKDIVISION_DIV1;						//Use full clock rate
     tim1Handle.Init.CounterMode       = TIM_COUNTERMODE_UP;
@@ -115,6 +115,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     static uint8_t msec_subcounter = 0;
     TIM1_tick_count++;
     
+    /* Prevent unused argument(s) compilation warning */
+    UNUSED(htim);    
+    
+    // __disable_irq(); // Set PRIMASK
+    
     for (int timer=0; timer < MAX_REGISTERED_TIMERS; timer++) {
         if (ISRTimers[timer].enabled) {
             if (TIM1_tick_count >= ISRTimers[timer].TimerNextTickTime) {
@@ -138,6 +143,8 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     } else {
         msec_subcounter++;
     }
+    
+    // __enable_irq(); // Clear PRIMASK    
 }
 
 void APP_SystemClockConfig(void)
