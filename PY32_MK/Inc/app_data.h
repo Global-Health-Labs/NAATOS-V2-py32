@@ -86,7 +86,7 @@
 #define VALVE_ZONE_MIN_VALID_TEMP_C     89
 #define HEATER_SHUTDOWN_C               0
 #define SLEW_RATE_LIMIT                 255
-#define BUILD_HW_STR                    "HW:MK4_Bx"
+#define BUILD_HW_STR                    "HW:MK5_B1"
 
 #else
 
@@ -134,18 +134,28 @@ typedef struct app_data_t {
     bool test_active;
     uint8_t sample_heater_pwm_value;
     uint8_t valve_heater_pwm_value;
+    float sample_thermistor_v;
+    uint32_t sample_thermistor_r;
     float sample_temperature_c;
+    float valve_thermistor_v;
+    uint32_t valve_thermistor_r;
     float valve_temperature_c;
     float py32_temperature_c;
-    float test_adc_voltage;
     uint8_t state;
     uint8_t alarm;
     volatile uint32_t msec_tick_count;
     volatile uint32_t msec_test_count;
     volatile uint32_t minute_test_count;
 
-    float battery_voltage;
+    uint32_t adcReading[7];
+    float adcVoltage[7];         
+
+    float vcc_mcu_voltage;       
+    float system_input_voltage;
     float valve_max_temperature_c;
+    bool usb_cc_adc_read_enabled;
+    float usb_cc1_voltage;
+    float usb_cc2_voltage;
     uint32_t valve_ramp_time;
 } app_data_t;
 

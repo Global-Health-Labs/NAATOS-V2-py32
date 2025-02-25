@@ -4,6 +4,7 @@
 *   Copyright 2025, Global Health Labs
 */
 
+#include <math.h>
 #include "adc.h"
 #include "app_data.h"
 
@@ -12,9 +13,42 @@
 ADC_HandleTypeDef AdcHandle;
 ADC_ChannelConfTypeDef AdcChanConf;
 
-uint32_t adcReading[5] = {0, 0, 0, 0, 0};
-char adcReadingStr[5];
 float temperature_cal;
+
+void ADC_Set_USB_cc_read_state(bool enable_usb_cc_adc_read) {
+    if (enable_usb_cc_adc_read) {
+        AdcChanConf.Rank = Pins.ADC_CHANNEL_USB_CC1; 
+        AdcChanConf.Channel = Pins.ADC_CHANNEL_USB_CC1;             
+        if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
+        {
+            APP_ErrorHandler();
+        }
+
+        AdcChanConf.Rank = Pins.ADC_CHANNEL_USB_CC2; 
+        AdcChanConf.Channel = Pins.ADC_CHANNEL_USB_CC2;             
+        if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
+        {
+            APP_ErrorHandler();
+        }
+        
+        data.usb_cc_adc_read_enabled = true;
+    } else {
+        AdcChanConf.Rank = ADC_RANK_NONE;       // This disables the ADC channel from the ADC read group.
+        AdcChanConf.Channel = Pins.ADC_CHANNEL_USB_CC1;            
+        if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
+        {
+            APP_ErrorHandler();
+        }
+
+        AdcChanConf.Rank = ADC_RANK_NONE; 
+        AdcChanConf.Channel = Pins.ADC_CHANNEL_USB_CC2;            
+        if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
+        {
+            APP_ErrorHandler();
+        }
+        data.usb_cc_adc_read_enabled = false;
+    }
+}
 
 void ADC_Init(void)
 {
@@ -53,13 +87,16 @@ void ADC_Init(void)
 		APP_ErrorHandler();
 	}
 
-    // CHANNEL_AMP_TEMP_V           (PA2, on PY32F003F1)
-    // CHANNEL_VALVE_TEMP_V         (PA3, on PY32F003F1)
-    // CHANNEL_V_BATT_SENSE         (PA6, on PY32F003F1)
+    // ADC_CHANNEL_AMP_TEMP_V       (PA2 on PY32F003F1)
+    // ADC_CHANNEL_VALVE_TEMP_V     (PA3 on PY32F003F1)
+    // ADC_CHANNEL_V_BATT_SENSE     (PA6 on PY32F003F1)
+    // ADC_CHANNEL_USB_CC1          (PA7 on PY32F003F1)
+    // ADC_CHANNEL_USB_CC2          (PA4 on PY32F003F1)
     // ADC_CHANNEL_TEMPSENSOR       (ch 11, 9 usec min sample time)
     // ADC_CHANNEL_VREFINT          (ch 12)
 	
 	// Set ADC rank and channel
+    
 	AdcChanConf.Rank = Pins.ADC_CHANNEL_AMP_TEMP_V; 
 	AdcChanConf.Channel = Pins.ADC_CHANNEL_AMP_TEMP_V;     
 	
@@ -81,6 +118,9 @@ void ADC_Init(void)
 	{
 		APP_ErrorHandler();
 	}
+
+    ADC_Set_USB_cc_read_state(true);
+
 	// Set ADC rank and channel
 	AdcChanConf.Rank = ADC_CHANNEL_TEMPSENSOR; 
 	AdcChanConf.Channel = ADC_CHANNEL_TEMPSENSOR;     
@@ -90,7 +130,6 @@ void ADC_Init(void)
 		APP_ErrorHandler();
 	}
         
-	// Set ADC rank and channel
 	AdcChanConf.Rank = ADC_CHANNEL_VREFINT; 
 	AdcChanConf.Channel = ADC_CHANNEL_VREFINT;     
 	
@@ -119,41 +158,72 @@ float ADC_to_Volts(uint32_t adc_val, float Vcc)
 }
 
 
+// ADC values must be read in logical pin order (PA0, then PA1, etc)
 void ADC_Read(void)
 {
-    float vcc, pa2_v, pa3_v, pa4_v;
+    float mcu_vcc;
             
     //Sample with ADC in polling mode
     HAL_ADC_Start(&AdcHandle);
     HAL_ADC_PollForConversion(&AdcHandle, 1000);
-    adcReading[0] = HAL_ADC_GetValue(&AdcHandle); // Sample temperature
+    data.adcReading[0] = HAL_ADC_GetValue(&AdcHandle); // Sample temperature
     
     HAL_ADC_Start(&AdcHandle);
     HAL_ADC_PollForConversion(&AdcHandle, 1000);
-    adcReading[1] = HAL_ADC_GetValue(&AdcHandle); // Valve temperature
-    
-    HAL_ADC_Start(&AdcHandle);
-    HAL_ADC_PollForConversion(&AdcHandle, 1000);
-    adcReading[2] = HAL_ADC_GetValue(&AdcHandle); // V_BATT_SENSE
-    
-    HAL_ADC_Start(&AdcHandle);
-    HAL_ADC_PollForConversion(&AdcHandle, 1000);
-    adcReading[3] = HAL_ADC_GetValue(&AdcHandle); // MCU Temp sensor
-    
-    HAL_ADC_Start(&AdcHandle);
-    HAL_ADC_PollForConversion(&AdcHandle, 1000);
-    adcReading[4] = HAL_ADC_GetValue(&AdcHandle); // MCU VrefInt
+    data.adcReading[1] = HAL_ADC_GetValue(&AdcHandle); // Valve temperature
 
-    vcc = ADC_Vrefint_to_Vcc(adcReading[4]);
-    data.battery_voltage = vcc;
-    data.py32_temperature_c = PY32_ADC_Temp_to_degC(adcReading[3]);
-    pa2_v = ADC_to_Volts (adcReading[0], vcc);
-    pa3_v = ADC_to_Volts (adcReading[1], vcc);
-    pa4_v = ADC_to_Volts (adcReading[2], vcc);
+    if (data.usb_cc_adc_read_enabled) {
+        HAL_ADC_Start(&AdcHandle);
+        HAL_ADC_PollForConversion(&AdcHandle, 1000);
+        data.adcReading[4] = HAL_ADC_GetValue(&AdcHandle); // USB_CC2               
+    } 
     
-    data.test_adc_voltage = pa2_v;    
-    data.sample_temperature_c = TMP235_V_to_degC(pa3_v);
-    data.valve_temperature_c = TMP235_V_to_degC(pa4_v);    
+    HAL_ADC_Start(&AdcHandle);
+    HAL_ADC_PollForConversion(&AdcHandle, 1000);
+    data.adcReading[2] = HAL_ADC_GetValue(&AdcHandle); // V_BATT_SENSE (system_input_voltage)
+    
+    if (data.usb_cc_adc_read_enabled) {
+        HAL_ADC_Start(&AdcHandle);
+        HAL_ADC_PollForConversion(&AdcHandle, 1000);
+        data.adcReading[3] = HAL_ADC_GetValue(&AdcHandle); // USB_CC1        
+    } 
+    
+    HAL_ADC_Start(&AdcHandle);
+    HAL_ADC_PollForConversion(&AdcHandle, 1000);
+    data.adcReading[5] = HAL_ADC_GetValue(&AdcHandle); // MCU Temp sensor
+    
+    HAL_ADC_Start(&AdcHandle);
+    HAL_ADC_PollForConversion(&AdcHandle, 1000);
+    data.adcReading[6] = HAL_ADC_GetValue(&AdcHandle); // MCU VrefInt
+
+    mcu_vcc = ADC_Vrefint_to_Vcc(data.adcReading[6]);
+    data.vcc_mcu_voltage = mcu_vcc;
+    data.py32_temperature_c = PY32_ADC_Temp_to_degC(data.adcReading[5]);
+    data.adcVoltage[0] = ADC_to_Volts (data.adcReading[0], mcu_vcc);
+    data.adcVoltage[1] = ADC_to_Volts (data.adcReading[1], mcu_vcc);
+    data.adcVoltage[2] = ADC_to_Volts (data.adcReading[2], mcu_vcc);
+
+    if (data.usb_cc_adc_read_enabled) {
+        data.adcVoltage[3] = ADC_to_Volts (data.adcReading[3], mcu_vcc);
+        data.adcVoltage[4] = ADC_to_Volts (data.adcReading[4], mcu_vcc);
+        data.usb_cc1_voltage = data.adcVoltage[3];
+        data.usb_cc2_voltage = data.adcVoltage[4];
+    } else {
+        data.usb_cc1_voltage = -1.0;
+        data.usb_cc2_voltage = -1.0;
+    }
+    
+    data.sample_thermistor_v = data.adcVoltage[0];
+    //data.sample_temperature_c = TMP235_V_to_degC(data.adcVoltage[0]);
+    data.sample_thermistor_r = ADC_to_thermistor_resistance(data.adcReading[0]);
+    data.sample_temperature_c = thermistor_r_to_temperature(data.sample_thermistor_r);
+    
+    data.valve_thermistor_v = data.adcVoltage[1];
+    //data.valve_temperature_c = TMP235_V_to_degC(data.adcVoltage[1]);    
+    data.valve_thermistor_r = ADC_to_thermistor_resistance(data.adcReading[1]);
+    data.valve_temperature_c = thermistor_r_to_temperature(data.valve_thermistor_r);
+    
+    data.system_input_voltage = data.adcVoltage[2] * V_BATT_SENSE_MULTIPLIER;    
     
     if (data.valve_temperature_c > data.valve_max_temperature_c) {
         data.valve_max_temperature_c = data.valve_temperature_c;
@@ -181,3 +251,30 @@ float TMP235_V_to_degC(float vin)
     return temp_c;
 }
 
+#define THERMISTOR_NOMINAL	((float) 100000)	/* 100k */
+#define TEMPERATURE_NOMINAL	((float) 25)		/* 25 degrees C */
+#define B_CONSTANT			((float) 4250)	    /* B-constant (K) 25/50 degrees C */
+
+#define BRIDGE_RESISTOR		((float) 100000)	/* 100k */
+#define ADC_RESOLUTION		4095	            /* 12bit */
+
+
+uint32_t ADC_to_thermistor_resistance(uint32_t raw_adc)
+{
+	float r;					
+	r = ((ADC_RESOLUTION - raw_adc) * BRIDGE_RESISTOR) / (raw_adc);
+	return (uint32_t) r;				
+}    
+float thermistor_r_to_temperature(uint32_t resistance)
+{
+	float temp;
+
+	temp = (float) resistance / (float) THERMISTOR_NOMINAL;	// (R/Ro)
+	temp = logf(temp);			// ln(R/Ro)
+	temp /= B_CONSTANT;			// 1/B * ln(R/Ro)
+	temp += 1.0 / (TEMPERATURE_NOMINAL + 273.15);	// + (1/To)
+	temp = 1.0 / temp;			// Invert
+	temp -= 273.15;				// convert to C
+
+	return temp;
+}

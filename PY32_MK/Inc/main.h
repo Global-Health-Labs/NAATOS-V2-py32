@@ -32,6 +32,8 @@
 
 /* Defines ------------------------------------------------------------------*/
 
+//#define DEBUG 1
+
 /* Exported functions prototypes ---------------------------------------------*/
 void APP_ErrorHandler(void);
 
@@ -51,8 +53,8 @@ void print_log_data(void);
 void send_vh_max_temp(void);
 
 typedef struct {
-    uint8_t enabled;
-    uint8_t suspended;
+    bool    enabled;
+    bool    suspended;
     bool    heater_level_high;
     uint8_t pwm_setting;
     uint16_t pwm_state;

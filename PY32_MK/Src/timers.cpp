@@ -2,6 +2,14 @@
 *   File: timers.cpp
 *   Project: NAATOS
 *   Copyright 2025, Global Health Labs
+*
+*   This module manages a set of up to MAX_REGISTERED_TIMERS timers that are managed from a single physical timer.
+*   Timers are configured (registered) once, and may be enabled or disabled as needed.
+*   The ISRTimerData_t structure sets the TimerTickInterval and TimerCallbackFunc
+*
+*   When a timer fires, its TimerCallbackFunc is called as part of the timer ISR.
+*   Minimal processing should be done in this ISR. 
+*   Flags are recommended to alert user code to handle most events.
 */
 
 #include "timers.h"

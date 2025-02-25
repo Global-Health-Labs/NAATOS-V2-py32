@@ -24,7 +24,7 @@ GPIO_InitTypeDef AdcPinStruct;
 
 Pin_assignments_t Pins;
 
-char outputStr[100];
+char outputStr[200];
 app_data_t data;
 flags_t flags;
 
@@ -134,6 +134,9 @@ void system_setup() {
     Enable_timer(MinuteTimerNumber);
     Enable_timer(PushbuttonTimerNumber);
     Enable_timer(DataCollectionTimerNumber);
+    
+    HAL_GPIO_WritePin(Pins.GPIOx_LED2, Pins.GPIO_Pin_LED2, GPIO_PIN_RESET); // Turn on LED2
+    
 }
 
 /**
@@ -147,10 +150,29 @@ int main(void)
     system_setup();
     
   	//start_tick = TIM1_tick_count;    
-    	
+
+#ifdef DEBUG    
     //Distribute_PWM_Bits((uint8_t) 3, (uint64_t *) pwm_amp_ctrl.pwm_bits);    
     //Distribute_PWM_Bits((uint8_t) 7, (uint64_t *) pwm_amp_ctrl.pwm_bits);    
-    //Distribute_PWM_Bits((uint8_t) 254, (uint64_t *) pwm_amp_ctrl.pwm_bits);    
+    //Distribute_PWM_Bits((uint8_t) 254, (uint64_t *) pwm_amp_ctrl.pwm_bits);   
+#endif
+
+    sprintf(outputStr, "HAL_ADC_TSCAL1 %d HAL_ADC_TSCAL2 %d\r\n", HAL_ADC_TSCAL1, HAL_ADC_TSCAL2);
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
+    
+    ADC_Read();
+    sprintf(outputStr, "ADC: %d %d %d %d %d %d %d\r\n", data.adcReading[0], data.adcReading[1], data.adcReading[2], data.adcReading[3], data.adcReading[4], data.adcReading[5], data.adcReading[6]);
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
+    sprintf(outputStr, "system_input_voltage: %1.2f vcc_mcu_voltage: %1.2f py32_temperature_c: %1.2f\r\n", data.system_input_voltage, data.vcc_mcu_voltage, data.py32_temperature_c);
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
+    sprintf(outputStr, "usb_cc1_voltage: %1.2f usb_cc2_voltage: %1.2f\r\n", data.usb_cc1_voltage, data.usb_cc2_voltage);
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
+    sprintf(outputStr, "sample_temperature_v: %1.2f sample_thermistor_r: %d sample_temperature_c: %1.2f\r\n", data.sample_thermistor_v, data.sample_thermistor_r, data.sample_temperature_c);
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
+    sprintf(outputStr, "valve_temperature_v: %1.2f valve_thermistor_r: %d valve_temperature_c: %1.2f\r\n\r\n", data.valve_thermistor_v, data.valve_thermistor_r, data.valve_temperature_c);
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
+
+    ADC_Set_USB_cc_read_state(false);       // disable reading of USB-C CC voltages in the ADC.
     
     while (1) 
     {
@@ -233,15 +255,15 @@ int main(void)
 
           // Turn off (suspend) the heaters while reading the ADCs (to minimize noise)
           if (pwm_amp_ctrl.enabled && pwm_amp_ctrl.pwm_setting > 0) {              
-              pwm_amp_ctrl.enabled = 0;
-              pwm_amp_ctrl.suspended = 1;
+              pwm_amp_ctrl.enabled = false;
+              pwm_amp_ctrl.suspended = true;
               HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL1, Pins.GPIO_Pin_AMP_CTRL1, GPIO_PIN_RESET);
               HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL2, Pins.GPIO_Pin_AMP_CTRL2, GPIO_PIN_RESET);
           }
 
           if (pwm_valve_ctrl.enabled && pwm_amp_ctrl.pwm_setting > 0) {              
-              pwm_valve_ctrl.enabled = 0;      
-              pwm_valve_ctrl.suspended = 1;
+              pwm_valve_ctrl.enabled = false;      
+              pwm_valve_ctrl.suspended = true;
               HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL1, Pins.GPIO_Pin_VALVE_CTRL1, GPIO_PIN_RESET);
               HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL2, Pins.GPIO_Pin_VALVE_CTRL2, GPIO_PIN_RESET);
           }
@@ -249,12 +271,12 @@ int main(void)
           ADC_Read();
           
           if (pwm_amp_ctrl.suspended) {
-              pwm_amp_ctrl.suspended = 0;
-              pwm_amp_ctrl.enabled = 1;
+              pwm_amp_ctrl.suspended = false;
+              pwm_amp_ctrl.enabled = true;
           }
           if (pwm_valve_ctrl.suspended) {
-              pwm_valve_ctrl.suspended = 0;
-              pwm_valve_ctrl.enabled = 1;
+              pwm_valve_ctrl.suspended = false;
+              pwm_valve_ctrl.enabled = true;
           }
           
           // Measure the number of seconds it takes to ramp to the minimum valve temperature:
@@ -296,9 +318,15 @@ void start_naat_test(void) {
     
     data.sample_heater_pwm_value = 0;
     data.valve_heater_pwm_value = 0;
-    pwm_amp_ctrl.pwm_setting = data.sample_heater_pwm_value;   
+    pwm_amp_ctrl.heater_level_high = false;
+    pwm_amp_ctrl.pwm_setting = data.sample_heater_pwm_value;       
+    pwm_amp_ctrl.enabled = false;
     
-    pwm_amp_ctrl.enabled = 1;
+    pwm_valve_ctrl.enabled = false;
+    pwm_valve_ctrl.heater_level_high = false;
+
+    HAL_GPIO_WritePin(Pins.GPIOx_LED2, Pins.GPIO_Pin_LED2, GPIO_PIN_SET); // Turn off LED2    
+    
     data.test_active = true;
     if (data.state != amplification) {
         data.state = amplification;
@@ -320,8 +348,11 @@ void stop_naat_test(void) {
     data.sample_heater_pwm_value = 0;
     data.valve_heater_pwm_value = 0;
     
-    pwm_amp_ctrl.pwm_setting = data.sample_heater_pwm_value;   
-    pwm_amp_ctrl.enabled = 0;
+    pwm_amp_ctrl.pwm_setting = 0;   
+    pwm_amp_ctrl.enabled = false;
+    
+    pwm_valve_ctrl.pwm_setting = 0;   
+    pwm_valve_ctrl.enabled = false;
     
     Disable_timer(LogTimerNumber);                
     Disable_timer(MinuteTimerNumber);
@@ -349,17 +380,17 @@ void Data_init(void)
     data.sample_temperature_c = 0;
     data.valve_temperature_c = 0;
     data.py32_temperature_c = 0;
-    data.test_adc_voltage = 0;
     data.msec_tick_count = 0;
     data.msec_test_count = 0;
-    data.battery_voltage = 0;
+    data.vcc_mcu_voltage = 0;
+    data.system_input_voltage = 0;
     data.valve_max_temperature_c = 0;
     data.valve_ramp_time = 0;    
 }
 
 void print_log_data(void) 
 {
-    sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.sample_temperature_c, sample_zone.setpoint, data.sample_heater_pwm_value, data.valve_temperature_c, valve_zone.setpoint, data.valve_heater_pwm_value, data.battery_voltage, data.state);
+    sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.sample_temperature_c, sample_zone.setpoint, data.sample_heater_pwm_value, data.valve_temperature_c, valve_zone.setpoint, data.valve_heater_pwm_value, data.system_input_voltage, data.state);
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
 }
 
@@ -371,6 +402,8 @@ void send_vh_max_temp(void) {
 
 #define PWM_BITS 8
 #define PWM_BITFIELD_SIZE 256
+
+#ifdef DEBUG    
 
 /**
  * Shifts a 256-bit unsigned integer (represented as an array of four 64-bit unsigned integers)
@@ -474,6 +507,7 @@ void Distribute_PWM_Bits(uint8_t pwm_val, uint64_t *pwm_bit_array)
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);        
 }
     
+#endif 
 
 void GPIO_Init(void)
 {
@@ -500,14 +534,13 @@ void GPIO_Init(void)
     // MK5 and MK6 pins:
 	//  PIN 19, PA0 is TX
 	//  PIN 20, PA1 is RX
-    //  PIN 1, PA2 is ADC in: AMP_TEMP_V
-    //  PIN 2, PA3 is ADC in: VALVE_TEMP_V
-    //  PIN 3, PA4 is ADC_SPARE (not used)
+    //  PIN 1, PA2 is ADC in: VALVE_TEMP_V
+    //  PIN 2, PA3 is ADC in: AMP_TEMP_V
+    //  PIN 8, PA4 is ADC in: USB_CC2
     //  PIN 4, PA5 is LED1
     //  PIN 12, PB5 is LED2
     //  PIN 5, PA6 is ADC in: V_BATT_SENSE
     //  PIN 6, PA7 is ADC in: USB_CC1
-    //  PIN 8, PA12 is ADC in: USB_CC2
     //  PIN 13, PB6 is PWM output1: AMP_CTRL1
     //  PIN 14, PB7 is PWM output2: AMP_CTRL2
     //  PIN 16, PF0 is PWM output3: VALVE_CTRL1
@@ -535,11 +568,11 @@ void GPIO_Init(void)
     // Device pin assignments:
 #ifdef BOARDCONFIG_MK5_MK6 
     Pins.GPIOx_AMP_TEMP_V = GPIOA;
-    Pins.GPIO_Pin_AMP_TEMP_V = GPIO_PIN_2;
-    Pins.ADC_CHANNEL_AMP_TEMP_V = ADC_CHANNEL_2;    
+    Pins.GPIO_Pin_AMP_TEMP_V = GPIO_PIN_3;
+    Pins.ADC_CHANNEL_AMP_TEMP_V = ADC_CHANNEL_3;    
     Pins.GPIOx_AMP_VALVE_TEMP_V = GPIOA;
-    Pins.GPIO_Pin_AMP_VALVE_TEMP_V = GPIO_PIN_3;
-    Pins.ADC_CHANNEL_VALVE_TEMP_V = ADC_CHANNEL_3;    
+    Pins.GPIO_Pin_AMP_VALVE_TEMP_V = GPIO_PIN_2;
+    Pins.ADC_CHANNEL_VALVE_TEMP_V = ADC_CHANNEL_2;    
     Pins.GPIOx_AMP_V_BATT_SENSE = GPIOA;
     Pins.GPIO_Pin_V_BATT_SENSE = GPIO_PIN_6;
     Pins.ADC_CHANNEL_V_BATT_SENSE = ADC_CHANNEL_6;    
@@ -547,14 +580,12 @@ void GPIO_Init(void)
     Pins.GPIO_Pin_USB_CC1 = GPIO_PIN_7;
     Pins.ADC_CHANNEL_USB_CC1 = ADC_CHANNEL_7;    
     Pins.GPIOx_USB_CC2 = GPIOA;
-    Pins.GPIO_Pin_USB_CC2 = GPIO_PIN_12;
-    Pins.ADC_CHANNEL_USB_CC2 = ADC_CHANNEL_12;    
+    Pins.GPIO_Pin_USB_CC2 = GPIO_PIN_4;
+    Pins.ADC_CHANNEL_USB_CC2 = ADC_CHANNEL_4;    
     Pins.GPIOx_LED1 = GPIOA;
     Pins.GPIO_Pin_LED1 = GPIO_PIN_5;
     Pins.GPIOx_LED2 = GPIOB;
     Pins.GPIO_Pin_LED2 = GPIO_PIN_5;
-    Pins.GPIOx_ADC_SPARE = GPIOA;
-    Pins.GPIO_Pin_ADC_SPARE = GPIO_PIN_4;
     Pins.GPIOx_AMP_CTRL1 = GPIOB;
     Pins.GPIO_Pin_AMP_CTRL1 = GPIO_PIN_6;
     Pins.GPIOx_AMP_CTRL2 = GPIOB;
@@ -585,8 +616,6 @@ void GPIO_Init(void)
     Pins.GPIO_Pin_LED1 = GPIO_PIN_5;
     //Pins.GPIOx_LED2 = GPIOB;
     //Pins.GPIO_Pin_LED2 = GPIO_PIN_5;
-    Pins.GPIOx_ADC_SPARE = GPIOA;
-    Pins.GPIO_Pin_ADC_SPARE = GPIO_PIN_4;
     Pins.GPIOx_AMP_CTRL1 = GPIOB;
     Pins.GPIO_Pin_AMP_CTRL1 = GPIO_PIN_6;
     Pins.GPIOx_AMP_CTRL2 = GPIOB;
@@ -598,8 +627,6 @@ void GPIO_Init(void)
     Pins.GPIOx_PUSHBUTTON = GPIOA;
     Pins.GPIO_Pin_PUSHBUTTON = GPIO_PIN_12;
 #endif
-
-
 	
 	//AdcPinStruct.Pin = GPIO_PIN_1;              // PA1 / UART_RX alternative function
 	//AdcPinStruct.Mode = GPIO_MODE_ANALOG;
@@ -682,16 +709,16 @@ void GPIO_Init(void)
     pushbutton_value = GPIO_PIN_SET;
     last_pushbutton_value = GPIO_PIN_SET;
 
-    pwm_amp_ctrl.enabled = 0;
-    pwm_amp_ctrl.suspended = 0;
+    pwm_amp_ctrl.enabled = false;
+    pwm_amp_ctrl.suspended = false;
     pwm_amp_ctrl.heater_level_high = false;
     pwm_amp_ctrl.pwm_setting = 0;   
     pwm_amp_ctrl.pwm_state = 0;
     HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL1, Pins.GPIO_Pin_AMP_CTRL1, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL2, Pins.GPIO_Pin_AMP_CTRL2, GPIO_PIN_RESET);
             
-    pwm_valve_ctrl.enabled = 0;
-    pwm_valve_ctrl.suspended = 0;    
+    pwm_valve_ctrl.enabled = false;
+    pwm_valve_ctrl.suspended = false;    
     pwm_valve_ctrl.heater_level_high = false;
     pwm_valve_ctrl.pwm_setting = 0;   
     pwm_valve_ctrl.pwm_state = 0;
@@ -728,8 +755,9 @@ void UART_Init(void)
 
 void PWMTimer_ISR(void)
 {   
-    // Control the PB6 PWM output (sample heater)
+    // Control the sample heater control outputs
     // This is aligned with the start of the 125 usec PWM period
+    
     if (pwm_amp_ctrl.enabled) {
         if ((TIM1_tick_count & 0xFF)  < pwm_amp_ctrl.pwm_setting) {
             if (pwm_amp_ctrl.heater_level_high) {
@@ -751,7 +779,7 @@ void PWMTimer_ISR(void)
         pwm_amp_ctrl.pwm_state = 0;
     }
 
-    // Control the PB7 PWM output (valve heater)
+    // Control the valve heater control outputs
     // This is aligned with the end of the 125 usec PWM period
     if (pwm_valve_ctrl.enabled) {
         if ((TIM1_tick_count & 0xFF)  > (255 - pwm_valve_ctrl.pwm_setting)) {
@@ -786,7 +814,7 @@ void LEDTimer_ISR(void)
     
     /*
     // blink the LED (at 12.5% duty cycle) if either PWM is enabled:
-    if ((pwm_amp_ctrl.enabled > 0 || (pwm_valve_ctrl.enabled > 0)) && (TIM1_tick_count & 0x100) < 0x80) {
+    if (pwm_amp_ctrl.enabled || pwm_valve_ctrl.enabled) && (TIM1_tick_count & 0x100) < 0x80) {
         if ((TIM1_tick_count & 0x7) == 0) HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_RESET);
         else HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_SET);
     } else {
