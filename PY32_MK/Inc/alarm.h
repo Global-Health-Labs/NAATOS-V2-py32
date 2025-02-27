@@ -7,6 +7,13 @@
 #ifndef ALARM_H_
 #define ALARM_H_
 
+enum error_state {
+    ERR_NONE = 0,
+    ERR_ADC_CONFIG,
+    ERR_TIMER_CONFIG,
+    ERR_PID_CONFIG,
+    ERR_OVERTEMP    
+};
 
 enum alarm_state {
     // define alarm states here, probably related to LED indicators

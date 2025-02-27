@@ -11,9 +11,9 @@
 #include "main.h"
 #include "timers.h"
 
-#define AMPLIFICATION_TIME_MIN          2
-#define ACUTATION_PREP_TIME_MIN         1    // Pre-heat VH during the last minute of amplification.
-#define ACUTATION_TIME_MIN              2
+#define AMPLIFICATION_TIME_MIN          15
+#define ACTUATION_PREP_TIME_MIN         1    // Pre-heat VH during the last minute of amplification.
+#define ACTUATION_TIME_MIN              5
 #define DETECTION_TIME_MIN              1
 
 #define BOARDCONFIG_MK5_MK6
@@ -30,6 +30,7 @@
 #define VALVE_ZONE_VALVE_SOAK_TARGET_C  97
 #define VALVE_ZONE_MIN_VALID_TEMP_C     89
 #define HEATER_SHUTDOWN_C               0
+#define OVERTEMP_ERR_C                  105
 #define SLEW_RATE_LIMIT                 255
 #define BUILD_HW_STR                    "HW:MK1_1_B10"
 
@@ -41,6 +42,7 @@
 #define VALVE_ZONE_VALVE_SOAK_TARGET_C  97
 #define VALVE_ZONE_MIN_VALID_TEMP_C     89
 #define HEATER_SHUTDOWN_C               0
+#define OVERTEMP_ERR_C                  105
 #define SLEW_RATE_LIMIT                 255
 #define BUILD_HW_STR                    "HW:MK2_Bx"
 
@@ -52,6 +54,7 @@
 #define VALVE_ZONE_VALVE_SOAK_TARGET_C  97
 #define VALVE_ZONE_MIN_VALID_TEMP_C     89
 #define HEATER_SHUTDOWN_C               0
+#define OVERTEMP_ERR_C                  105
 #define SLEW_RATE_LIMIT                 255
 #define BUILD_HW_STR                    "HW:MK3_B4"
 
@@ -63,6 +66,7 @@
 #define VALVE_ZONE_VALVE_SOAK_TARGET_C  70
 #define VALVE_ZONE_MIN_VALID_TEMP_C     65
 #define HEATER_SHUTDOWN_C               0
+#define OVERTEMP_ERR_C                  105
 #define SLEW_RATE_LIMIT                 255
 #define BUILD_HW_STR                    "HW:PY32_MK0_A"
 
@@ -74,6 +78,7 @@
 #define VALVE_ZONE_VALVE_SOAK_TARGET_C  97
 #define VALVE_ZONE_MIN_VALID_TEMP_C     85
 #define HEATER_SHUTDOWN_C               0
+#define OVERTEMP_ERR_C                  105
 #define SLEW_RATE_LIMIT                 255
 #define BUILD_HW_STR                    "HW:MK4_Bx"
 
@@ -81,12 +86,14 @@
 #define SAMPLE_ZONE_AMP_SOAK_TARGET_C   68
 #define VALVE_ZONE_AMP_SOAK_TARGET_C    68
 #define SAMPLE_ZONE_VALVE_SOAK_TARGET_C 0
-#define VALVE_ZONE_VALVE_PREP_TARGET_C  70
+#define VALVE_ZONE_VALVE_PREP_TARGET_C  68
 #define VALVE_ZONE_VALVE_SOAK_TARGET_C  97
 #define VALVE_ZONE_MIN_VALID_TEMP_C     89
 #define HEATER_SHUTDOWN_C               0
+#define HEATER_ELEMENT_POWER_RATIO      35
+#define OVERTEMP_ERR_C                  105
 #define SLEW_RATE_LIMIT                 255
-#define BUILD_HW_STR                    "HW:MK5_B2"
+#define BUILD_HW_STR                    "HW:MK5_B1"
 
 #else
 
@@ -96,6 +103,7 @@
 #define SAMPLE_ZONE_VALVE_SOAK_TARGET_C 65
 #define VALVE_ZONE_VALVE_SOAK_TARGET_C  90
 #define HEATER_SHUTDOWN_C               0
+#define OVERTEMP_ERR_C                  105
 #define SLEW_RATE_LIMIT                 255
 #define BUILD_HW_STR                    "HW:OTHER"
 #endif
@@ -116,7 +124,7 @@
 
 #define PWM_MAX                         255
 
-#define numProcess                      5  
+#define NUMPROCESS                      5  
 
 // Data Structures
 struct CONTROL 
@@ -132,6 +140,7 @@ struct CONTROL
 typedef struct app_data_t {
     // structure containing application data, for passing through LOG and DEBUG interfaces
     bool test_active;
+    bool heater_control_not_simultaneous;
     uint8_t sample_heater_pwm_value;
     uint8_t valve_heater_pwm_value;
     float sample_thermistor_v;

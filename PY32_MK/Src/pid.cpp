@@ -6,6 +6,8 @@
 
 #include "pid.h"
 #include "timers.h"
+#include "main.h"
+#include "alarm.h"
 
 float constrain(float input_val, float min_val, float max_val) 
 {
@@ -26,6 +28,9 @@ void pid_controller_init(pid_controller_t *pid, float setpoint, float k_p, float
   pid->out = 0.0f;
   // Set from parameters
   pid->setpoint = setpoint;
+  if (setpoint < 0 || setpoint > OVERTEMP_ERR_C)
+      		APP_ErrorHandler(ERR_PID_CONFIG);
+      
   pid->k_p = k_p;
   pid->k_i = k_i;
   pid->k_d = k_d;

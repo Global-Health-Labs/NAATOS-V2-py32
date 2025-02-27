@@ -1,7 +1,8 @@
 /*
 *   File: main.cpp
-*   Project: NAATOS
+*   Project: NAATOS V2
 *   Copyright 2025, Global Health Labs
+*   Written by: Ryan Calderon, Mike Deeds
 */
 
 /* Includes ------------------------------------------------------------------*/
@@ -24,7 +25,7 @@ GPIO_InitTypeDef AdcPinStruct;
 
 Pin_assignments_t Pins;
 
-char outputStr[512];
+char outputStr[256];
 app_data_t data;
 flags_t flags;
 
@@ -40,21 +41,21 @@ int8_t LogTimerNumber;
 
 GPIO_PinState pushbutton_value, last_pushbutton_value;
 
-#define SH_FIXED_PWM_TEST 128
+#define SH_FIXED_PWM_TEST 255
 #define VH_FIXED_PWM_TEST 255
 
 /*CONTROL structure
   holds process steps for each STATE in application. Each [INDEX] maps to enum state_machine
 */
 
-#define PID_SH_P_TERM 60
+#define PID_SH_P_TERM 45
 #define PID_SH_I_TERM 0.5
 #define PID_SH_D_TERM 0.333
-#define PID_VH_P_TERM 60
+#define PID_VH_P_TERM 45
 #define PID_VH_I_TERM 0.5
 #define PID_VH_D_TERM 0.333
 
-CONTROL sample_amp_control[numProcess] = 
+CONTROL sample_amp_control[NUMPROCESS] = 
 {
   {HEATER_SHUTDOWN_C, 0, 0, 2, 1, .5},
   {SAMPLE_ZONE_AMP_SOAK_TARGET_C, 0,0, PID_SH_P_TERM, PID_SH_I_TERM, PID_SH_D_TERM},
@@ -62,7 +63,7 @@ CONTROL sample_amp_control[numProcess] =
   {SAMPLE_ZONE_VALVE_SOAK_TARGET_C, 0, 0, PID_SH_P_TERM, PID_SH_I_TERM, PID_SH_D_TERM},
   {HEATER_SHUTDOWN_C, 0, 0, 2, 5, 1}
 };
-CONTROL valve_amp_control[numProcess] = 
+CONTROL valve_amp_control[NUMPROCESS] = 
 {
   {HEATER_SHUTDOWN_C, 0, 0, 0, 0, 0},
   {VALVE_ZONE_AMP_SOAK_TARGET_C, 0,0, PID_VH_P_TERM, PID_VH_I_TERM, PID_VH_D_TERM},
@@ -85,13 +86,13 @@ Pin_pwm_t pwm_amp_ctrl;
 Pin_pwm_t pwm_valve_ctrl; 
 
 // PID structure holder
-pid_controller_t sample_zone;
 pid_controller_t valve_zone;
+pid_controller_t sample_zone;
 
 // Init PID Controller based on the STATE MACHINE state
-void pid_init(pid_controller_t &pid, CONTROL pid_settings){
+void pid_init(pid_controller_t *pid, CONTROL pid_settings){
   pid_controller_init(
-    &pid, 
+    pid, 
     pid_settings.setpoint,
     pid_settings.kp,
     pid_settings.ki,
@@ -131,8 +132,8 @@ void system_setup() {
     LogTimerNumber = Register_timer(LogData_ISR,  LOG_TIMER_INTERVAL);
     
     // INIT PID Structure
-    pid_init(sample_zone,sample_amp_control[data.state]);
-    pid_init(valve_zone,valve_amp_control[data.state]);
+    pid_init(&sample_zone,sample_amp_control[data.state]);
+    pid_init(&valve_zone,valve_amp_control[data.state]);
     
     // start the timers:
     Enable_timer(LEDTimerNumber);
@@ -211,21 +212,23 @@ int main(void)
             data.minute_test_count++;
             
             if (data.minute_test_count >= AMPLIFICATION_TIME_MIN) {
-                if (data.minute_test_count >= AMPLIFICATION_TIME_MIN + ACUTATION_TIME_MIN) {
+                if (data.minute_test_count >= AMPLIFICATION_TIME_MIN + ACTUATION_TIME_MIN) {
                     // in detection
                     if (data.state != detection) {
                         data.state = detection;
-                        pid_init(sample_zone,sample_amp_control[data.state]);
-                        pid_init(valve_zone,valve_amp_control[data.state]);
+                        pid_init(&sample_zone,sample_amp_control[data.state]);
+                        pid_init(&valve_zone,valve_amp_control[data.state]);
+                        pwm_amp_ctrl.enabled = false;      
+                        pwm_valve_ctrl.enabled = false;      
                         // turn both LEDs off during detection
                     }
-                    if (data.minute_test_count  >= AMPLIFICATION_TIME_MIN + ACUTATION_TIME_MIN + DETECTION_TIME_MIN) {
+                    if (data.minute_test_count  >= AMPLIFICATION_TIME_MIN + ACTUATION_TIME_MIN + DETECTION_TIME_MIN) {
                         // final state -- END
                         if (data.state != low_power) {
                             // SHUT DOWN LOADS!!!!
                             data.state = low_power;
-                            pid_init(sample_zone,sample_amp_control[data.state]);
-                            pid_init(valve_zone,valve_amp_control[data.state]);
+                            pid_init(&sample_zone,sample_amp_control[data.state]);
+                            pid_init(&valve_zone,valve_amp_control[data.state]);
                             stop_naat_test();
         
                             send_vh_max_temp();
@@ -241,18 +244,23 @@ int main(void)
                 } else if (data.minute_test_count >= AMPLIFICATION_TIME_MIN) {
                     if (data.state != actuation) {
                         data.state = actuation;
-                        pid_init(sample_zone,sample_amp_control[data.state]);
-                        pid_init(valve_zone,valve_amp_control[data.state]);
+                        
+                        // set valve heater low strength but 100%. (sample heater will be off)
+                        data.heater_control_not_simultaneous = false;  
+                        pwm_valve_ctrl.heater_level_high = false;       // The VH low level has plenty of power
+                        
+                        pid_init(&sample_zone,sample_amp_control[data.state]);
+                        pid_init(&valve_zone,valve_amp_control[data.state]);
         
                         // Change UI (both LEDs are on during valve activation)
                     }
                 }
-            } else if (data.minute_test_count >= AMPLIFICATION_TIME_MIN - ACUTATION_PREP_TIME_MIN) {
+            } else if (data.minute_test_count >= AMPLIFICATION_TIME_MIN - ACTUATION_PREP_TIME_MIN) {
                   // Pre-heat VH during the last minute of amplification.
                   if (data.state != actuation_prep) {
                       data.state = actuation_prep;
-                      pid_init(sample_zone,sample_amp_control[data.state]);
-                      pid_init(valve_zone,valve_amp_control[data.state]);
+                      pid_init(&sample_zone,sample_amp_control[data.state]);
+                      pid_init(&valve_zone,valve_amp_control[data.state]);
                   }        
             } 
         }
@@ -266,7 +274,10 @@ int main(void)
               pwm_amp_ctrl.enabled = false;
               pwm_amp_ctrl.suspended = true;
               HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL1, Pins.GPIO_Pin_AMP_CTRL1, GPIO_PIN_RESET);
-              HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL2, Pins.GPIO_Pin_AMP_CTRL2, GPIO_PIN_RESET);
+              if (data.sample_heater_pwm_value > 0) 
+                HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL2, Pins.GPIO_Pin_AMP_CTRL2, GPIO_PIN_SET);
+              else 
+                HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL2, Pins.GPIO_Pin_AMP_CTRL2, GPIO_PIN_RESET);
           }
 
           if (pwm_valve_ctrl.enabled) {              
@@ -304,10 +315,21 @@ int main(void)
             pid_controller_compute(&sample_zone,data.sample_temperature_c);
             pid_controller_compute(&valve_zone,data.valve_temperature_c);
           
-            //data.sample_heater_pwm_value = SH_FIXED_PWM_TEST;
-            //data.valve_heater_pwm_value = VH_FIXED_PWM_TEST;
-            data.sample_heater_pwm_value = sample_zone.out;
-            data.valve_heater_pwm_value = valve_zone.out;
+            // When heater_control_not_simultaneous is enabled, each heater is run at a fraction of the its PWM value, 
+            // based on the HEATER_ELEMENT_POWER_RATIO. Each heater will run at a fraction of its max power output.
+            // Since the 2 heater controls are aligned with opposite sides of the PWM period, they will not be
+            // turned on simultaniously when in this mode. 
+            if (data.heater_control_not_simultaneous) {
+                //data.sample_heater_pwm_value = SH_FIXED_PWM_TEST /2;
+                //data.valve_heater_pwm_value = VH_FIXED_PWM_TEST /2;
+                data.sample_heater_pwm_value = (sample_zone.out * (100-HEATER_ELEMENT_POWER_RATIO)) /100;
+                data.valve_heater_pwm_value = (valve_zone.out * HEATER_ELEMENT_POWER_RATIO) /100;
+            } else {
+                data.sample_heater_pwm_value = SH_FIXED_PWM_TEST;
+                data.valve_heater_pwm_value = VH_FIXED_PWM_TEST;
+                data.sample_heater_pwm_value = sample_zone.out;
+                data.valve_heater_pwm_value = valve_zone.out;
+            }
         }
         
         if (flags.flagSendLogData) {
@@ -324,6 +346,7 @@ void start_naat_test(void) {
     data.valve_max_temperature_c = 0;
     data.valve_ramp_time = 0;    
     
+    data.heater_control_not_simultaneous = false;
     data.sample_heater_pwm_value = 0;
     data.valve_heater_pwm_value = 0;
     pwm_amp_ctrl.heater_level_high = false;
@@ -337,8 +360,8 @@ void start_naat_test(void) {
     data.test_active = true;
     if (data.state != amplification) {
         data.state = amplification;
-        pid_init(sample_zone,sample_amp_control[data.state]);
-        pid_init(valve_zone,valve_amp_control[data.state]);
+        pid_init(&sample_zone,sample_amp_control[data.state]);
+        pid_init(&valve_zone,valve_amp_control[data.state]);
     } else {
         sprintf(outputStr, "Err: Invalid test starting state.\r\n");		   
         HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
@@ -354,10 +377,7 @@ void stop_naat_test(void) {
     data.sample_heater_pwm_value = 0;
     data.valve_heater_pwm_value = 0;
     
-    data.sample_heater_pwm_value = 0;
-    pwm_amp_ctrl.enabled = false;
-    
-    data.valve_heater_pwm_value = 0;
+    pwm_amp_ctrl.enabled = false;    
     pwm_valve_ctrl.enabled = false;
     
     Disable_timer(LogTimerNumber);                
@@ -396,7 +416,7 @@ void Data_init(void)
 
 void print_log_data(void) 
 {
-    sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.sample_temperature_c, sample_zone.setpoint, data.sample_heater_pwm_value, data.valve_temperature_c, valve_zone.setpoint, data.valve_heater_pwm_value, data.system_input_voltage, data.state);
+    sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.sample_temperature_c, sample_zone.setpoint, data.sample_heater_pwm_value, data.valve_temperature_c, valve_zone.setpoint, data.valve_heater_pwm_value, data.vcc_mcu_voltage, data.state);
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
 }
 
@@ -717,6 +737,7 @@ void GPIO_Init(void)
     last_pushbutton_value = GPIO_PIN_SET;
 
     pwm_amp_ctrl.enabled = false;
+    data.heater_control_not_simultaneous = true;    
     pwm_amp_ctrl.suspended = false;
     pwm_amp_ctrl.heater_level_high = false;
     pwm_amp_ctrl.pwm_state = 0;
@@ -750,7 +771,7 @@ void UART_Init(void)
 	
   if (HAL_UART_Init(&UartHandle) != HAL_OK)
   {
-    APP_ErrorHandler();
+    APP_ErrorHandler(ERR_TIMER_CONFIG);
   }
 }
 
@@ -870,13 +891,28 @@ void Pushbutton_ISR(void)
     last_pushbutton_value = pushbutton_value;    
 }
 
-void APP_ErrorHandler(void)
+void APP_ErrorHandler(uint8_t errnum)
 {
-  sprintf(outputStr, "APP_ErrorHandler. Halting system.\r\n");		
-  HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
-  while (1)
-  {
-  }
+    __disable_irq(); // Set PRIMASK
+    
+    // Make sure all heaters are disabled
+    HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL1, Pins.GPIO_Pin_AMP_CTRL1, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL2, Pins.GPIO_Pin_AMP_CTRL2, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL1, Pins.GPIO_Pin_VALVE_CTRL1, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL2, Pins.GPIO_Pin_VALVE_CTRL2, GPIO_PIN_RESET);
+    
+    sprintf(outputStr, "APP_ErrorHandler: %d. Halting system.\r\n", errnum);		
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
+    
+    HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_SET); 
+    HAL_GPIO_WritePin(Pins.GPIOx_LED2, Pins.GPIO_Pin_LED2, GPIO_PIN_RESET); 
+    
+    while (1)
+    {
+        HAL_GPIO_TogglePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1);        // fast LED blink pattern
+        HAL_GPIO_TogglePin(Pins.GPIOx_LED2, Pins.GPIO_Pin_LED2);
+        for (uint32_t i=0; i < 0x100000; i++);
+    }
 }
 
 

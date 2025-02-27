@@ -7,6 +7,7 @@
 #include <math.h>
 #include "adc.h"
 #include "app_data.h"
+#include "alarm.h"
 
 #define VREFINT_V 1.20
 
@@ -21,14 +22,14 @@ void ADC_Set_USB_cc_read_state(bool enable_usb_cc_adc_read) {
         AdcChanConf.Channel = Pins.ADC_CHANNEL_USB_CC1;             
         if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
         {
-            APP_ErrorHandler();
+            APP_ErrorHandler(ERR_ADC_CONFIG);
         }
 
         AdcChanConf.Rank = Pins.ADC_CHANNEL_USB_CC2; 
         AdcChanConf.Channel = Pins.ADC_CHANNEL_USB_CC2;             
         if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
         {
-            APP_ErrorHandler();
+            APP_ErrorHandler(ERR_ADC_CONFIG);
         }
         
         data.usb_cc_adc_read_enabled = true;
@@ -37,14 +38,14 @@ void ADC_Set_USB_cc_read_state(bool enable_usb_cc_adc_read) {
         AdcChanConf.Channel = Pins.ADC_CHANNEL_USB_CC1;            
         if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
         {
-            APP_ErrorHandler();
+            APP_ErrorHandler(ERR_ADC_CONFIG);
         }
 
         AdcChanConf.Rank = ADC_RANK_NONE; 
         AdcChanConf.Channel = Pins.ADC_CHANNEL_USB_CC2;            
         if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
         {
-            APP_ErrorHandler();
+            APP_ErrorHandler(ERR_ADC_CONFIG);
         }
         data.usb_cc_adc_read_enabled = false;
     }
@@ -63,7 +64,7 @@ void ADC_Init(void)
 	
 	if (HAL_ADCEx_Calibration_Start(&AdcHandle) != HAL_OK)
 		{
-			APP_ErrorHandler();
+			APP_ErrorHandler(ERR_ADC_CONFIG);
 		}
 	
 	//Populate ADC init data
@@ -84,7 +85,7 @@ void ADC_Init(void)
 	//Initialize ADC
 	if (HAL_ADC_Init(&AdcHandle) != HAL_OK)
 	{
-		APP_ErrorHandler();
+		APP_ErrorHandler(ERR_ADC_CONFIG);
 	}
 
     // ADC_CHANNEL_AMP_TEMP_V       (PA2 on PY32F003F1)
@@ -102,21 +103,21 @@ void ADC_Init(void)
 	
 	if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
 	{
-		APP_ErrorHandler();
+		APP_ErrorHandler(ERR_ADC_CONFIG);
 	}
 	AdcChanConf.Rank = Pins.ADC_CHANNEL_VALVE_TEMP_V; 
 	AdcChanConf.Channel = Pins.ADC_CHANNEL_VALVE_TEMP_V;     
 	
 	if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
 	{
-		APP_ErrorHandler();
+		APP_ErrorHandler(ERR_ADC_CONFIG);
 	}
 	AdcChanConf.Rank = Pins.ADC_CHANNEL_V_BATT_SENSE; 
 	AdcChanConf.Channel = Pins.ADC_CHANNEL_V_BATT_SENSE;     
 	
 	if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
 	{
-		APP_ErrorHandler();
+		APP_ErrorHandler(ERR_ADC_CONFIG);
 	}
 
     ADC_Set_USB_cc_read_state(true);
@@ -127,7 +128,7 @@ void ADC_Init(void)
 	
 	if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
 	{
-		APP_ErrorHandler();
+		APP_ErrorHandler(ERR_ADC_CONFIG);
 	}
         
 	AdcChanConf.Rank = ADC_CHANNEL_VREFINT; 
@@ -135,7 +136,7 @@ void ADC_Init(void)
 	
 	if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
 	{
-		APP_ErrorHandler();
+		APP_ErrorHandler(ERR_ADC_CONFIG);
 	}
     
     // precalculate part of the temperature calculation:
@@ -228,6 +229,13 @@ void ADC_Read(void)
     if (data.valve_temperature_c > data.valve_max_temperature_c) {
         data.valve_max_temperature_c = data.valve_temperature_c;
     }
+    
+    if (data.sample_temperature_c >= OVERTEMP_ERR_C) {
+		APP_ErrorHandler(ERR_OVERTEMP);
+    } else if (data.valve_temperature_c >= OVERTEMP_ERR_C) {
+		APP_ErrorHandler(ERR_OVERTEMP);
+    }
+
     
 }
 

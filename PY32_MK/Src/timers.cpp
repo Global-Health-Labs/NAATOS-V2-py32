@@ -15,6 +15,7 @@
 #include "timers.h"
 #include "main.h"
 #include "app_data.h"
+#include "alarm.h"
 
 TIM_HandleTypeDef tim1Handle;
 uint32_t TIM1_tick_count;
@@ -31,14 +32,10 @@ void TIMER_Init(void)
     // This is not currently used.
     HAL_SetTickFreq(1);     // set the tick timer to 1 KHz (1 msec per tick)    
     
-	/* 	Trigger 1000x per second, or every 1 ms
-			Clock at 24MHz -> 8 million cycles
-			Period to 10,000, prescaler to 800
-			10,000*800=8,000,000 */
 	
 	tim1Handle.Instance = TIM1;																						//Timer 1 advanced timer
     tim1Handle.Init.Period            = 30 - 1;				    //Timer count = (period+1)*(prescaler+1), Period of 30 = 1 msec and 15 = 500 usec
-    tim1Handle.Init.Prescaler         = 800 - 1;
+    tim1Handle.Init.Prescaler         = 800 - 1;                // 24 MHz / 800 = 30 KHz
     tim1Handle.Init.ClockDivision     = TIM_CLOCKDIVISION_DIV1;						//Use full clock rate
     tim1Handle.Init.CounterMode       = TIM_COUNTERMODE_UP;
     tim1Handle.Init.RepetitionCounter = 1 - 1;
@@ -46,12 +43,12 @@ void TIMER_Init(void)
 
     if (HAL_TIM_Base_Init(&tim1Handle) != HAL_OK)
     {
-    APP_ErrorHandler();
+    APP_ErrorHandler(ERR_TIMER_CONFIG);
     }
 
     if (HAL_TIM_Base_Start_IT(&tim1Handle) != HAL_OK)
     {
-    APP_ErrorHandler();
+    APP_ErrorHandler(ERR_TIMER_CONFIG);
     }
     
     Registered_ISRTimers = 0;
@@ -162,7 +159,7 @@ void APP_SystemClockConfig(void)
 
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
-    APP_ErrorHandler();
+    APP_ErrorHandler(ERR_TIMER_CONFIG);
   }
 
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1; /* ?????? HCLK,SYSCLK,PCLK1 */
@@ -172,7 +169,7 @@ void APP_SystemClockConfig(void)
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
   {
-    APP_ErrorHandler();
+    APP_ErrorHandler(ERR_TIMER_CONFIG);
   }
 }
 

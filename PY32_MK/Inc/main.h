@@ -35,7 +35,7 @@
 //#define DEBUG 1
 
 /* Exported functions prototypes ---------------------------------------------*/
-void APP_ErrorHandler(void);
+void APP_ErrorHandler(uint8_t errnum);
 
 void GPIO_Init(void);
 void UART_Init(void);
