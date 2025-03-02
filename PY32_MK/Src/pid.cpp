@@ -9,6 +9,10 @@
 #include "main.h"
 #include "alarm.h"
 
+// PID structures
+pid_controller_t sample_zone;
+pid_controller_t valve_zone;
+
 float constrain(float input_val, float min_val, float max_val) 
 {
     float output_val;

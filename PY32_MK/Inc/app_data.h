@@ -16,8 +16,9 @@
 #define ACTUATION_TIME_MIN              5
 #define DETECTION_TIME_MIN              1
 
-#define BOARDCONFIG_MK5_MK6
-#define FW_VERSION_STR                  "FW:v0.2"
+#define BOARDCONFIG_MK5C_MK6C
+
+#define FW_VERSION_STR                  "FW:v0.3"
 
 //#define PUSHBUTTON_UI_ENABLED           1      
 
@@ -82,7 +83,7 @@
 #define SLEW_RATE_LIMIT                 255
 #define BUILD_HW_STR                    "HW:MK4_Bx"
 
-#elif defined(BOARDCONFIG_MK5_MK6)
+#elif defined(BOARDCONFIG_MK5C_MK6C) || defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6F)
 #define SAMPLE_ZONE_AMP_SOAK_TARGET_C   68
 #define VALVE_ZONE_AMP_SOAK_TARGET_C    68
 #define SAMPLE_ZONE_VALVE_SOAK_TARGET_C 0
@@ -93,7 +94,7 @@
 #define HEATER_ELEMENT_POWER_RATIO      35
 #define OVERTEMP_ERR_C                  105
 #define SLEW_RATE_LIMIT                 255
-#define BUILD_HW_STR                    "HW:MK5_B1"
+#define BUILD_HW_STR                    "HW:MK5AA_B8"
 
 #else
 

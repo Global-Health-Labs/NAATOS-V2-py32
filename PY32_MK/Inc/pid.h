@@ -45,4 +45,7 @@ typedef struct {
 void pid_controller_init(pid_controller_t *pid, float setpoint, float k_p, float k_i, float k_d, int pid_max, float slew_rate);
 void pid_controller_compute(pid_controller_t *pid, float measurement);
 
+extern pid_controller_t sample_zone;
+extern pid_controller_t valve_zone;
+
 #endif
