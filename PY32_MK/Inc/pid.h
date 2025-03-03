@@ -13,6 +13,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
+#include "main.h"
 
 /* PID Controller Parameters */
 #define PID_LIM_MIN 0.0f
@@ -42,10 +43,9 @@ typedef struct {
   
 } pid_controller_t;
 
-void pid_controller_init(pid_controller_t *pid, float setpoint, float k_p, float k_i, float k_d, int pid_max, float slew_rate);
-void pid_controller_compute(pid_controller_t *pid, float measurement);
+void pid_controller_init(heater_t heater, float setpoint, float k_p, float k_i, float k_d, int pid_max, float slew_rate);
+void pid_controller_compute(heater_t heater, float measurement);
 
-extern pid_controller_t sample_zone;
-extern pid_controller_t valve_zone;
+extern pid_controller_t pid_data[];
 
 #endif

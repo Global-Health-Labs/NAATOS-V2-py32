@@ -34,6 +34,12 @@
 
 //#define DEBUG 1
 
+typedef enum {
+    // define alarm states here, probably related to LED indicators
+    SAMPLE_HEATER = 0,
+    VALVE_HEATER = 1
+} heater_t;
+
 /* Exported functions prototypes ---------------------------------------------*/
 void APP_ErrorHandler(uint8_t errnum);
 

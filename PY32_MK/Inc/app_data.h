@@ -94,7 +94,7 @@
 #define HEATER_ELEMENT_POWER_RATIO      35
 #define OVERTEMP_ERR_C                  105
 #define SLEW_RATE_LIMIT                 255
-#define BUILD_HW_STR                    "HW:MK5AA_B8"
+#define BUILD_HW_STR                    "HW:MK5_B2"
 
 #else
 
@@ -167,6 +167,7 @@ typedef struct app_data_t {
     float usb_cc1_voltage;
     float usb_cc2_voltage;
     uint32_t valve_ramp_time;
+    uint32_t test_interval;
 } app_data_t;
 
 typedef struct flags_t {

@@ -97,9 +97,9 @@ Pin_pwm_t pwm_valve_ctrl;
 
 
 // Init PID Controller based on the STATE MACHINE state
-void pid_init(pid_controller_t *pid, CONTROL pid_settings){
+void pid_init(heater_t heater, CONTROL pid_settings){
   pid_controller_init(
-    pid, 
+    heater, 
     pid_settings.setpoint,
     pid_settings.kp,
     pid_settings.ki,
@@ -139,8 +139,8 @@ void system_setup() {
     LogTimerNumber = Register_timer(LogData_ISR,  LOG_TIMER_INTERVAL);
     
     // INIT PID Structure
-    pid_init(&sample_zone,sample_amp_control[data.state]);
-    pid_init(&valve_zone,valve_amp_control[data.state]);
+    pid_init(SAMPLE_HEATER, sample_amp_control[data.state]);
+    pid_init(VALVE_HEATER, valve_amp_control[data.state]);
     
     // start the timers:
     Enable_timer(LEDTimerNumber);
@@ -223,8 +223,8 @@ int main(void)
                     // in detection
                     if (data.state != detection) {
                         data.state = detection;
-                        pid_init(&sample_zone,sample_amp_control[data.state]);
-                        pid_init(&valve_zone,valve_amp_control[data.state]);
+                        pid_init(SAMPLE_HEATER,sample_amp_control[data.state]);
+                        pid_init(VALVE_HEATER,valve_amp_control[data.state]);
                         pwm_amp_ctrl.enabled = false;      
                         pwm_valve_ctrl.enabled = false;      
                         // turn both LEDs off during detection
@@ -234,8 +234,8 @@ int main(void)
                         if (data.state != low_power) {
                             // SHUT DOWN LOADS!!!!
                             data.state = low_power;
-                            pid_init(&sample_zone,sample_amp_control[data.state]);
-                            pid_init(&valve_zone,valve_amp_control[data.state]);
+                            pid_init(SAMPLE_HEATER,sample_amp_control[data.state]);
+                            pid_init(VALVE_HEATER,valve_amp_control[data.state]);
                             stop_naat_test();
         
                             send_vh_max_temp();
@@ -256,8 +256,8 @@ int main(void)
                         data.heater_control_not_simultaneous = false;  
                         pwm_valve_ctrl.heater_level_high = false;       // The VH low level has plenty of power
                         
-                        pid_init(&sample_zone,sample_amp_control[data.state]);
-                        pid_init(&valve_zone,valve_amp_control[data.state]);
+                        pid_init(SAMPLE_HEATER,sample_amp_control[data.state]);
+                        pid_init(VALVE_HEATER,valve_amp_control[data.state]);
         
                         // Change UI (both LEDs are on during valve activation)
                     }
@@ -266,8 +266,8 @@ int main(void)
                   // Pre-heat VH during the last minute of amplification.
                   if (data.state != actuation_prep) {
                       data.state = actuation_prep;
-                      pid_init(&sample_zone,sample_amp_control[data.state]);
-                      pid_init(&valve_zone,valve_amp_control[data.state]);
+                      pid_init(SAMPLE_HEATER,sample_amp_control[data.state]);
+                      pid_init(VALVE_HEATER,valve_amp_control[data.state]);
                   }        
             } 
         }
@@ -318,24 +318,23 @@ int main(void)
                 data.msec_test_count += (PID_TIMER_INTERVAL / TICKS_PER_MSEC);
             }
             
-            //compute(&sample_zone,data.sample_temperature_c);
-            pid_controller_compute(&sample_zone,data.sample_temperature_c);
-            pid_controller_compute(&valve_zone,data.valve_temperature_c);
-          
+            pid_controller_compute(SAMPLE_HEATER, data.sample_temperature_c);
+            pid_controller_compute(VALVE_HEATER, data.valve_temperature_c);
+        
             // When heater_control_not_simultaneous is enabled, each heater is run at a fraction of the its PWM value, 
             // based on the HEATER_ELEMENT_POWER_RATIO. Each heater will run at a fraction of its max power output.
             // Since the 2 heater controls are aligned with opposite sides of the PWM period, they will not be
             // turned on simultaniously when in this mode. 
             if (data.heater_control_not_simultaneous) {
-                //data.sample_heater_pwm_value = SH_FIXED_PWM_TEST /2;
-                //data.valve_heater_pwm_value = VH_FIXED_PWM_TEST /2;
-                data.sample_heater_pwm_value = (sample_zone.out * (100-HEATER_ELEMENT_POWER_RATIO)) /100;
-                data.valve_heater_pwm_value = (valve_zone.out * HEATER_ELEMENT_POWER_RATIO) /100;
+                data.sample_heater_pwm_value = SH_FIXED_PWM_TEST /2;
+                data.valve_heater_pwm_value = VH_FIXED_PWM_TEST /2;
+                //data.sample_heater_pwm_value = (pid_data[SAMPLE_HEATER].out * (100-HEATER_ELEMENT_POWER_RATIO)) /100;
+                //data.valve_heater_pwm_value = (pid_data[VALVE_HEATER].out * HEATER_ELEMENT_POWER_RATIO) /100;
             } else {
                 data.sample_heater_pwm_value = SH_FIXED_PWM_TEST;
                 data.valve_heater_pwm_value = VH_FIXED_PWM_TEST;
-                data.sample_heater_pwm_value = sample_zone.out;
-                data.valve_heater_pwm_value = valve_zone.out;
+                //data.sample_heater_pwm_value = pid_data[SAMPLE_HEATER].out;
+                //data.valve_heater_pwm_value = pid_data[VALVE_HEATER].out;
             }
         }
         
@@ -360,9 +359,9 @@ void start_naat_test(void) {
     pwm_amp_ctrl.heater_level_high = false;
     pwm_valve_ctrl.heater_level_high = false;
 #else
-    data.heater_control_not_simultaneous = false;
-    pwm_amp_ctrl.heater_level_high = false;
-    pwm_valve_ctrl.heater_level_high = false;
+    data.heater_control_not_simultaneous = true;
+    pwm_amp_ctrl.heater_level_high = true;
+    pwm_valve_ctrl.heater_level_high = true;
 #endif    
     pwm_amp_ctrl.enabled = true;    
     pwm_valve_ctrl.enabled = true;
@@ -372,8 +371,8 @@ void start_naat_test(void) {
     data.test_active = true;
     if (data.state != amplification) {
         data.state = amplification;
-        pid_init(&sample_zone,sample_amp_control[data.state]);
-        pid_init(&valve_zone,valve_amp_control[data.state]);
+        pid_init(SAMPLE_HEATER, sample_amp_control[data.state]);
+        pid_init(VALVE_HEATER,valve_amp_control[data.state]);
     } else {
         sprintf(outputStr, "Err: Invalid test starting state.\r\n");		   
         HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
@@ -429,9 +428,9 @@ void Data_init(void)
 void print_log_data(void) 
 {
 #if defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6F)
-    sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.sample_temperature_c, sample_zone.setpoint, data.sample_heater_pwm_value, data.valve_temperature_c, valve_zone.setpoint, data.valve_heater_pwm_value, data.system_input_voltage, data.state);
+    sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.sample_temperature_c, pid_data[SAMPLE_HEATER].setpoint, data.sample_heater_pwm_value, data.valve_temperature_c, pid_data[VALVE_HEATER].setpoint, data.valve_heater_pwm_value, data.system_input_voltage, data.state);
 #else
-    sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.sample_temperature_c, sample_zone.setpoint, data.sample_heater_pwm_value, data.valve_temperature_c, valve_zone.setpoint, data.valve_heater_pwm_value, data.vcc_mcu_voltage, data.state);
+    sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.sample_temperature_c, pid_data[SAMPLE_HEATER].setpoint, data.sample_heater_pwm_value, data.valve_temperature_c, pid_data[VALVE_HEATER].setpoint, data.valve_heater_pwm_value, data.vcc_mcu_voltage, data.state);
 #endif
     
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
