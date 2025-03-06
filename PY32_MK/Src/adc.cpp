@@ -235,6 +235,10 @@ void ADC_Read(void)
     } else if (data.valve_temperature_c >= OVERTEMP_ERR_C) {
 		APP_ErrorHandler(ERR_OVERTEMP);
     }
+		
+    data.sh_pwm_during_adc_meas = data.sample_heater_pwm_value;    
+    data.vh_pwm_during_adc_meas = data.valve_heater_pwm_value;    
+
 
     
 }

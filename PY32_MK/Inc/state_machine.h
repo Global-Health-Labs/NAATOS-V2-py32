@@ -13,7 +13,10 @@ enum state_machine
     amplification,
     actuation_prep,
     actuation,
-    detection
+    detection,
+    self_test_1,
+    self_test_2,
+    preheat
 };
 
 #endif /* STATE_MACHINE_H_*/

@@ -37,6 +37,6 @@ void APP_SystemClockConfig(void);
 int8_t Register_timer(TimerCallback CallbackFunc, uint32_t TickInterval);
 bool Enable_timer(int8_t TimerNumber);
 bool Disable_timer(int8_t TimerNumber);    
-  
+bool Update_TimerTickInterval(int8_t TimerNumber, uint32_t new_TimerTickInterval);  
 
 #endif

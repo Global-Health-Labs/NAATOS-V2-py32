@@ -16,9 +16,13 @@
 #define ACTUATION_TIME_MIN              5
 #define DETECTION_TIME_MIN              1
 
-#define BOARDCONFIG_MK5C_MK6C
+#define SELFTEST_TIME_MSEC              10000
+#define SELFTEST_MIN_TEMP_RISE_C        5
+#define PREHEAT_TEMP_C    	            40	//  Start the heaters in non simultaneous mode until they hit this temperature
 
-#define FW_VERSION_STR                  "FW:v0.3"
+#define BOARDCONFIG_MK6F
+
+#define FW_VERSION_STR                  "FW:v0.5"
 
 //#define PUSHBUTTON_UI_ENABLED           1      
 
@@ -83,18 +87,23 @@
 #define SLEW_RATE_LIMIT                 255
 #define BUILD_HW_STR                    "HW:MK4_Bx"
 
-#elif defined(BOARDCONFIG_MK5C_MK6C) || defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6F)
-#define SAMPLE_ZONE_AMP_SOAK_TARGET_C   68
-#define VALVE_ZONE_AMP_SOAK_TARGET_C    68
+#elif defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C) || defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6F)
+#define SAMPLE_ZONE_AMP_SOAK_TARGET_C   76
+#define VALVE_ZONE_AMP_SOAK_TARGET_C    76
 #define SAMPLE_ZONE_VALVE_SOAK_TARGET_C 0
-#define VALVE_ZONE_VALVE_PREP_TARGET_C  68
-#define VALVE_ZONE_VALVE_SOAK_TARGET_C  97
+#define VALVE_ZONE_VALVE_PREP_TARGET_C  76
+#define VALVE_ZONE_VALVE_SOAK_TARGET_C  105
+//#define SAMPLE_ZONE_AMP_SOAK_TARGET_C   68
+//#define VALVE_ZONE_AMP_SOAK_TARGET_C    68
+//#define SAMPLE_ZONE_VALVE_SOAK_TARGET_C 0
+//#define VALVE_ZONE_VALVE_PREP_TARGET_C  68
+//#define VALVE_ZONE_VALVE_SOAK_TARGET_C  97
 #define VALVE_ZONE_MIN_VALID_TEMP_C     89
 #define HEATER_SHUTDOWN_C               0
 #define HEATER_ELEMENT_POWER_RATIO      35
 #define OVERTEMP_ERR_C                  105
 #define SLEW_RATE_LIMIT                 255
-#define BUILD_HW_STR                    "HW:MK5_B2"
+#define BUILD_HW_STR                    "HW:MK6F_B3"
 
 #else
 
@@ -118,7 +127,9 @@
 
 #define PID_TIMER_INTERVAL              (500L * TICKS_PER_MSEC)
 #define DATA_COLLECTION_TIMER_INTERVAL  (500L * TICKS_PER_MSEC)
-#define LED_TIMER_INTERVAL              (200L * TICKS_PER_MSEC)
+#define LED_TIMER_INTERVAL_AMPLIFICATION (500L * TICKS_PER_MSEC)
+#define LED_TIMER_INTERVAL_ACTIVATION   (250L * TICKS_PER_MSEC)
+#define LED_TIMER_INTERVAL_DONE         (1000L * TICKS_PER_MSEC)
 #define PUSHBUTTON_TIMER_INTERVAL       (10L * TICKS_PER_MSEC)
                                         
 #define STARTUP_DELAY_MS                (5000L * TICKS_PER_MSEC)
@@ -144,6 +155,8 @@ typedef struct app_data_t {
     bool heater_control_not_simultaneous;
     uint8_t sample_heater_pwm_value;
     uint8_t valve_heater_pwm_value;
+    float self_test_sh_start_temp_c;
+    float self_test_vh_start_temp_c;
     float sample_thermistor_v;
     uint32_t sample_thermistor_r;
     float sample_temperature_c;
@@ -168,6 +181,8 @@ typedef struct app_data_t {
     float usb_cc2_voltage;
     uint32_t valve_ramp_time;
     uint32_t test_interval;
+	uint8_t sh_pwm_during_adc_meas;
+	uint8_t vh_pwm_during_adc_meas;
 } app_data_t;
 
 typedef struct flags_t {

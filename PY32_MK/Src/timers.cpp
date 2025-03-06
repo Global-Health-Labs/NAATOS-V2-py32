@@ -93,6 +93,13 @@ bool Disable_timer(int8_t TimerNumber) {
     return true;
 }
 
+bool Update_TimerTickInterval(int8_t TimerNumber, uint32_t new_TimerTickInterval) {
+    if (TimerNumber < 0 || TimerNumber >= Registered_ISRTimers) return false;
+    
+    ISRTimers[TimerNumber].TimerTickInterval = new_TimerTickInterval;
+	  return true;
+}
+
 // Wait_until_tick uses the Timer1 callback variable TIM1_tick_count for precise timing delays in user space
 uint32_t Wait_until_tick(uint32_t tick, uint32_t max_wait)
 {

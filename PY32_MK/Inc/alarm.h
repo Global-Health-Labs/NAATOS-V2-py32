@@ -12,7 +12,9 @@ enum error_state {
     ERR_ADC_CONFIG,
     ERR_TIMER_CONFIG,
     ERR_PID_CONFIG,
-    ERR_OVERTEMP    
+    ERR_OVERTEMP,
+    ERR_SELFTEST1_FAILED,
+    ERR_SELFTEST2_FAILED
 };
 
 enum alarm_state {
