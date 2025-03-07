@@ -14,7 +14,8 @@ enum error_state {
     ERR_PID_CONFIG,
     ERR_OVERTEMP,
     ERR_SELFTEST1_FAILED,
-    ERR_SELFTEST2_FAILED
+    ERR_SELFTEST2_FAILED,
+    ERR_PREHEAT_TIMEOUT
 };
 
 enum alarm_state {

@@ -18,9 +18,10 @@
 
 #define SELFTEST_TIME_MSEC              10000
 #define SELFTEST_MIN_TEMP_RISE_C        5
-#define PREHEAT_TEMP_C    	            40	//  Start the heaters in non simultaneous mode until they hit this temperature
+#define PREHEAT_TEMP_C    	            30	    // Start the heaters in non simultaneous mode until they hit this temperature
+#define PREHEAT_MAX_TIME_MSEC           150000  // Go to a failure state if the board cannot preheat within this amount of time.
 
-#define BOARDCONFIG_MK6F
+#define BOARDCONFIG_MK5C
 
 #define FW_VERSION_STR                  "FW:v0.5"
 
@@ -88,22 +89,24 @@
 #define BUILD_HW_STR                    "HW:MK4_Bx"
 
 #elif defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C) || defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6F)
-#define SAMPLE_ZONE_AMP_SOAK_TARGET_C   76
-#define VALVE_ZONE_AMP_SOAK_TARGET_C    76
-#define SAMPLE_ZONE_VALVE_SOAK_TARGET_C 0
-#define VALVE_ZONE_VALVE_PREP_TARGET_C  76
-#define VALVE_ZONE_VALVE_SOAK_TARGET_C  105
-//#define SAMPLE_ZONE_AMP_SOAK_TARGET_C   68
-//#define VALVE_ZONE_AMP_SOAK_TARGET_C    68
+//#define SAMPLE_ZONE_AMP_SOAK_TARGET_C   76
+//#define VALVE_ZONE_AMP_SOAK_TARGET_C    76
 //#define SAMPLE_ZONE_VALVE_SOAK_TARGET_C 0
-//#define VALVE_ZONE_VALVE_PREP_TARGET_C  68
-//#define VALVE_ZONE_VALVE_SOAK_TARGET_C  97
+//#define VALVE_ZONE_VALVE_PREP_TARGET_C  76
+//#define VALVE_ZONE_VALVE_SOAK_TARGET_C  105
+#define SAMPLE_ZONE_AMP_SOAK_TARGET_C   68
+#define VALVE_ZONE_AMP_SOAK_TARGET_C    68
+#define SAMPLE_ZONE_VALVE_SOAK_TARGET_C 0
+#define VALVE_ZONE_VALVE_PREP_TARGET_C  68
+#define VALVE_ZONE_VALVE_SOAK_TARGET_C  97
+#define COLD_TEMP_SETPOINT_OFFSET_C     5
+#define COLD_TEMP_OFFSET_THRESHOLD_C    15
 #define VALVE_ZONE_MIN_VALID_TEMP_C     89
 #define HEATER_SHUTDOWN_C               0
 #define HEATER_ELEMENT_POWER_RATIO      35
-#define OVERTEMP_ERR_C                  105
+#define OVERTEMP_ERR_C                  110
 #define SLEW_RATE_LIMIT                 255
-#define BUILD_HW_STR                    "HW:MK6F_B3"
+#define BUILD_HW_STR                    "HW:MK5C_B7"
 
 #else
 
@@ -153,6 +156,7 @@ typedef struct app_data_t {
     // structure containing application data, for passing through LOG and DEBUG interfaces
     bool test_active;
     bool heater_control_not_simultaneous;
+    bool cold_ambient_temp_mode;
     uint8_t sample_heater_pwm_value;
     uint8_t valve_heater_pwm_value;
     float self_test_sh_start_temp_c;

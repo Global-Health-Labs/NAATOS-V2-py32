@@ -98,9 +98,13 @@ Pin_pwm_t pwm_valve_ctrl;
 
 // Init PID Controller based on the STATE MACHINE state
 void pid_init(heater_t heater, CONTROL pid_settings){
+  float adjusted_setpoint;
+  
+  if (data.cold_ambient_temp_mode) adjusted_setpoint = pid_settings.setpoint + COLD_TEMP_SETPOINT_OFFSET_C;
+  else adjusted_setpoint = pid_settings.setpoint;
   pid_controller_init(
     heater, 
-    pid_settings.setpoint,
+    adjusted_setpoint,
     pid_settings.kp,
     pid_settings.ki,
     pid_settings.kd,
@@ -113,11 +117,11 @@ void system_setup() {
   
     APP_SystemClockConfig(); 
 	
-		//Initialize periperhals
-		GPIO_Init();
-		TIMER_Init();
-		UART_Init();
-		ADC_Init();
+    //Initialize periperhals
+    GPIO_Init();
+    TIMER_Init();
+    UART_Init();
+    ADC_Init();
     Data_init();
 
     sprintf(outputStr, "NAATOS V2 PY32F003 MK. %s %s\r\n", FW_VERSION_STR, BUILD_HW_STR);		
@@ -161,6 +165,9 @@ void system_setup() {
 int main(void)
 {
     //uint32_t start_tick;
+    uint32_t rcc_csr_bootstate;
+    
+    rcc_csr_bootstate = RCC->CSR;
     
     system_setup();
     
@@ -177,12 +184,16 @@ int main(void)
     //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
     sprintf(outputStr, "system_input_voltage: %1.2f vcc_mcu_voltage: %1.2f py32_temperature_c: %1.2f\r\n", data.system_input_voltage, data.vcc_mcu_voltage, data.py32_temperature_c);
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
-    sprintf(outputStr, "usb_cc1_voltage: %1.2f usb_cc2_voltage: %1.2f\r\n", data.usb_cc1_voltage, data.usb_cc2_voltage);
+    sprintf(outputStr, "rcc->csr: %08X usb_cc1_voltage: %1.2f usb_cc2_voltage: %1.2f\r\n", rcc_csr_bootstate, data.usb_cc1_voltage, data.usb_cc2_voltage);
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
     sprintf(outputStr, "sample_temperature_c: %1.2f valve_temperature_c: %1.2f\r\n", data.sample_temperature_c, data.valve_temperature_c);
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);       
 
     ADC_Set_USB_cc_read_state(false);       // disable reading of USB-C CC voltages in the ADC.
+    
+    if (data.sample_temperature_c <= COLD_TEMP_OFFSET_THRESHOLD_C) {
+        data.cold_ambient_temp_mode = true;
+    }
     
     while (1) 
     {
@@ -323,8 +334,8 @@ int main(void)
                     data.state = self_test_2;
                     data.self_test_sh_start_temp_c = data.sample_temperature_c;
                     data.self_test_vh_start_temp_c = data.valve_temperature_c;
-                    sprintf(outputStr, "Passed self_test_1\r\n");		   
-                    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
+                    //sprintf(outputStr, "Passed self_test_1\r\n");		   
+                    //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
                 } else if (data.msec_test_count > SELFTEST_TIME_MSEC) {
                     APP_ErrorHandler(ERR_SELFTEST1_FAILED);  
                 }
@@ -334,31 +345,34 @@ int main(void)
                     data.state = preheat;
                     data.sample_temperature_c = data.self_test_sh_start_temp_c;
                     data.valve_temperature_c = data.self_test_vh_start_temp_c;
-                    sprintf(outputStr, "Passed self_test_2\r\n");		   
-                    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
+                    //sprintf(outputStr, "Passed self_test_2\r\n");		   
+                    //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
                 } else if (data.msec_test_count > (2* SELFTEST_TIME_MSEC)) {
                     APP_ErrorHandler(ERR_SELFTEST2_FAILED);                   
                 }
-            } else if (data.state == preheat && data.sample_temperature_c >= PREHEAT_TEMP_C && data.valve_temperature_c >= PREHEAT_TEMP_C) {
-                data.state = amplification;
+            } else if (data.state == preheat) {
+                if (data.sample_temperature_c >= PREHEAT_TEMP_C && data.valve_temperature_c >= PREHEAT_TEMP_C) {
+                    data.state = amplification;
 #if defined(BOARDCONFIG_MK5AA)
-				data.heater_control_not_simultaneous = false;
-				pwm_amp_ctrl.heater_level_high = true;
-				pwm_valve_ctrl.heater_level_high = true;
+                    data.heater_control_not_simultaneous = false;
+                    pwm_amp_ctrl.heater_level_high = true;
+                    pwm_valve_ctrl.heater_level_high = true;
 #elif defined(BOARDCONFIG_MK6C)
-				data.heater_control_not_simultaneous = false;
-				pwm_amp_ctrl.heater_level_high = true;
-				pwm_valve_ctrl.heater_level_high = true;
+                    data.heater_control_not_simultaneous = false;
+                    pwm_amp_ctrl.heater_level_high = true;
+                    pwm_valve_ctrl.heater_level_high = true;
 #else
-				data.heater_control_not_simultaneous = false;
-				pwm_amp_ctrl.heater_level_high = true;
-				pwm_valve_ctrl.heater_level_high = true;
+                    data.heater_control_not_simultaneous = false;
+                    pwm_amp_ctrl.heater_level_high = true;
+                    pwm_valve_ctrl.heater_level_high = true;
 #endif    							
-							
-				sprintf(outputStr, "preheat mode ended.\r\n");		   
-                HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
-
-			}
+                                
+                    //sprintf(outputStr, "preheat mode ended.\r\n");		   
+                    //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
+                } else if (data.msec_test_count > PREHEAT_MAX_TIME_MSEC) {
+                    APP_ErrorHandler(ERR_PREHEAT_TIMEOUT);    
+                }
+            }
             
             pid_controller_compute(SAMPLE_HEATER, data.sample_temperature_c);
             pid_controller_compute(VALVE_HEATER, data.valve_temperature_c);
@@ -440,7 +454,7 @@ void stop_naat_test(void) {
     Disable_timer(LogTimerNumber);                
     Disable_timer(MinuteTimerNumber);
     
-		Update_TimerTickInterval(LEDTimerNumber, LED_TIMER_INTERVAL_DONE);
+	Update_TimerTickInterval(LEDTimerNumber, LED_TIMER_INTERVAL_DONE);
     sprintf(outputStr, "Test stopped.\r\n");		
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
 }
@@ -460,6 +474,7 @@ void Data_init(void)
     data.minute_test_count = 0;
     data.self_test_sh_start_temp_c = 0;
     data.self_test_vh_start_temp_c = 0;
+    data.cold_ambient_temp_mode = false;
     
     data.sample_heater_pwm_value = 0;
     data.valve_heater_pwm_value = 0;
@@ -908,10 +923,12 @@ void PWMTimer_ISR(void)
 
 void LEDTimer_ISR(void)
 {
-    if (data.test_active) {
+    if (data.state == self_test_1 || data.state == self_test_2 || data.state == preheat) {
+        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_SET); // turn LED off during self-test and preheat
+    } else if (data.test_active) {
         HAL_GPIO_TogglePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1);
     } else {
-        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_RESET); // turn LED on at the end of the test
     }
     
     /*
