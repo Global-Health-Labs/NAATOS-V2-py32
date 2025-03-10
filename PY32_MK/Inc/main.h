@@ -56,7 +56,8 @@ void Pushbutton_ISR(void);
 void LogData_ISR(void);
 
 void print_log_data(void);
-void send_vh_max_temp(void);
+void send_max_temps(void);
+bool Validate_USB_Power_Source(void);
 
 typedef struct {
     bool    enabled;

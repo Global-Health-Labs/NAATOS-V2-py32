@@ -189,12 +189,17 @@ int main(void)
     sprintf(outputStr, "sample_temperature_c: %1.2f valve_temperature_c: %1.2f\r\n", data.sample_temperature_c, data.valve_temperature_c);
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);       
 
+#if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C)|| defined(BOARDCONFIG_MK6F)
+    // Verify that the USB power supply can supply at least 1.5A:
+    if (Validate_USB_Power_Source() == false) APP_ErrorHandler(ERR_INVALID_USB_POWER_SOURCE);    
+#endif
+    
     ADC_Set_USB_cc_read_state(false);       // disable reading of USB-C CC voltages in the ADC.
     
     if (data.sample_temperature_c <= COLD_TEMP_OFFSET_THRESHOLD_C) {
         data.cold_ambient_temp_mode = true;
     }
-    
+
     while (1) 
     {
         if (flags.flagPushbutton) {
@@ -247,23 +252,23 @@ int main(void)
                             pid_init(VALVE_HEATER,valve_amp_control[data.state]);
                             stop_naat_test();
         
-                            send_vh_max_temp();
-                            if (data.valve_max_temperature_c < VALVE_ZONE_MIN_VALID_TEMP_C) {
-                                // blink both LEDs to indicate that the minimum valve temperature was not reached.
-                                data.alarm = valve_min_temp_not_reached;
+                            send_max_temps();
+                            if (data.sample_max_temperature_c < AMPLIFICATION_MIN_VALID_TEMP_C) {
+                                // Set an alarm if the minimum sample temperature was not reached.
+                                APP_ErrorHandler(ERR_MIN_AMPLIFICATION_TEMP);
+                            } else if (data.valve_max_temperature_c < ACTUATION_MIN_VALID_TEMP_C) {
+                                // Set an alarm if the minimum valve temperature was not reached.
+                                APP_ErrorHandler(ERR_MIN_ACTUATION_TEMP);
                             } 
-                            // change LEDs to opposite states so they can blink opposite of each other (in alarm)
-        
-                            // Enable the LED timer so they can blink at the end
                         }
                     }
                 } else if (data.minute_test_count >= AMPLIFICATION_TIME_MIN) {
                     if (data.state != actuation) {
                         data.state = actuation;
                         
-                        // set valve heater low strength but 100%. (sample heater will be off)
-                        data.heater_control_not_simultaneous = false;  
-                        pwm_valve_ctrl.heater_level_high = false;       // The VH low level has plenty of power
+                        // set valve heater high strength and 100%. (sample heater will be off)
+                        data.heater_control_not_simultaneous = false;
+                        pwm_valve_ctrl.heater_level_high = true;   
                         
                         pid_init(SAMPLE_HEATER,sample_amp_control[data.state]);
                         pid_init(VALVE_HEATER,valve_amp_control[data.state]);
@@ -316,7 +321,7 @@ int main(void)
           }
           
           // Measure the number of seconds it takes to ramp to the minimum valve temperature:
-          if (data.state == actuation && data.valve_ramp_time == 0 && data.valve_temperature_c >= VALVE_ZONE_MIN_VALID_TEMP_C) {
+          if (data.state == actuation && data.valve_ramp_time == 0 && data.valve_temperature_c >= ACTUATION_MIN_VALID_TEMP_C) {
             data.valve_ramp_time = data.msec_test_count / 1000 - (AMPLIFICATION_TIME_MIN * 60);
           }
         }
@@ -355,16 +360,16 @@ int main(void)
                     data.state = amplification;
 #if defined(BOARDCONFIG_MK5AA)
                     data.heater_control_not_simultaneous = false;
-                    pwm_amp_ctrl.heater_level_high = true;
-                    pwm_valve_ctrl.heater_level_high = true;
+                    pwm_amp_ctrl.heater_level_high = false;
+                    pwm_valve_ctrl.heater_level_high = false;
 #elif defined(BOARDCONFIG_MK6C)
                     data.heater_control_not_simultaneous = false;
                     pwm_amp_ctrl.heater_level_high = true;
                     pwm_valve_ctrl.heater_level_high = true;
 #else
                     data.heater_control_not_simultaneous = false;
-                    pwm_amp_ctrl.heater_level_high = true;
-                    pwm_valve_ctrl.heater_level_high = true;
+                    pwm_amp_ctrl.heater_level_high = false;
+                    pwm_valve_ctrl.heater_level_high = false;
 #endif    							
                                 
                     //sprintf(outputStr, "preheat mode ended.\r\n");		   
@@ -406,6 +411,7 @@ void start_naat_test(void) {
     data.minute_test_count = 0;
     data.state = low_power;
     data.valve_max_temperature_c = 0;
+    data.sample_max_temperature_c = 0;
     data.valve_ramp_time = 0;    
 
     data.sample_heater_pwm_value = 0;
@@ -486,6 +492,7 @@ void Data_init(void)
     data.vcc_mcu_voltage = 0;
     data.system_input_voltage = 0;
     data.valve_max_temperature_c = 0;
+    data.sample_max_temperature_c = 0;    
     data.valve_ramp_time = 0;    
     data.sh_pwm_during_adc_meas = 0;    
     data.vh_pwm_during_adc_meas = 0;    
@@ -502,8 +509,8 @@ void print_log_data(void)
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
 }
 
-void send_vh_max_temp(void) {
-    sprintf(outputStr, "VH_MAX: %1.2f valve_ramp_time: %d\r\n", data.valve_max_temperature_c, data.valve_ramp_time);
+void send_max_temps(void) {
+    sprintf(outputStr, "SH_MAX: %1.2f VH_MAX: %1.2f valve_ramp_time: %d\r\n", data.sample_max_temperature_c, data.valve_max_temperature_c, data.valve_ramp_time);
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
 }
 
@@ -975,9 +982,39 @@ void Pushbutton_ISR(void)
     last_pushbutton_value = pushbutton_value;    
 }
 
+// USB CC1 and CC2 readings: Per the USB standard only one will be valid. (USB cables typically tie either CC1 or CC2 to ground)
+// An error will be thrown if neither CC1 nor CC2 reads below 0.75v and 1.75v
+
+#define USB_CC_MIN_V                0.25        // Readings below this indicate that the cable has tied this line to ground
+#define USB_CC_MIN_VALID_SOURCE_V   0.75        // Readings between 0.25v and 0.75v are low power supplies (invalid for NAATOS)
+#define USB_CC_MAX_VALID_SOURCE_V   2.00        // Readings between 0.75 and 2v are valid USB power supplies
+                                                // Readings above 2v are not from a valid USB CC voltage divider 
+
+bool Validate_USB_Power_Source(void)
+{
+    if (data.usb_cc1_voltage >= USB_CC_MIN_VALID_SOURCE_V && data.usb_cc1_voltage <= USB_CC_MAX_VALID_SOURCE_V) {
+        return true;
+    }
+    else if (data.usb_cc2_voltage >= USB_CC_MIN_VALID_SOURCE_V && data.usb_cc2_voltage <= USB_CC_MAX_VALID_SOURCE_V) {
+        return true;
+    }
+    else if (data.usb_cc2_voltage >= USB_CC_MIN_VALID_SOURCE_V && data.usb_cc2_voltage <= USB_CC_MAX_VALID_SOURCE_V) {
+        return true;
+    }
+    else return false;
+}
+
+#define LOOP_TIMER_COUNT_100MSEC    0x17000
+
+// This will delay by roughly 100msec * delay_count. It is not very accurate.
+void sw_delay_100msec(uint32_t delay_count) {
+    for (uint32_t i=0; i < (delay_count * LOOP_TIMER_COUNT_100MSEC); i++);
+}
+
+// APP_ErrorHandler will shut down all heaters, then blink the error code number
 void APP_ErrorHandler(uint8_t errnum)
 {
-    __disable_irq(); // Set PRIMASK
+    __disable_irq(); // Disable all interrupts
     
     // Make sure all heaters are disabled
     HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL1, Pins.GPIO_Pin_AMP_CTRL1, GPIO_PIN_RESET);
@@ -993,9 +1030,19 @@ void APP_ErrorHandler(uint8_t errnum)
     
     while (1)
     {
-        HAL_GPIO_TogglePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1);        // fast LED blink pattern
-        HAL_GPIO_TogglePin(Pins.GPIOx_LED2, Pins.GPIO_Pin_LED2);
-        for (uint32_t i=0; i < 0x20000; i++);
+        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_RESET);   // LED on for 1 sec
+        sw_delay_100msec(10);
+        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_SET);   // LED off for 1 sec        
+        sw_delay_100msec(10);
+
+        for (int i = 0; i < errnum; i++) {          // blink the error code
+            HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_RESET);   // LED on for 200 msec
+            sw_delay_100msec(2);
+            HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_SET);   // LED off for 200 msec        
+            sw_delay_100msec(2);
+        }
+        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_SET);   // LED off for 1 sec        
+        sw_delay_100msec(10);
     }
 }
 

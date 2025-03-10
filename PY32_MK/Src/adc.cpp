@@ -226,14 +226,18 @@ void ADC_Read(void)
     
     data.system_input_voltage = data.adcVoltage[2] * V_BATT_SENSE_MULTIPLIER;    
     
+    if (data.sample_temperature_c > data.sample_max_temperature_c) {
+        data.sample_max_temperature_c = data.sample_temperature_c;
+    }
+    
     if (data.valve_temperature_c > data.valve_max_temperature_c) {
         data.valve_max_temperature_c = data.valve_temperature_c;
     }
     
     if (data.sample_temperature_c >= OVERTEMP_ERR_C) {
-		APP_ErrorHandler(ERR_OVERTEMP);
+		APP_ErrorHandler(ERR_OVERTEMP_SHUTDOWN);
     } else if (data.valve_temperature_c >= OVERTEMP_ERR_C) {
-		APP_ErrorHandler(ERR_OVERTEMP);
+		APP_ErrorHandler(ERR_OVERTEMP_SHUTDOWN);
     }
 		
     data.sh_pwm_during_adc_meas = data.sample_heater_pwm_value;    

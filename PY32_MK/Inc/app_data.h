@@ -21,74 +21,13 @@
 #define PREHEAT_TEMP_C    	            30	    // Start the heaters in non simultaneous mode until they hit this temperature
 #define PREHEAT_MAX_TIME_MSEC           150000  // Go to a failure state if the board cannot preheat within this amount of time.
 
-#define BOARDCONFIG_MK5C
+#define BOARDCONFIG_MK6F
 
-#define FW_VERSION_STR                  "FW:v0.5"
+#define FW_VERSION_STR                  "FW:v0.6"
 
 //#define PUSHBUTTON_UI_ENABLED           1      
 
-/*MK Generation Calibration CONST*/
-#ifdef BOARDCONFIG_MK1_1
-#define SAMPLE_ZONE_AMP_SOAK_TARGET_C   68
-#define VALVE_ZONE_AMP_SOAK_TARGET_C    69
-#define SAMPLE_ZONE_VALVE_SOAK_TARGET_C 68
-#define VALVE_ZONE_VALVE_PREP_TARGET_C  70
-#define VALVE_ZONE_VALVE_SOAK_TARGET_C  97
-#define VALVE_ZONE_MIN_VALID_TEMP_C     89
-#define HEATER_SHUTDOWN_C               0
-#define OVERTEMP_ERR_C                  105
-#define SLEW_RATE_LIMIT                 255
-#define BUILD_HW_STR                    "HW:MK1_1_B10"
-
-#elif defined(BOARDCONFIG_MK2)
-#define SAMPLE_ZONE_AMP_SOAK_TARGET_C   68
-#define VALVE_ZONE_AMP_SOAK_TARGET_C    70
-#define SAMPLE_ZONE_VALVE_SOAK_TARGET_C 68
-#define VALVE_ZONE_VALVE_PREP_TARGET_C  70
-#define VALVE_ZONE_VALVE_SOAK_TARGET_C  97
-#define VALVE_ZONE_MIN_VALID_TEMP_C     89
-#define HEATER_SHUTDOWN_C               0
-#define OVERTEMP_ERR_C                  105
-#define SLEW_RATE_LIMIT                 255
-#define BUILD_HW_STR                    "HW:MK2_Bx"
-
-#elif defined(BOARDCONFIG_MK3)
-#define SAMPLE_ZONE_AMP_SOAK_TARGET_C   68
-#define VALVE_ZONE_AMP_SOAK_TARGET_C    50
-#define SAMPLE_ZONE_VALVE_SOAK_TARGET_C 40
-#define VALVE_ZONE_VALVE_PREP_TARGET_C  70
-#define VALVE_ZONE_VALVE_SOAK_TARGET_C  97
-#define VALVE_ZONE_MIN_VALID_TEMP_C     89
-#define HEATER_SHUTDOWN_C               0
-#define OVERTEMP_ERR_C                  105
-#define SLEW_RATE_LIMIT                 255
-#define BUILD_HW_STR                    "HW:MK3_B4"
-
-#elif defined(BOARDCONFIG_PY32_MK0)
-#define SAMPLE_ZONE_AMP_SOAK_TARGET_C   55
-#define VALVE_ZONE_AMP_SOAK_TARGET_C    50
-#define SAMPLE_ZONE_VALVE_SOAK_TARGET_C 40
-#define VALVE_ZONE_VALVE_PREP_TARGET_C  70
-#define VALVE_ZONE_VALVE_SOAK_TARGET_C  70
-#define VALVE_ZONE_MIN_VALID_TEMP_C     65
-#define HEATER_SHUTDOWN_C               0
-#define OVERTEMP_ERR_C                  105
-#define SLEW_RATE_LIMIT                 255
-#define BUILD_HW_STR                    "HW:PY32_MK0_A"
-
-#elif defined(BOARDCONFIG_MK4)
-#define SAMPLE_ZONE_AMP_SOAK_TARGET_C   68
-#define VALVE_ZONE_AMP_SOAK_TARGET_C    70
-#define SAMPLE_ZONE_VALVE_SOAK_TARGET_C 68
-#define VALVE_ZONE_VALVE_PREP_TARGET_C  70
-#define VALVE_ZONE_VALVE_SOAK_TARGET_C  97
-#define VALVE_ZONE_MIN_VALID_TEMP_C     85
-#define HEATER_SHUTDOWN_C               0
-#define OVERTEMP_ERR_C                  105
-#define SLEW_RATE_LIMIT                 255
-#define BUILD_HW_STR                    "HW:MK4_Bx"
-
-#elif defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C) || defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6F)
+#if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C) || defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6F)
 //#define SAMPLE_ZONE_AMP_SOAK_TARGET_C   76
 //#define VALVE_ZONE_AMP_SOAK_TARGET_C    76
 //#define SAMPLE_ZONE_VALVE_SOAK_TARGET_C 0
@@ -99,26 +38,18 @@
 #define SAMPLE_ZONE_VALVE_SOAK_TARGET_C 0
 #define VALVE_ZONE_VALVE_PREP_TARGET_C  68
 #define VALVE_ZONE_VALVE_SOAK_TARGET_C  97
-#define COLD_TEMP_SETPOINT_OFFSET_C     5
+#define COLD_TEMP_SETPOINT_OFFSET_C     4
 #define COLD_TEMP_OFFSET_THRESHOLD_C    15
-#define VALVE_ZONE_MIN_VALID_TEMP_C     89
+#define AMPLIFICATION_MIN_VALID_TEMP_C  65
+#define ACTUATION_MIN_VALID_TEMP_C      91
 #define HEATER_SHUTDOWN_C               0
 #define HEATER_ELEMENT_POWER_RATIO      35
 #define OVERTEMP_ERR_C                  110
 #define SLEW_RATE_LIMIT                 255
-#define BUILD_HW_STR                    "HW:MK5C_B7"
+#define BUILD_HW_STR                    "HW:MK6F_B3"
 
 #else
-
-// DEFAULT-should work with all other env builds
-#define SAMPLE_ZONE_AMP_SOAK_TARGET_C   65
-#define VALVE_ZONE_AMP_SOAK_TARGET_C    65
-#define SAMPLE_ZONE_VALVE_SOAK_TARGET_C 65
-#define VALVE_ZONE_VALVE_SOAK_TARGET_C  90
-#define HEATER_SHUTDOWN_C               0
-#define OVERTEMP_ERR_C                  105
-#define SLEW_RATE_LIMIT                 255
-#define BUILD_HW_STR                    "HW:OTHER"
+    FAIL -- invalid board type
 #endif
 /*MK Generation Calibration CONST*/
 
@@ -179,6 +110,7 @@ typedef struct app_data_t {
 
     float vcc_mcu_voltage;       
     float system_input_voltage;
+    float sample_max_temperature_c;
     float valve_max_temperature_c;
     bool usb_cc_adc_read_enabled;
     float usb_cc1_voltage;
