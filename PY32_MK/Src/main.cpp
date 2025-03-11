@@ -241,7 +241,6 @@ int main(void)
                         pid_init(VALVE_HEATER,valve_amp_control[data.state]);
                         pwm_amp_ctrl.enabled = false;      
                         pwm_valve_ctrl.enabled = false;      
-                        // turn both LEDs off during detection
                     }
                     if (data.minute_test_count  >= AMPLIFICATION_TIME_MIN + ACTUATION_TIME_MIN + DETECTION_TIME_MIN) {
                         // final state -- END
@@ -272,9 +271,7 @@ int main(void)
                         
                         pid_init(SAMPLE_HEATER,sample_amp_control[data.state]);
                         pid_init(VALVE_HEATER,valve_amp_control[data.state]);
-												Update_TimerTickInterval(LEDTimerNumber, LED_TIMER_INTERVAL_ACTIVATION);
-        
-                        // Change UI (both LEDs are on during valve activation)
+						Update_TimerTickInterval(LEDTimerNumber, LED_TIMER_INTERVAL_ACTIVATION);
                     }
                 }
             } else if (data.minute_test_count >= AMPLIFICATION_TIME_MIN - ACTUATION_PREP_TIME_MIN) {
@@ -427,7 +424,7 @@ void start_naat_test(void) {
     pwm_valve_ctrl.heater_level_high = false;
     data.heater_control_not_simultaneous = true;
     data.self_test_sh_start_temp_c = data.sample_temperature_c;
-    data.self_test_vh_start_temp_c = data.sample_temperature_c;
+    data.self_test_vh_start_temp_c = data.valve_temperature_c;
 
     pwm_amp_ctrl.enabled = true;    
     pwm_valve_ctrl.enabled = true;
@@ -513,7 +510,6 @@ void send_max_temps(void) {
     sprintf(outputStr, "SH_MAX: %1.2f VH_MAX: %1.2f valve_ramp_time: %d\r\n", data.sample_max_temperature_c, data.valve_max_temperature_c, data.valve_ramp_time);
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
 }
-
 
 #define PWM_BITS 8
 #define PWM_BITFIELD_SIZE 256
