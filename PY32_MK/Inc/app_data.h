@@ -21,7 +21,7 @@
 #define PREHEAT_TEMP_C    	            30	    // Start the heaters in non simultaneous mode until they hit this temperature
 #define PREHEAT_MAX_TIME_MSEC           150000  // Go to a failure state if the board cannot preheat within this amount of time.
 
-#define BOARDCONFIG_MK5C
+#define BOARDCONFIG_MK6C
 
 #define FW_VERSION_STR                  "FW:v0.6"
 
@@ -41,7 +41,7 @@
 #define HEATER_ELEMENT_POWER_RATIO      35
 #define OVERTEMP_ERR_C                  110
 #define SLEW_RATE_LIMIT                 255
-#define BUILD_HW_STR                    "HW:MK5C_B9"
+#define BUILD_HW_STR                    "HW:MK6C"
 
 #else
     FAIL -- invalid board type
