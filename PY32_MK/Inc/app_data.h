@@ -12,27 +12,22 @@
 #include "timers.h"
 
 #define AMPLIFICATION_TIME_MIN          15
-#define ACTUATION_PREP_TIME_MIN         1    // Pre-heat VH during the last minute of amplification.
+#define ACTUATION_PREP_TIME_MIN         1    // Option to change the controls during the last minute of amplification.
 #define ACTUATION_TIME_MIN              5
 #define DETECTION_TIME_MIN              1
 
-#define SELFTEST_TIME_MSEC              10000
-#define SELFTEST_MIN_TEMP_RISE_C        5
+#define SELFTEST_TIME_MSEC              14000
+#define SELFTEST_MIN_TEMP_RISE_C        5.0
 #define PREHEAT_TEMP_C    	            30	    // Start the heaters in non simultaneous mode until they hit this temperature
 #define PREHEAT_MAX_TIME_MSEC           150000  // Go to a failure state if the board cannot preheat within this amount of time.
 
-#define BOARDCONFIG_MK6F
+#define BOARDCONFIG_MK5C
 
 #define FW_VERSION_STR                  "FW:v0.6"
 
 //#define PUSHBUTTON_UI_ENABLED           1      
 
 #if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C) || defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6F)
-//#define SAMPLE_ZONE_AMP_SOAK_TARGET_C   76
-//#define VALVE_ZONE_AMP_SOAK_TARGET_C    76
-//#define SAMPLE_ZONE_VALVE_SOAK_TARGET_C 0
-//#define VALVE_ZONE_VALVE_PREP_TARGET_C  76
-//#define VALVE_ZONE_VALVE_SOAK_TARGET_C  105
 #define SAMPLE_ZONE_AMP_SOAK_TARGET_C   68
 #define VALVE_ZONE_AMP_SOAK_TARGET_C    68
 #define SAMPLE_ZONE_VALVE_SOAK_TARGET_C 0
@@ -46,7 +41,7 @@
 #define HEATER_ELEMENT_POWER_RATIO      35
 #define OVERTEMP_ERR_C                  110
 #define SLEW_RATE_LIMIT                 255
-#define BUILD_HW_STR                    "HW:MK6F_B3"
+#define BUILD_HW_STR                    "HW:MK5C_B9"
 
 #else
     FAIL -- invalid board type

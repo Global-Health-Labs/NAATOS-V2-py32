@@ -187,7 +187,10 @@ int main(void)
     sprintf(outputStr, "rcc->csr: %08X usb_cc1_voltage: %1.2f usb_cc2_voltage: %1.2f\r\n", rcc_csr_bootstate, data.usb_cc1_voltage, data.usb_cc2_voltage);
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
     sprintf(outputStr, "sample_temperature_c: %1.2f valve_temperature_c: %1.2f\r\n", data.sample_temperature_c, data.valve_temperature_c);
-    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);       
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);   
+
+    data.self_test_sh_start_temp_c = data.sample_temperature_c;
+    data.self_test_vh_start_temp_c = data.valve_temperature_c;
 
 #if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C)|| defined(BOARDCONFIG_MK6F)
     // Verify that the USB power supply can supply at least 1.5A:
@@ -218,6 +221,12 @@ int main(void)
         if (flags.flagDelayedStart) {
             flags.flagDelayedStart = false;
             Disable_timer(DelayedStartTimerNumber);
+            
+            // Self-test: The heaters are off. 
+            // Throw an error if either heater temperature has risen during the delayed start period.
+            if ((data.sample_temperature_c > data.self_test_sh_start_temp_c + SELFTEST_MIN_TEMP_RISE_C/2.0) || (data.valve_temperature_c > data.self_test_vh_start_temp_c + SELFTEST_MIN_TEMP_RISE_C/2.0)) {
+                APP_ErrorHandler(ERR_SELFTEST_FAILED); 
+            }
             
             // Start the test:
             start_naat_test();            
@@ -275,12 +284,13 @@ int main(void)
                     }
                 }
             } else if (data.minute_test_count >= AMPLIFICATION_TIME_MIN - ACTUATION_PREP_TIME_MIN) {
-                  // Pre-heat VH during the last minute of amplification.
-                  if (data.state != actuation_prep) {
-                      data.state = actuation_prep;
-                      pid_init(SAMPLE_HEATER,sample_amp_control[data.state]);
-                      pid_init(VALVE_HEATER,valve_amp_control[data.state]);
-                  }        
+                // Change control settings during the last minute of amplification.
+                // This is an optional state -- no settings are currently changed
+                if (data.state != actuation_prep) {
+                    data.state = actuation_prep;                      
+                    //pid_init(SAMPLE_HEATER,sample_amp_control[data.state]);
+                    //pid_init(VALVE_HEATER,valve_amp_control[data.state]);
+                }        
             } 
         }
 
@@ -339,7 +349,7 @@ int main(void)
                     //sprintf(outputStr, "Passed self_test_1\r\n");		   
                     //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
                 } else if (data.msec_test_count > SELFTEST_TIME_MSEC) {
-                    APP_ErrorHandler(ERR_SELFTEST1_FAILED);  
+                    APP_ErrorHandler(ERR_SELFTEST_FAILED);  
                 }
             } else if (data.state == self_test_2) {
                 if (data.sample_temperature_c >= (data.self_test_sh_start_temp_c + SELFTEST_MIN_TEMP_RISE_C)
@@ -350,7 +360,7 @@ int main(void)
                     //sprintf(outputStr, "Passed self_test_2\r\n");		   
                     //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
                 } else if (data.msec_test_count > (2* SELFTEST_TIME_MSEC)) {
-                    APP_ErrorHandler(ERR_SELFTEST2_FAILED);                   
+                    APP_ErrorHandler(ERR_SELFTEST_FAILED);                   
                 }
             } else if (data.state == preheat) {
                 if (data.sample_temperature_c >= PREHEAT_TEMP_C && data.valve_temperature_c >= PREHEAT_TEMP_C) {
