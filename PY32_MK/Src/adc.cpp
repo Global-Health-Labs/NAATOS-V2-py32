@@ -22,14 +22,14 @@ void ADC_Set_USB_cc_read_state(bool enable_usb_cc_adc_read) {
         AdcChanConf.Channel = Pins.ADC_CHANNEL_USB_CC1;             
         if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
         {
-            APP_ErrorHandler(ERR_ADC_CONFIG);
+            APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
         }
 
         AdcChanConf.Rank = Pins.ADC_CHANNEL_USB_CC2; 
         AdcChanConf.Channel = Pins.ADC_CHANNEL_USB_CC2;             
         if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
         {
-            APP_ErrorHandler(ERR_ADC_CONFIG);
+            APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
         }
         
         data.usb_cc_adc_read_enabled = true;
@@ -38,14 +38,14 @@ void ADC_Set_USB_cc_read_state(bool enable_usb_cc_adc_read) {
         AdcChanConf.Channel = Pins.ADC_CHANNEL_USB_CC1;            
         if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
         {
-            APP_ErrorHandler(ERR_ADC_CONFIG);
+            APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
         }
 
         AdcChanConf.Rank = ADC_RANK_NONE; 
         AdcChanConf.Channel = Pins.ADC_CHANNEL_USB_CC2;            
         if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
         {
-            APP_ErrorHandler(ERR_ADC_CONFIG);
+            APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
         }
         data.usb_cc_adc_read_enabled = false;
     }
@@ -64,7 +64,7 @@ void ADC_Init(void)
 	
 	if (HAL_ADCEx_Calibration_Start(&AdcHandle) != HAL_OK)
 		{
-			APP_ErrorHandler(ERR_ADC_CONFIG);
+			APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
 		}
 	
 	//Populate ADC init data
@@ -85,7 +85,7 @@ void ADC_Init(void)
 	//Initialize ADC
 	if (HAL_ADC_Init(&AdcHandle) != HAL_OK)
 	{
-		APP_ErrorHandler(ERR_ADC_CONFIG);
+		APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
 	}
 
     // ADC_CHANNEL_AMP_TEMP_V       (PA2 on PY32F003F1)
@@ -103,21 +103,21 @@ void ADC_Init(void)
 	
 	if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
 	{
-		APP_ErrorHandler(ERR_ADC_CONFIG);
+		APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
 	}
 	AdcChanConf.Rank = Pins.ADC_CHANNEL_VALVE_TEMP_V; 
 	AdcChanConf.Channel = Pins.ADC_CHANNEL_VALVE_TEMP_V;     
 	
 	if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
 	{
-		APP_ErrorHandler(ERR_ADC_CONFIG);
+		APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
 	}
 	AdcChanConf.Rank = Pins.ADC_CHANNEL_V_BATT_SENSE; 
 	AdcChanConf.Channel = Pins.ADC_CHANNEL_V_BATT_SENSE;     
 	
 	if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
 	{
-		APP_ErrorHandler(ERR_ADC_CONFIG);
+		APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
 	}
 
     ADC_Set_USB_cc_read_state(true);
@@ -128,7 +128,7 @@ void ADC_Init(void)
 	
 	if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
 	{
-		APP_ErrorHandler(ERR_ADC_CONFIG);
+		APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
 	}
         
 	AdcChanConf.Rank = ADC_CHANNEL_VREFINT; 
@@ -136,10 +136,10 @@ void ADC_Init(void)
 	
 	if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
 	{
-		APP_ErrorHandler(ERR_ADC_CONFIG);
+		APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
 	}
     
-    // precalculate part of the temperature calculation:
+    // precalculate part of the PY32 internal temperature calculation:
     temperature_cal = (float) (85 - 30) / (float) (HAL_ADC_TSCAL2 - HAL_ADC_TSCAL1);        
 }
 
@@ -291,6 +291,9 @@ float thermistor_r_to_temperature(uint32_t resistance)
 	temp += 1.0 / (TEMPERATURE_NOMINAL + 273.15);	// + (1/To)
 	temp = 1.0 / temp;			// Invert
 	temp -= 273.15;				// convert to C
+    
+    // round the temperature to 1 decimal place:
+    temp = roundf(temp * 10.0f) / 10.0f;
 
 	return temp;
 }

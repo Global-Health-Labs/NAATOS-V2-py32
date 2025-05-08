@@ -17,6 +17,34 @@
 
 /* PID Controller Parameters */
 #define PID_LIM_MIN 0.0f
+#define PID_ANTIWINDUP_ERR_RANGE 6.0f
+#define PID_DELTA_T 0.5f        // PID is run twice per second
+
+/*CONTROL structure
+  holds process steps for each STATE in application. Each [INDEX] maps to enum state_machine
+*/
+
+#ifdef BOARDCONFIG_MK6F
+#define PID_SH_P_TERM 5
+#define PID_SH_I_TERM 0.5
+#define PID_SH_D_TERM 0.333
+#define PID_VH_P_TERM 5
+#define PID_VH_I_TERM 0.5
+#define PID_VH_D_TERM 0.333
+#else
+#define PID_SH_P_TERM 45.0
+#define PID_SH_I_TERM 0.5
+#define PID_SH_D_TERM 0.333
+#define PID_VH_P_TERM 45.0
+#define PID_VH_I_TERM 2
+#define PID_VH_D_TERM 10
+//#define PID_SH_P_TERM 45
+//#define PID_SH_I_TERM 0.5
+//#define PID_SH_D_TERM 0.333
+//#define PID_VH_P_TERM 45
+//#define PID_VH_I_TERM 0.5
+//#define PID_VH_D_TERM 0.333
+#endif
 
 typedef struct {
   /* Controller Gains */
@@ -37,6 +65,7 @@ typedef struct {
   float error, lastError, lastInput;
   float outputSum;
   uint32_t lastTime;
+  bool  ramp_start;
   float pTerm;
   float iTerm;
   float dTerm;

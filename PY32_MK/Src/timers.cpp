@@ -43,12 +43,12 @@ void TIMER_Init(void)
 
     if (HAL_TIM_Base_Init(&tim1Handle) != HAL_OK)
     {
-    APP_ErrorHandler(ERR_TIMER_CONFIG);
+        APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
     }
 
     if (HAL_TIM_Base_Start_IT(&tim1Handle) != HAL_OK)
     {
-    APP_ErrorHandler(ERR_TIMER_CONFIG);
+        APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
     }
     
     Registered_ISRTimers = 0;
@@ -166,7 +166,7 @@ void APP_SystemClockConfig(void)
 
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
-    APP_ErrorHandler(ERR_TIMER_CONFIG);
+    APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
   }
 
   RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK | RCC_CLOCKTYPE_PCLK1; /* ?????? HCLK,SYSCLK,PCLK1 */
@@ -176,7 +176,7 @@ void APP_SystemClockConfig(void)
 
   if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
   {
-    APP_ErrorHandler(ERR_TIMER_CONFIG);
+    APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
   }
 }
 

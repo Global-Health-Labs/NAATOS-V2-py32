@@ -58,6 +58,7 @@ void LogData_ISR(void);
 void print_log_data(void);
 void send_max_temps(void);
 bool Validate_USB_Power_Source(void);
+bool Validate_Power_Supply(void);
 
 typedef struct {
     bool    enabled;

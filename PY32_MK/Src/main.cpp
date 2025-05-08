@@ -43,26 +43,6 @@ GPIO_PinState pushbutton_value, last_pushbutton_value;
 #define SH_FIXED_PWM_TEST 255
 #define VH_FIXED_PWM_TEST 255
 
-/*CONTROL structure
-  holds process steps for each STATE in application. Each [INDEX] maps to enum state_machine
-*/
-
-#ifdef BOARDCONFIG_MK6F
-#define PID_SH_P_TERM 5
-#define PID_SH_I_TERM 0.5
-#define PID_SH_D_TERM 0.333
-#define PID_VH_P_TERM 5
-#define PID_VH_I_TERM 0.5
-#define PID_VH_D_TERM 0.333
-#else
-#define PID_SH_P_TERM 45
-#define PID_SH_I_TERM 0.5
-#define PID_SH_D_TERM 0.333
-#define PID_VH_P_TERM 45
-#define PID_VH_I_TERM 0.5
-#define PID_VH_D_TERM 0.333
-#endif
-
 CONTROL sample_amp_control[NUMPROCESS] = 
 {
   {HEATER_SHUTDOWN_C, 0, 0, 2, 1, .5},
@@ -95,6 +75,25 @@ char outputStr[256];
 Pin_pwm_t pwm_amp_ctrl;
 Pin_pwm_t pwm_valve_ctrl; 
 
+#define UID_BASE_ADDR 0x1FFF0E00
+
+// Each PY32 has a unique ID (UID).
+void print_UID(void)
+{
+    uint8_t *uid;
+    
+    uid = (uint8_t *) UID_BASE_ADDR;
+    sprintf(outputStr, "UID_%02X%02X%02X\r\n", uid[15], uid[14], uid[13]);
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
+    
+#if 0    
+    for (int i=0; i<16; i++)
+    {
+        sprintf(outputStr, "UID %d: %02X\r\n", i, uid[i]);
+        HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
+    }
+#endif
+}
 
 // Init PID Controller based on the STATE MACHINE state
 void pid_init(heater_t heater, CONTROL pid_settings){
@@ -108,7 +107,7 @@ void pid_init(heater_t heater, CONTROL pid_settings){
     pid_settings.kp,
     pid_settings.ki,
     pid_settings.kd,
-    PWM_MAX,
+    (PWM_MAX * 2),
     SLEW_RATE_LIMIT);
 }
 
@@ -127,12 +126,17 @@ void system_setup() {
     sprintf(outputStr, "NAATOS V2 PY32F003 MK. %s %s\r\n", FW_VERSION_STR, BUILD_HW_STR);		
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
     
+    print_UID();
+
     // set up the timers:
     PWMTimerNumber = Register_timer(PWMTimer_ISR,  PWM_TIMER_INTERVAL);
-    LEDTimerNumber = Register_timer(LEDTimer_ISR,  LED_TIMER_INTERVAL_AMPLIFICATION);    
-    PIDTimerNumber = Register_timer(PIDTimer_ISR,  PID_TIMER_INTERVAL);
-    MinuteTimerNumber = Register_timer(MinuteTimer_ISR,  MINUTE_TIMER_INTERVAL);
+    LEDTimerNumber = Register_timer(LEDTimer_ISR,  LED_TIMER_INTERVAL_AMPLIFICATION);   
+
+    // register the DataCollectionTimer before PIDTimer to make sure temperature data is recent.
     DataCollectionTimerNumber = Register_timer(DataCollection_ISR,  DATA_COLLECTION_TIMER_INTERVAL);
+    PIDTimerNumber = Register_timer(PIDTimer_ISR,  PID_TIMER_INTERVAL);
+    
+    MinuteTimerNumber = Register_timer(MinuteTimer_ISR,  MINUTE_TIMER_INTERVAL);
     DelayedStartTimerNumber = Register_timer(DelayedStart_ISR,  STARTUP_DELAY_MS);
 #ifdef PUSHBUTTON_UI_ENABLED    
     PushbuttonTimerNumber = Register_timer(Pushbutton_ISR,  PUSHBUTTON_TIMER_INTERVAL);
@@ -182,8 +186,13 @@ int main(void)
     ADC_Read();
     //sprintf(outputStr, "ADCs: %d %d %d %d %d %d %d\r\n", data.adcReading[0], data.adcReading[1], data.adcReading[2], data.adcReading[3], data.adcReading[4], data.adcReading[5], data.adcReading[6]);
     //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
-    sprintf(outputStr, "system_input_voltage: %1.2f vcc_mcu_voltage: %1.2f py32_temperature_c: %1.2f\r\n", data.system_input_voltage, data.vcc_mcu_voltage, data.py32_temperature_c);
+    sprintf(outputStr, "system_input_voltage: %1.2f vcc_mcu_voltage: %1.2f\r\n", data.system_input_voltage, data.vcc_mcu_voltage);
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
+    
+    // py32_temperature_c does not work correctly. The ADC value reads higher than HAL_ADC_TSCAL2 (85c)
+    //sprintf(outputStr, "py32_temperature_c: %1.2f ADC->CHSELR: %08X bits: %d vrefint:%d HAL_ADC_TSCAL1: %d HAL_ADC_TSCAL2: %d\r\n", data.py32_temperature_c, ADC1->CHSELR, data.adcReading[5], data.adcReading[6], HAL_ADC_TSCAL1, HAL_ADC_TSCAL2);
+    //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
+    
     sprintf(outputStr, "rcc->csr: %08X usb_cc1_voltage: %1.2f usb_cc2_voltage: %1.2f\r\n", rcc_csr_bootstate, data.usb_cc1_voltage, data.usb_cc2_voltage);
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
     sprintf(outputStr, "sample_temperature_c: %1.2f valve_temperature_c: %1.2f\r\n", data.sample_temperature_c, data.valve_temperature_c);
@@ -191,6 +200,8 @@ int main(void)
 
     data.self_test_sh_start_temp_c = data.sample_temperature_c;
     data.self_test_vh_start_temp_c = data.valve_temperature_c;
+
+    if (Validate_Power_Supply() == false) APP_ErrorHandler(ERR_POWER_SUPPLY);
 
 #if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C)|| defined(BOARDCONFIG_MK6F)
     // Verify that the USB power supply can supply at least 1.5A:
@@ -346,6 +357,8 @@ int main(void)
                     data.state = self_test_2;
                     data.self_test_sh_start_temp_c = data.sample_temperature_c;
                     data.self_test_vh_start_temp_c = data.valve_temperature_c;
+                    pwm_amp_ctrl.heater_level_high = true;
+                    pwm_valve_ctrl.heater_level_high = true;                        
                     //sprintf(outputStr, "Passed self_test_1\r\n");		   
                     //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
                 } else if (data.msec_test_count > SELFTEST_TIME_MSEC) {
@@ -365,7 +378,7 @@ int main(void)
             } else if (data.state == preheat) {
                 if (data.sample_temperature_c >= PREHEAT_TEMP_C && data.valve_temperature_c >= PREHEAT_TEMP_C) {
                     data.state = amplification;
-#if defined(BOARDCONFIG_MK5AA)
+#if defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA)
                     data.heater_control_not_simultaneous = false;
                     pwm_amp_ctrl.heater_level_high = false;
                     pwm_valve_ctrl.heater_level_high = false;
@@ -378,7 +391,8 @@ int main(void)
                     pwm_amp_ctrl.heater_level_high = false;
                     pwm_valve_ctrl.heater_level_high = false;
 #endif    							
-                                
+                    pid_init(SAMPLE_HEATER, sample_amp_control[data.state]);
+                    pid_init(VALVE_HEATER, valve_amp_control[data.state]);                                
                     //sprintf(outputStr, "preheat mode ended.\r\n");		   
                     //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
                 } else if (data.msec_test_count > PREHEAT_MAX_TIME_MSEC) {
@@ -396,8 +410,12 @@ int main(void)
             if (data.heater_control_not_simultaneous) {
                 //data.sample_heater_pwm_value = SH_FIXED_PWM_TEST /2;
                 //data.valve_heater_pwm_value = VH_FIXED_PWM_TEST /2;
-                data.sample_heater_pwm_value = (pid_data[SAMPLE_HEATER].out * (100-HEATER_ELEMENT_POWER_RATIO)) /100;
-                data.valve_heater_pwm_value = (pid_data[VALVE_HEATER].out * HEATER_ELEMENT_POWER_RATIO) /100;
+                //data.sample_heater_pwm_value = (pid_data[SAMPLE_HEATER].out * (100-HEATER_ELEMENT_POWER_RATIO)) /100;
+                //data.valve_heater_pwm_value = (pid_data[VALVE_HEATER].out * HEATER_ELEMENT_POWER_RATIO) /100;
+                
+                // Apply maximum power to each heater during self-test
+                data.sample_heater_pwm_value = (PWM_MAX * (100-HEATER_ELEMENT_POWER_RATIO)) /100;
+                data.valve_heater_pwm_value = (PWM_MAX * HEATER_ELEMENT_POWER_RATIO) /100;
             } else {
                 //data.sample_heater_pwm_value = SH_FIXED_PWM_TEST;
                 //data.valve_heater_pwm_value = VH_FIXED_PWM_TEST;
@@ -507,10 +525,12 @@ void Data_init(void)
 
 void print_log_data(void) 
 {
-#if defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6F)
-    sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.sample_temperature_c, pid_data[SAMPLE_HEATER].setpoint, data.sh_pwm_during_adc_meas, data.valve_temperature_c, pid_data[VALVE_HEATER].setpoint, data.vh_pwm_during_adc_meas, data.system_input_voltage, data.state);
+#if defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA) || defined(BOARDCONFIG_MK6F)
+    sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d %d %d\r\n", data.msec_test_count, data.sample_temperature_c, pid_data[SAMPLE_HEATER].setpoint, data.sh_pwm_during_adc_meas, data.valve_temperature_c, pid_data[VALVE_HEATER].setpoint, data.vh_pwm_during_adc_meas, data.system_input_voltage, data.state, (int) pid_data[VALVE_HEATER].integrator,(int) pid_data[VALVE_HEATER].dTerm);
+    //sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.sample_temperature_c, pid_data[SAMPLE_HEATER].setpoint, data.sh_pwm_during_adc_meas, data.valve_temperature_c, pid_data[VALVE_HEATER].setpoint, data.vh_pwm_during_adc_meas, data.system_input_voltage, data.state);
 #else
-    sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.sample_temperature_c, pid_data[SAMPLE_HEATER].setpoint, data.sample_heater_pwm_value, data.valve_temperature_c, pid_data[VALVE_HEATER].setpoint, data.valve_heater_pwm_value, data.vcc_mcu_voltage, data.state);
+    sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d %d %d\r\n", data.msec_test_count, data.sample_temperature_c, pid_data[SAMPLE_HEATER].setpoint, data.sh_pwm_during_adc_meas, data.valve_temperature_c, pid_data[VALVE_HEATER].setpoint, data.vh_pwm_during_adc_meas, data.vcc_mcu_voltage, data.state, (int) pid_data[VALVE_HEATER].integrator,(int) pid_data[VALVE_HEATER].dTerm);
+    //sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.sample_temperature_c, pid_data[SAMPLE_HEATER].setpoint, data.sh_pwm_during_adc_meas, data.valve_temperature_c, pid_data[VALVE_HEATER].setpoint, data.sh_pwm_during_adc_meas, data.vcc_mcu_voltage, data.state);
 #endif
     
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
@@ -688,7 +708,7 @@ void GPIO_Init(void)
 	__HAL_RCC_ADC_CLK_ENABLE();
     
     // Device pin assignments:
-#if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C) || defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6F)
+#if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C) || defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA) || defined(BOARDCONFIG_MK6F)
     Pins.GPIOx_AMP_TEMP_V = GPIOA;
     Pins.GPIO_Pin_AMP_TEMP_V = GPIO_PIN_2;
     Pins.ADC_CHANNEL_AMP_TEMP_V = ADC_CHANNEL_2;    
@@ -776,7 +796,7 @@ void GPIO_Init(void)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
     HAL_GPIO_Init(Pins.GPIOx_LED1, &GPIO_InitStruct);    
 
-#if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C) || defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6F)
+#if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C) || defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA) || defined(BOARDCONFIG_MK6F)
     AdcPinStruct.Pin = Pins.GPIO_Pin_USB_CC1;               // USB_CC1
 	AdcPinStruct.Mode = GPIO_MODE_ANALOG;
 	AdcPinStruct.Pull = GPIO_NOPULL;
@@ -807,7 +827,7 @@ void GPIO_Init(void)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(Pins.GPIOx_AMP_CTRL2, &GPIO_InitStruct);    
 
-#if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C) || defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6F)
+#if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C) || defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA) || defined(BOARDCONFIG_MK6F)
     GPIO_InitStruct.Pin = Pins.GPIO_Pin_VALVE_CTRL1;        // VALVE_CTRL1
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_PULLDOWN;
@@ -866,7 +886,7 @@ void UART_Init(void)
 	
   if (HAL_UART_Init(&UartHandle) != HAL_OK)
   {
-    APP_ErrorHandler(ERR_TIMER_CONFIG);
+    APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
   }
 }
 
@@ -1004,7 +1024,12 @@ bool Validate_USB_Power_Source(void)
     else if (data.usb_cc2_voltage >= USB_CC_MIN_VALID_SOURCE_V && data.usb_cc2_voltage <= USB_CC_MAX_VALID_SOURCE_V) {
         return true;
     }
-    else if (data.usb_cc2_voltage >= USB_CC_MIN_VALID_SOURCE_V && data.usb_cc2_voltage <= USB_CC_MAX_VALID_SOURCE_V) {
+    else return false;
+}
+
+bool Validate_Power_Supply(void)
+{
+    if (data.vcc_mcu_voltage >= VCC_MCU_MIN_VOLTAGE && data.vcc_mcu_voltage <= VCC_MCU_MAX_VOLTAGE) {
         return true;
     }
     else return false;

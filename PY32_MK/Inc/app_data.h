@@ -16,32 +16,46 @@
 #define ACTUATION_TIME_MIN              5
 #define DETECTION_TIME_MIN              1
 
-#define SELFTEST_TIME_MSEC              14000
-#define SELFTEST_MIN_TEMP_RISE_C        5.0
+#define SELFTEST_TIME_MSEC              12000
+#define SELFTEST_MIN_TEMP_RISE_C        4.0
 #define PREHEAT_TEMP_C    	            30	    // Start the heaters in non simultaneous mode until they hit this temperature
 #define PREHEAT_MAX_TIME_MSEC           150000  // Go to a failure state if the board cannot preheat within this amount of time.
 
 #define BOARDCONFIG_MK6C
 
-#define FW_VERSION_STR                  "FW:v0.6"
+#define FW_VERSION_STR                  "FW:v0.8"
 
 //#define PUSHBUTTON_UI_ENABLED           1      
 
-#if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C) || defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6F)
-#define SAMPLE_ZONE_AMP_SOAK_TARGET_C   68
-#define VALVE_ZONE_AMP_SOAK_TARGET_C    68
+#if defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA) 
+    #define VCC_MCU_MIN_VOLTAGE     2.2
+    #define VCC_MCU_MAX_VOLTAGE     3.6
+#elif defined(BOARDCONFIG_MK6F)
+    #define VCC_MCU_MIN_VOLTAGE     4.5
+    #define VCC_MCU_MAX_VOLTAGE     5.5
+#elif defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C)
+    #define VCC_MCU_MIN_VOLTAGE     2.4
+    #define VCC_MCU_MAX_VOLTAGE     2.6
+#else
+    FAIL -- invalid board type
+#endif
+
+#if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C) || defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA) || defined(BOARDCONFIG_MK6F)
+#define SAMPLE_ZONE_AMP_SOAK_TARGET_C   72
+#define VALVE_ZONE_AMP_SOAK_TARGET_C    72
 #define SAMPLE_ZONE_VALVE_SOAK_TARGET_C 0
-#define VALVE_ZONE_VALVE_PREP_TARGET_C  68
-#define VALVE_ZONE_VALVE_SOAK_TARGET_C  97
-#define COLD_TEMP_SETPOINT_OFFSET_C     4
-#define COLD_TEMP_OFFSET_THRESHOLD_C    15
+#define VALVE_ZONE_VALVE_PREP_TARGET_C  72
+#define VALVE_ZONE_VALVE_SOAK_TARGET_C  101
+#define COLD_TEMP_SETPOINT_OFFSET_C     2
+#define COLD_TEMP_OFFSET_THRESHOLD_C    14
 #define AMPLIFICATION_MIN_VALID_TEMP_C  65
-#define ACTUATION_MIN_VALID_TEMP_C      91
+#define ACTUATION_MIN_VALID_TEMP_C      95
 #define HEATER_SHUTDOWN_C               0
 #define HEATER_ELEMENT_POWER_RATIO      35
 #define OVERTEMP_ERR_C                  110
 #define SLEW_RATE_LIMIT                 255
-#define BUILD_HW_STR                    "HW:MK6C"
+#define BUILD_HW_STR                    "HW:MK6C_B255"
+//#define BUILD_HW_STR                    "HW:MK6AA_B204"
 
 #else
     FAIL -- invalid board type
@@ -52,7 +66,7 @@
 // Timer related
 #define PWM_TIMER_INTERVAL              1L
 #define MINUTE_TIMER_INTERVAL           (60000L * TICKS_PER_MSEC)
-#define LOG_TIMER_INTERVAL              (1000L * TICKS_PER_MSEC)
+#define LOG_TIMER_INTERVAL              (500L * TICKS_PER_MSEC)
 
 #define PID_TIMER_INTERVAL              (500L * TICKS_PER_MSEC)
 #define DATA_COLLECTION_TIMER_INTERVAL  (500L * TICKS_PER_MSEC)
