@@ -107,7 +107,7 @@ void pid_init(heater_t heater, CONTROL pid_settings){
     pid_settings.kp,
     pid_settings.ki,
     pid_settings.kd,
-    (PWM_MAX * 2),
+    PWM_MAX,
     SLEW_RATE_LIMIT);
 }
 
@@ -307,41 +307,8 @@ int main(void)
 
         /*UPDATE INPUT::TEMPERATURE SENSORS*/
         if (flags.flagDataCollection){
-          flags.flagDataCollection = false;
-
-          // Fix the heaters to a known state while reading the ADCs (to minimize measurement error and noise)
-          if (pwm_amp_ctrl.enabled) {              
-              pwm_amp_ctrl.enabled = false;
-              pwm_amp_ctrl.suspended = true;
-              HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL1, Pins.GPIO_Pin_AMP_CTRL1, GPIO_PIN_RESET);
-              if (data.sample_heater_pwm_value > 0) 
-                HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL2, Pins.GPIO_Pin_AMP_CTRL2, GPIO_PIN_SET);
-              else 
-                HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL2, Pins.GPIO_Pin_AMP_CTRL2, GPIO_PIN_RESET);
-          }
-
-          if (pwm_valve_ctrl.enabled) {              
-              pwm_valve_ctrl.enabled = false;      
-              pwm_valve_ctrl.suspended = true;
-              HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL1, Pins.GPIO_Pin_VALVE_CTRL1, GPIO_PIN_RESET);
-              HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL2, Pins.GPIO_Pin_VALVE_CTRL2, GPIO_PIN_RESET);
-          }
-          
-          ADC_Read();
-          
-          if (pwm_amp_ctrl.suspended) {
-              pwm_amp_ctrl.suspended = false;
-              pwm_amp_ctrl.enabled = true;
-          }
-          if (pwm_valve_ctrl.suspended) {
-              pwm_valve_ctrl.suspended = false;
-              pwm_valve_ctrl.enabled = true;
-          }
-          
-          // Measure the number of seconds it takes to ramp to the minimum valve temperature:
-          if (data.state == actuation && data.valve_ramp_time == 0 && data.valve_temperature_c >= ACTUATION_MIN_VALID_TEMP_C) {
-            data.valve_ramp_time = data.msec_test_count / 1000 - (AMPLIFICATION_TIME_MIN * 60);
-          }
+            flags.flagDataCollection = false;
+            //ADC_data_collect();
         }
 
         /*UPDATE OUTPUT:HEATER LOAD*/
@@ -350,78 +317,9 @@ int main(void)
             if (data.test_active) {
                 data.msec_test_count += (PID_TIMER_INTERVAL / TICKS_PER_MSEC);
             }
-            
-            if (data.state == self_test_1) {
-                if (data.sample_temperature_c >= (data.self_test_sh_start_temp_c + SELFTEST_MIN_TEMP_RISE_C)
-                    && data.valve_temperature_c >= (data.self_test_vh_start_temp_c + SELFTEST_MIN_TEMP_RISE_C)) {
-                    data.state = self_test_2;
-                    data.self_test_sh_start_temp_c = data.sample_temperature_c;
-                    data.self_test_vh_start_temp_c = data.valve_temperature_c;
-                    pwm_amp_ctrl.heater_level_high = true;
-                    pwm_valve_ctrl.heater_level_high = true;                        
-                    //sprintf(outputStr, "Passed self_test_1\r\n");		   
-                    //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
-                } else if (data.msec_test_count > SELFTEST_TIME_MSEC) {
-                    APP_ErrorHandler(ERR_SELFTEST_FAILED);  
-                }
-            } else if (data.state == self_test_2) {
-                if (data.sample_temperature_c >= (data.self_test_sh_start_temp_c + SELFTEST_MIN_TEMP_RISE_C)
-                    && data.valve_temperature_c >= (data.self_test_vh_start_temp_c + SELFTEST_MIN_TEMP_RISE_C)) {
-                    data.state = preheat;
-                    data.sample_temperature_c = data.self_test_sh_start_temp_c;
-                    data.valve_temperature_c = data.self_test_vh_start_temp_c;
-                    //sprintf(outputStr, "Passed self_test_2\r\n");		   
-                    //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
-                } else if (data.msec_test_count > (2* SELFTEST_TIME_MSEC)) {
-                    APP_ErrorHandler(ERR_SELFTEST_FAILED);                   
-                }
-            } else if (data.state == preheat) {
-                if (data.sample_temperature_c >= PREHEAT_TEMP_C && data.valve_temperature_c >= PREHEAT_TEMP_C) {
-                    data.state = amplification;
-#if defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA)
-                    data.heater_control_not_simultaneous = false;
-                    pwm_amp_ctrl.heater_level_high = false;
-                    pwm_valve_ctrl.heater_level_high = false;
-#elif defined(BOARDCONFIG_MK6C)
-                    data.heater_control_not_simultaneous = false;
-                    pwm_amp_ctrl.heater_level_high = true;
-                    pwm_valve_ctrl.heater_level_high = true;
-#else
-                    data.heater_control_not_simultaneous = false;
-                    pwm_amp_ctrl.heater_level_high = false;
-                    pwm_valve_ctrl.heater_level_high = false;
-#endif    							
-                    pid_init(SAMPLE_HEATER, sample_amp_control[data.state]);
-                    pid_init(VALVE_HEATER, valve_amp_control[data.state]);                                
-                    //sprintf(outputStr, "preheat mode ended.\r\n");		   
-                    //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
-                } else if (data.msec_test_count > PREHEAT_MAX_TIME_MSEC) {
-                    APP_ErrorHandler(ERR_PREHEAT_TIMEOUT);    
-                }
-            }
-            
-            pid_controller_compute(SAMPLE_HEATER, data.sample_temperature_c);
-            pid_controller_compute(VALVE_HEATER, data.valve_temperature_c);
-        
-            // When heater_control_not_simultaneous is enabled, each heater is run at a fraction of the its PWM value, 
-            // based on the HEATER_ELEMENT_POWER_RATIO. Each heater will run at a fraction of its max power output.
-            // Since the 2 heater controls are aligned with opposite sides of the PWM period, they will not be
-            // turned on simultaniously when in this mode. 
-            if (data.heater_control_not_simultaneous) {
-                //data.sample_heater_pwm_value = SH_FIXED_PWM_TEST /2;
-                //data.valve_heater_pwm_value = VH_FIXED_PWM_TEST /2;
-                //data.sample_heater_pwm_value = (pid_data[SAMPLE_HEATER].out * (100-HEATER_ELEMENT_POWER_RATIO)) /100;
-                //data.valve_heater_pwm_value = (pid_data[VALVE_HEATER].out * HEATER_ELEMENT_POWER_RATIO) /100;
-                
-                // Apply maximum power to each heater during self-test
-                data.sample_heater_pwm_value = (PWM_MAX * (100-HEATER_ELEMENT_POWER_RATIO)) /100;
-                data.valve_heater_pwm_value = (PWM_MAX * HEATER_ELEMENT_POWER_RATIO) /100;
-            } else {
-                //data.sample_heater_pwm_value = SH_FIXED_PWM_TEST;
-                //data.valve_heater_pwm_value = VH_FIXED_PWM_TEST;
-                data.sample_heater_pwm_value = pid_data[SAMPLE_HEATER].out;
-                data.valve_heater_pwm_value = pid_data[VALVE_HEATER].out;
-            }
+
+            ADC_data_collect();
+            Update_PID();
         }
         
         if (flags.flagSendLogData) {
@@ -521,6 +419,122 @@ void Data_init(void)
     data.valve_ramp_time = 0;    
     data.sh_pwm_during_adc_meas = 0;    
     data.vh_pwm_during_adc_meas = 0;    
+}
+
+void ADC_data_collect(void) 
+{
+    // Fix the heaters to a known state while reading the ADCs (to minimize measurement error and noise)
+    if (pwm_amp_ctrl.enabled) {              
+    pwm_amp_ctrl.enabled = false;
+    pwm_amp_ctrl.suspended = true;
+    HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL1, Pins.GPIO_Pin_AMP_CTRL1, GPIO_PIN_RESET);
+    if (data.sample_heater_pwm_value > 0) 
+        HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL2, Pins.GPIO_Pin_AMP_CTRL2, GPIO_PIN_SET);
+    else 
+        HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL2, Pins.GPIO_Pin_AMP_CTRL2, GPIO_PIN_RESET);
+    }
+
+    if (pwm_valve_ctrl.enabled) {              
+        pwm_valve_ctrl.enabled = false;      
+        pwm_valve_ctrl.suspended = true;
+        HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL1, Pins.GPIO_Pin_VALVE_CTRL1, GPIO_PIN_RESET);
+        HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL2, Pins.GPIO_Pin_VALVE_CTRL2, GPIO_PIN_RESET);
+    }
+
+    ADC_Read();
+
+    if (pwm_amp_ctrl.suspended) {
+        pwm_amp_ctrl.suspended = false;
+        pwm_amp_ctrl.enabled = true;
+    }
+    if (pwm_valve_ctrl.suspended) {
+        pwm_valve_ctrl.suspended = false;
+        pwm_valve_ctrl.enabled = true;
+    }
+
+    // Measure the number of seconds it takes to ramp to the minimum valve temperature:
+    if (data.state == actuation && data.valve_ramp_time == 0 && data.valve_temperature_c >= ACTUATION_MIN_VALID_TEMP_C) {
+        data.valve_ramp_time = data.msec_test_count / 1000 - (AMPLIFICATION_TIME_MIN * 60);
+    }
+}
+
+void Update_PID(void)
+{    
+    if (data.state == self_test_1) {
+        if (data.sample_temperature_c >= (data.self_test_sh_start_temp_c + SELFTEST_MIN_TEMP_RISE_C)
+            && data.valve_temperature_c >= (data.self_test_vh_start_temp_c + SELFTEST_MIN_TEMP_RISE_C)) {
+            data.state = self_test_2;
+            data.self_test_sh_start_temp_c = data.sample_temperature_c;
+            data.self_test_vh_start_temp_c = data.valve_temperature_c;
+            pwm_amp_ctrl.heater_level_high = true;
+            pwm_valve_ctrl.heater_level_high = true;                        
+            //sprintf(outputStr, "Passed self_test_1\r\n");		   
+            //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
+        } else if (data.msec_test_count > SELFTEST_TIME_MSEC) {
+            APP_ErrorHandler(ERR_SELFTEST_FAILED);  
+        }
+    } else if (data.state == self_test_2) {
+        if (data.sample_temperature_c >= (data.self_test_sh_start_temp_c + SELFTEST_MIN_TEMP_RISE_C)
+            && data.valve_temperature_c >= (data.self_test_vh_start_temp_c + SELFTEST_MIN_TEMP_RISE_C)) {
+            data.state = preheat;
+            data.sample_temperature_c = data.self_test_sh_start_temp_c;
+            data.valve_temperature_c = data.self_test_vh_start_temp_c;
+            //sprintf(outputStr, "Passed self_test_2\r\n");		   
+            //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
+        } else if (data.msec_test_count > (2* SELFTEST_TIME_MSEC)) {
+            APP_ErrorHandler(ERR_SELFTEST_FAILED);                   
+        }
+    } else if (data.state == preheat) {
+        if (data.sample_temperature_c >= PREHEAT_TEMP_C && data.valve_temperature_c >= PREHEAT_TEMP_C) {
+            data.state = amplification;
+#if defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA)
+            data.heater_control_not_simultaneous = false;
+            pwm_amp_ctrl.heater_level_high = false;
+            pwm_valve_ctrl.heater_level_high = false;
+#elif defined(BOARDCONFIG_MK6C)
+            data.heater_control_not_simultaneous = false;
+            pwm_amp_ctrl.heater_level_high = true;
+            pwm_valve_ctrl.heater_level_high = true;
+#else
+            data.heater_control_not_simultaneous = false;
+            pwm_amp_ctrl.heater_level_high = false;
+            pwm_valve_ctrl.heater_level_high = false;
+#endif    							
+            pid_init(SAMPLE_HEATER, sample_amp_control[data.state]);
+            pid_init(VALVE_HEATER, valve_amp_control[data.state]);                                
+            //sprintf(outputStr, "preheat mode ended.\r\n");		   
+            //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
+        } else if (data.msec_test_count > PREHEAT_MAX_TIME_MSEC) {
+            APP_ErrorHandler(ERR_PREHEAT_TIMEOUT);    
+        }
+    }
+    
+    pid_controller_compute(SAMPLE_HEATER, data.sample_temperature_c);
+    pid_controller_compute(VALVE_HEATER, data.valve_temperature_c);
+
+    // When heater_control_not_simultaneous is enabled, each heater is run at a fraction of the its PWM value, 
+    // based on the HEATER_ELEMENT_POWER_RATIO. Each heater will run at a fraction of its max power output.
+    // Since the 2 heater controls are aligned with opposite sides of the PWM period, they will not be
+    // turned on simultaniously when in this mode. 
+    if (data.heater_control_not_simultaneous) {
+        //data.sample_heater_pwm_value = SH_FIXED_PWM_TEST /2;
+        //data.valve_heater_pwm_value = VH_FIXED_PWM_TEST /2;
+        //data.sample_heater_pwm_value = (pid_data[SAMPLE_HEATER].out * (100-HEATER_ELEMENT_POWER_RATIO)) /100;
+        //data.valve_heater_pwm_value = (pid_data[VALVE_HEATER].out * HEATER_ELEMENT_POWER_RATIO) /100;
+        
+        // Apply maximum power to each heater during self-test
+        data.sample_heater_pwm_value = (PWM_MAX * (100-HEATER_ELEMENT_POWER_RATIO)) /100;
+        data.valve_heater_pwm_value = (PWM_MAX * HEATER_ELEMENT_POWER_RATIO) /100;
+    } else {
+        //data.sample_heater_pwm_value = SH_FIXED_PWM_TEST;
+        //data.valve_heater_pwm_value = VH_FIXED_PWM_TEST;
+        data.sample_heater_pwm_value = pid_data[SAMPLE_HEATER].out;
+        data.valve_heater_pwm_value = pid_data[VALVE_HEATER].out;
+    }
+    
+    // Start the PWM controller at a new cycle after updating the PWM values:
+    pwm_amp_ctrl.pwm_tick_count = 0;
+    pwm_valve_ctrl.pwm_tick_count = 0;
 }
 
 void print_log_data(void) 
@@ -854,6 +868,7 @@ void GPIO_Init(void)
     pwm_amp_ctrl.enabled = false;
     pwm_amp_ctrl.suspended = false;
     pwm_amp_ctrl.pwm_state = 0;
+    pwm_amp_ctrl.pwm_tick_count = 0;
     
     // always start in low power, not_simultaneous mode
     data.heater_control_not_simultaneous = true;    
@@ -866,6 +881,7 @@ void GPIO_Init(void)
     pwm_valve_ctrl.enabled = false;
     pwm_valve_ctrl.suspended = false;    
     pwm_valve_ctrl.pwm_state = 0;
+    pwm_valve_ctrl.pwm_tick_count = 0;
     HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL1, Pins.GPIO_Pin_VALVE_CTRL1, GPIO_PIN_RESET);    
     HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL2, Pins.GPIO_Pin_VALVE_CTRL2, GPIO_PIN_RESET);    
 }
@@ -897,7 +913,7 @@ void UART_Init(void)
 void PWMTimer_ISR(void)
 {   
     // Control the sample heater control outputs
-    // This is aligned with the start of the 125 usec PWM period
+    // This is aligned with the start of the PWM period
 
     #if 0
     HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL1, Pins.GPIO_Pin_AMP_CTRL1, GPIO_PIN_RESET);
@@ -907,11 +923,10 @@ void PWMTimer_ISR(void)
         HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL2, Pins.GPIO_Pin_AMP_CTRL2, GPIO_PIN_RESET);
     //HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL1, Pins.GPIO_Pin_VALVE_CTRL1, GPIO_PIN_SET);
     //HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL2, Pins.GPIO_Pin_VALVE_CTRL2, GPIO_PIN_SET);
-    #endif 
-    
+    #endif     
     
     if (pwm_amp_ctrl.enabled && data.sample_heater_pwm_value > 0) {
-        if ((TIM1_tick_count & 0xFF)  < data.sample_heater_pwm_value) {
+        if (pwm_amp_ctrl.pwm_tick_count  < data.sample_heater_pwm_value) {
             if (pwm_amp_ctrl.heater_level_high) {
                 HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL1, Pins.GPIO_Pin_AMP_CTRL1, GPIO_PIN_SET);
                 HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL2, Pins.GPIO_Pin_AMP_CTRL2, GPIO_PIN_RESET);
@@ -929,11 +944,13 @@ void PWMTimer_ISR(void)
         HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL2, Pins.GPIO_Pin_AMP_CTRL2, GPIO_PIN_RESET);
         pwm_amp_ctrl.pwm_state = 0;
     }
+    pwm_amp_ctrl.pwm_tick_count += 1;
+    if (pwm_amp_ctrl.pwm_tick_count >= PWM_MAX) pwm_amp_ctrl.pwm_tick_count = 0;
 
     // Control the valve heater control outputs
-    // This is aligned with the end of the 125 usec PWM period
+    // This is aligned with the end of the PWM period
     if (pwm_valve_ctrl.enabled && data.valve_heater_pwm_value > 0) {
-        if ((TIM1_tick_count & 0xFF)  > (255 - data.valve_heater_pwm_value)) {
+        if (pwm_valve_ctrl.pwm_tick_count  > (PWM_MAX - data.valve_heater_pwm_value)) {
             if (pwm_amp_ctrl.heater_level_high) {
                 HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL1, Pins.GPIO_Pin_VALVE_CTRL1, GPIO_PIN_SET);
                 HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL2, Pins.GPIO_Pin_VALVE_CTRL2, GPIO_PIN_RESET);
@@ -952,6 +969,9 @@ void PWMTimer_ISR(void)
         HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL2, Pins.GPIO_Pin_VALVE_CTRL2, GPIO_PIN_RESET);
         pwm_valve_ctrl.pwm_state = 0;
     }
+    pwm_valve_ctrl.pwm_tick_count += 1;
+    if (pwm_valve_ctrl.pwm_tick_count >= PWM_MAX) pwm_valve_ctrl.pwm_tick_count = 0;
+
 }
 
 void LEDTimer_ISR(void)

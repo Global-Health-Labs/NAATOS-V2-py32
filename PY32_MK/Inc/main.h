@@ -60,12 +60,16 @@ void send_max_temps(void);
 bool Validate_USB_Power_Source(void);
 bool Validate_Power_Supply(void);
 
+void ADC_data_collect(void);
+void Update_PID(void);
+
 typedef struct {
     bool    enabled;
     bool    suspended;
     bool    heater_level_high;
     uint16_t pwm_state;
     uint64_t pwm_bits[4];
+    uint8_t  pwm_tick_count;
 } Pin_pwm_t;
 
 // Store the pin assignments in this structure

@@ -33,7 +33,7 @@
 #define PID_VH_D_TERM 0.333
 #else
 #define PID_SH_P_TERM 45.0
-#define PID_SH_I_TERM 0.5
+#define PID_SH_I_TERM 1
 #define PID_SH_D_TERM 0.333
 #define PID_VH_P_TERM 45.0
 #define PID_VH_I_TERM 2

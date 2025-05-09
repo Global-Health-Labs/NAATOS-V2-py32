@@ -23,7 +23,23 @@
 
 #define BOARDCONFIG_MK6C
 
-#define FW_VERSION_STR                  "FW:v0.8"
+#define FW_VERSION_STR                  "FW:v0.9"
+
+
+#if defined(BOARDCONFIG_MK5AA) 
+    #define BUILD_HW_STR                    "HW:MK5AA"
+#elif defined(BOARDCONFIG_MK5C)
+    #define BUILD_HW_STR                    "HW:MK5C"
+#elif defined(BOARDCONFIG_MK6AA)
+    #define BUILD_HW_STR                    "HW:MK6AA"
+#elif defined(BOARDCONFIG_MK6C)
+    #define BUILD_HW_STR                    "HW:MK6C"
+#elif defined(BOARDCONFIG_MK6F)
+    #define BUILD_HW_STR                    "HW:MK6F"
+#else
+    FAIL -- invalid board
+#endif
+
 
 //#define PUSHBUTTON_UI_ENABLED           1      
 
@@ -46,16 +62,14 @@
 #define SAMPLE_ZONE_VALVE_SOAK_TARGET_C 0
 #define VALVE_ZONE_VALVE_PREP_TARGET_C  72
 #define VALVE_ZONE_VALVE_SOAK_TARGET_C  101
-#define COLD_TEMP_SETPOINT_OFFSET_C     2
+#define COLD_TEMP_SETPOINT_OFFSET_C     2           //cold temp values are dependent on the outer device packaging (convective shielding and insulation)
 #define COLD_TEMP_OFFSET_THRESHOLD_C    14
 #define AMPLIFICATION_MIN_VALID_TEMP_C  65
 #define ACTUATION_MIN_VALID_TEMP_C      95
 #define HEATER_SHUTDOWN_C               0
 #define HEATER_ELEMENT_POWER_RATIO      35
 #define OVERTEMP_ERR_C                  110
-#define SLEW_RATE_LIMIT                 255
-#define BUILD_HW_STR                    "HW:MK6C_B255"
-//#define BUILD_HW_STR                    "HW:MK6AA_B204"
+#define SLEW_RATE_LIMIT                 250
 
 #else
     FAIL -- invalid board type
@@ -77,7 +91,7 @@
                                         
 #define STARTUP_DELAY_MS                (5000L * TICKS_PER_MSEC)
 
-#define PWM_MAX                         255
+#define PWM_MAX                         250
 
 #define NUMPROCESS                      5  
 
