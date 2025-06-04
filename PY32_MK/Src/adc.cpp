@@ -88,30 +88,62 @@ void ADC_Init(void)
 		APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
 	}
 
-    // ADC_CHANNEL_AMP_TEMP_V       (PA2 on PY32F003F1)
-    // ADC_CHANNEL_VALVE_TEMP_V     (PA3 on PY32F003F1)
-    // ADC_CHANNEL_V_BATT_SENSE     (PA6 on PY32F003F1)
-    // ADC_CHANNEL_USB_CC1          (PA7 on PY32F003F1)
-    // ADC_CHANNEL_USB_CC2          (PA4 on PY32F003F1)
-    // ADC_CHANNEL_TEMPSENSOR       (ch 11, 9 usec min sample time)
-    // ADC_CHANNEL_VREFINT          (ch 12)
+// MK6 ADC data.adcReading assignments:
+    // 1 ADC_CHANNEL_H2_TEMP_V        (PA2 on MK6)
+    // 0 ADC_CHANNEL_H1_TEMP_V        (PA3 on MK6)
+    // 2 ADC_CHANNEL_H3_TEMP_V        (  x on MK6)
+    // 3 ADC_CHANNEL_H4_TEMP_V        (  x on MK6)
+    // 5 ADC_CHANNEL_USB_CC2          (PA4 on MK6)
+    // 6 ADC_CHANNEL_V_BATT_SENSE     (PA6 on MK6)
+    // 4 ADC_CHANNEL_USB_CC1          (PA7 on MK6)
+    // 7 ADC_CHANNEL_TEMPSENSOR       (ch 11, 9 usec min sample time)
+    // 8 ADC_CHANNEL_VREFINT          (ch 12)
+	
+// MK7 ADC data.adcReading assignments:
+    // 2 ADC_CHANNEL_H3_TEMP_V        (PA1 on MK7)
+    // 4 ADC_CHANNEL_USB_CC1          (PA2 on MK7)
+    // 5 ADC_CHANNEL_USB_CC2          (PA3 on MK7)
+    // 3 ADC_CHANNEL_H4_TEMP_V        (PA4 on MK7)
+    // 0 ADC_CHANNEL_H1_TEMP_V        (PA5 on MK7)
+    // 6 ADC_CHANNEL_V_BATT_SENSE     (PA6 on MK7)
+    // 1 ADC_CHANNEL_H2_TEMP_V        (PA7 on MK7)
+    // 7 ADC_CHANNEL_TEMPSENSOR       (ch 11, 9 usec min sample time)
+    // 8 ADC_CHANNEL_VREFINT          (ch 12)
 	
 	// Set ADC rank and channel
     
-	AdcChanConf.Rank = Pins.ADC_CHANNEL_AMP_TEMP_V; 
-	AdcChanConf.Channel = Pins.ADC_CHANNEL_AMP_TEMP_V;     
+	AdcChanConf.Rank = Pins.ADC_CHANNEL_H1_TEMP_V; 
+	AdcChanConf.Channel = Pins.ADC_CHANNEL_H1_TEMP_V;     
 	
 	if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
 	{
 		APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
 	}
-	AdcChanConf.Rank = Pins.ADC_CHANNEL_VALVE_TEMP_V; 
-	AdcChanConf.Channel = Pins.ADC_CHANNEL_VALVE_TEMP_V;     
+	AdcChanConf.Rank = Pins.ADC_CHANNEL_H2_TEMP_V; 
+	AdcChanConf.Channel = Pins.ADC_CHANNEL_H2_TEMP_V;     
 	
 	if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
 	{
 		APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
 	}
+	
+#if defined(BOARDCONFIG_MK7R) || defined(BOARDCONFIG_MK7C)
+	AdcChanConf.Rank = Pins.ADC_CHANNEL_H3_TEMP_V; 
+	AdcChanConf.Channel = Pins.ADC_CHANNEL_H3_TEMP_V;     
+	
+	if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
+	{
+		APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
+	}
+	AdcChanConf.Rank = Pins.ADC_CHANNEL_H4_TEMP_V; 
+	AdcChanConf.Channel = Pins.ADC_CHANNEL_H4_TEMP_V;     
+	
+	if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
+	{
+		APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
+	}
+#endif	
+
 	AdcChanConf.Rank = Pins.ADC_CHANNEL_V_BATT_SENSE; 
 	AdcChanConf.Channel = Pins.ADC_CHANNEL_V_BATT_SENSE;     
 	
@@ -163,88 +195,142 @@ float ADC_to_Volts(uint32_t adc_val, float Vcc)
 void ADC_Read(void)
 {
     float mcu_vcc;
-            
     //Sample with ADC in polling mode
+            
+#if defined(BOARDCONFIG_MK7R) || defined(BOARDCONFIG_MK7C)
     HAL_ADC_Start(&AdcHandle);
     HAL_ADC_PollForConversion(&AdcHandle, 1000);
-    data.adcReading[1] = HAL_ADC_GetValue(&AdcHandle); // Sample temperature
-    
-    HAL_ADC_Start(&AdcHandle);
-    HAL_ADC_PollForConversion(&AdcHandle, 1000);
-    data.adcReading[0] = HAL_ADC_GetValue(&AdcHandle); // Valve temperature
-
-    if (data.usb_cc_adc_read_enabled) {
-        HAL_ADC_Start(&AdcHandle);
-        HAL_ADC_PollForConversion(&AdcHandle, 1000);
-        data.adcReading[4] = HAL_ADC_GetValue(&AdcHandle); // USB_CC2               
-    } 
-    
-    HAL_ADC_Start(&AdcHandle);
-    HAL_ADC_PollForConversion(&AdcHandle, 1000);
-    data.adcReading[2] = HAL_ADC_GetValue(&AdcHandle); // V_BATT_SENSE (system_input_voltage)
+    data.adcReading[2] = HAL_ADC_GetValue(&AdcHandle); 
     
     if (data.usb_cc_adc_read_enabled) {
         HAL_ADC_Start(&AdcHandle);
         HAL_ADC_PollForConversion(&AdcHandle, 1000);
-        data.adcReading[3] = HAL_ADC_GetValue(&AdcHandle); // USB_CC1        
+        data.adcReading[4] = HAL_ADC_GetValue(&AdcHandle);              
+		
+        HAL_ADC_Start(&AdcHandle);
+        HAL_ADC_PollForConversion(&AdcHandle, 1000);
+        data.adcReading[5] = HAL_ADC_GetValue(&AdcHandle);         
     } 
     
     HAL_ADC_Start(&AdcHandle);
     HAL_ADC_PollForConversion(&AdcHandle, 1000);
-    data.adcReading[5] = HAL_ADC_GetValue(&AdcHandle); // MCU Temp sensor
+    data.adcReading[3] = HAL_ADC_GetValue(&AdcHandle); 
     
     HAL_ADC_Start(&AdcHandle);
     HAL_ADC_PollForConversion(&AdcHandle, 1000);
-    data.adcReading[6] = HAL_ADC_GetValue(&AdcHandle); // MCU VrefInt
+    data.adcReading[0] = HAL_ADC_GetValue(&AdcHandle); 
+    
+    HAL_ADC_Start(&AdcHandle);
+    HAL_ADC_PollForConversion(&AdcHandle, 1000);
+    data.adcReading[6] = HAL_ADC_GetValue(&AdcHandle);
 
-    mcu_vcc = ADC_Vrefint_to_Vcc(data.adcReading[6]);
+    HAL_ADC_Start(&AdcHandle);
+    HAL_ADC_PollForConversion(&AdcHandle, 1000);
+    data.adcReading[1] = HAL_ADC_GetValue(&AdcHandle); 
+    
+#else
+    HAL_ADC_Start(&AdcHandle);
+    HAL_ADC_PollForConversion(&AdcHandle, 1000);
+    data.adcReading[1] = HAL_ADC_GetValue(&AdcHandle); 
+    
+    HAL_ADC_Start(&AdcHandle);
+    HAL_ADC_PollForConversion(&AdcHandle, 1000);
+    data.adcReading[0] = HAL_ADC_GetValue(&AdcHandle);
+
+    if (data.usb_cc_adc_read_enabled) {
+        HAL_ADC_Start(&AdcHandle);
+        HAL_ADC_PollForConversion(&AdcHandle, 1000);
+        data.adcReading[5] = HAL_ADC_GetValue(&AdcHandle);              
+    } 
+    
+    HAL_ADC_Start(&AdcHandle);
+    HAL_ADC_PollForConversion(&AdcHandle, 1000);
+    data.adcReading[6] = HAL_ADC_GetValue(&AdcHandle); 
+    
+    if (data.usb_cc_adc_read_enabled) {
+        HAL_ADC_Start(&AdcHandle);
+        HAL_ADC_PollForConversion(&AdcHandle, 1000);
+        data.adcReading[4] = HAL_ADC_GetValue(&AdcHandle);         
+    } 
+#endif
+    
+    HAL_ADC_Start(&AdcHandle);
+    HAL_ADC_PollForConversion(&AdcHandle, 1000);
+    data.adcReading[7] = HAL_ADC_GetValue(&AdcHandle); // MCU Temp sensor
+    
+    HAL_ADC_Start(&AdcHandle);
+    HAL_ADC_PollForConversion(&AdcHandle, 1000);
+    data.adcReading[8] = HAL_ADC_GetValue(&AdcHandle); // MCU VrefInt
+
+    mcu_vcc = ADC_Vrefint_to_Vcc(data.adcReading[8]);
     data.vcc_mcu_voltage = mcu_vcc;
-    data.py32_temperature_c = PY32_ADC_Temp_to_degC(data.adcReading[5]);
+    data.py32_temperature_c = PY32_ADC_Temp_to_degC(data.adcReading[7]);
     data.adcVoltage[0] = ADC_to_Volts (data.adcReading[0], mcu_vcc);
     data.adcVoltage[1] = ADC_to_Volts (data.adcReading[1], mcu_vcc);
-    data.adcVoltage[2] = ADC_to_Volts (data.adcReading[2], mcu_vcc);
+    data.adcVoltage[6] = ADC_to_Volts (data.adcReading[6], mcu_vcc);
 
     if (data.usb_cc_adc_read_enabled) {
-        data.adcVoltage[3] = ADC_to_Volts (data.adcReading[3], mcu_vcc);
         data.adcVoltage[4] = ADC_to_Volts (data.adcReading[4], mcu_vcc);
-        data.usb_cc1_voltage = data.adcVoltage[3];
-        data.usb_cc2_voltage = data.adcVoltage[4];
+        data.adcVoltage[5] = ADC_to_Volts (data.adcReading[5], mcu_vcc);
+        data.usb_cc1_voltage = data.adcVoltage[4];
+        data.usb_cc2_voltage = data.adcVoltage[5];
     } else {
         data.usb_cc1_voltage = -1.0;
         data.usb_cc2_voltage = -1.0;
     }
     
-    data.sample_thermistor_v = data.adcVoltage[0];
-    //data.sample_temperature_c = TMP235_V_to_degC(data.adcVoltage[0]);
-    data.sample_thermistor_r = ADC_to_thermistor_resistance(data.adcReading[0]);
-    data.sample_temperature_c = thermistor_r_to_temperature(data.sample_thermistor_r);
+    data.H1_thermistor_v = data.adcVoltage[0];
+    data.H1_thermistor_r = ADC_to_thermistor_resistance(data.adcReading[0]);
+    data.H1_temperature_c = thermistor_r_to_temperature(data.H1_thermistor_r);
     
-    data.valve_thermistor_v = data.adcVoltage[1];
-    //data.valve_temperature_c = TMP235_V_to_degC(data.adcVoltage[1]);    
-    data.valve_thermistor_r = ADC_to_thermistor_resistance(data.adcReading[1]);
-    data.valve_temperature_c = thermistor_r_to_temperature(data.valve_thermistor_r);
+    data.H2_thermistor_v = data.adcVoltage[1];
+    data.H2_thermistor_r = ADC_to_thermistor_resistance(data.adcReading[1]);
+    data.H2_temperature_c = thermistor_r_to_temperature(data.H2_thermistor_r);
+
+#if defined(BOARDCONFIG_MK7R) || defined(BOARDCONFIG_MK7C)
+    data.H3_thermistor_v = data.adcVoltage[2];
+    data.H3_thermistor_r = ADC_to_thermistor_resistance(data.adcReading[2]);
+    data.H3_temperature_c = thermistor_r_to_temperature(data.H3_thermistor_r);
     
-    data.system_input_voltage = data.adcVoltage[2] * V_BATT_SENSE_MULTIPLIER;    
+    data.H4_thermistor_v = data.adcVoltage[3];
+    data.H4_thermistor_r = ADC_to_thermistor_resistance(data.adcReading[3]);
+    data.H4_temperature_c = thermistor_r_to_temperature(data.H4_thermistor_r);
+#endif
     
-    if (data.sample_temperature_c > data.sample_max_temperature_c) {
-        data.sample_max_temperature_c = data.sample_temperature_c;
+    data.system_input_voltage = data.adcVoltage[6] * V_BATT_SENSE_MULTIPLIER;    
+    
+    if (data.H1_temperature_c > data.H1_max_temperature_c) {
+        data.H1_max_temperature_c = data.H1_temperature_c;
     }
     
-    if (data.valve_temperature_c > data.valve_max_temperature_c) {
-        data.valve_max_temperature_c = data.valve_temperature_c;
+    if (data.H2_temperature_c > data.H2_max_temperature_c) {
+        data.H2_max_temperature_c = data.H2_temperature_c;
     }
     
-    if (data.sample_temperature_c >= OVERTEMP_ERR_C) {
+    if (data.H1_temperature_c >= OVERTEMP_ERR_C) {
 		APP_ErrorHandler(ERR_OVERTEMP_SHUTDOWN);
-    } else if (data.valve_temperature_c >= OVERTEMP_ERR_C) {
+    } else if (data.H2_temperature_c >= OVERTEMP_ERR_C) {
 		APP_ErrorHandler(ERR_OVERTEMP_SHUTDOWN);
     }
+	
+#if defined(BOARDCONFIG_MK7R) || defined(BOARDCONFIG_MK7C)
+    if (data.H3_temperature_c > data.H3_max_temperature_c) {
+        data.H3_max_temperature_c = data.H3_temperature_c;
+    }
+    
+    if (data.H4_temperature_c > data.H4_max_temperature_c) {
+        data.H4_max_temperature_c = data.H4_temperature_c;
+    }
+    
+    if (data.H3_temperature_c >= OVERTEMP_ERR_C) {
+		APP_ErrorHandler(ERR_OVERTEMP_SHUTDOWN);
+    } else if (data.H4_temperature_c >= OVERTEMP_ERR_C) {
+		APP_ErrorHandler(ERR_OVERTEMP_SHUTDOWN);
+    }
+#endif
 		
-    data.sh_pwm_during_adc_meas = data.sample_heater_pwm_value;    
-    data.vh_pwm_during_adc_meas = data.valve_heater_pwm_value;    
-
-
-    
+    data.H1_pwm_during_adc_meas = data.H1_pwm_value;    
+    data.H2_pwm_during_adc_meas = data.H2_pwm_value;        
 }
 
 

@@ -36,8 +36,8 @@
 
 typedef enum {
     // define alarm states here, probably related to LED indicators
-    SAMPLE_HEATER = 0,
-    VALVE_HEATER = 1
+    H1_HEATER = 0,
+    H2_HEATER = 1
 } heater_t;
 
 /* Exported functions prototypes ---------------------------------------------*/
@@ -74,13 +74,21 @@ typedef struct {
 
 // Store the pin assignments in this structure
 typedef struct {
-    GPIO_TypeDef    *GPIOx_AMP_TEMP_V;
-    uint16_t        GPIO_Pin_AMP_TEMP_V;
-    uint32_t        ADC_CHANNEL_AMP_TEMP_V;
+    GPIO_TypeDef    *GPIOx_H1_TEMP_V;
+    uint16_t        GPIO_Pin_H1_TEMP_V;
+    uint32_t        ADC_CHANNEL_H1_TEMP_V;
     
-    GPIO_TypeDef    *GPIOx_AMP_VALVE_TEMP_V;
-    uint16_t        GPIO_Pin_AMP_VALVE_TEMP_V;
-    uint32_t        ADC_CHANNEL_VALVE_TEMP_V;
+    GPIO_TypeDef    *GPIOx_AMP_H2_TEMP_V;
+    uint16_t        GPIO_Pin_AMP_H2_TEMP_V;
+    uint32_t        ADC_CHANNEL_H2_TEMP_V;
+    
+    GPIO_TypeDef    *GPIOx_H3_TEMP_V;
+    uint16_t        GPIO_Pin_H3_TEMP_V;
+    uint32_t        ADC_CHANNEL_H3_TEMP_V;
+    
+    GPIO_TypeDef    *GPIOx_AMP_H4_TEMP_V;
+    uint16_t        GPIO_Pin_AMP_H4_TEMP_V;
+    uint32_t        ADC_CHANNEL_H4_TEMP_V;
     
     GPIO_TypeDef    *GPIOx_AMP_V_BATT_SENSE;
     uint16_t        GPIO_Pin_V_BATT_SENSE;
@@ -100,14 +108,14 @@ typedef struct {
     uint16_t        GPIO_Pin_LED2;
     GPIO_TypeDef    *GPIOx_ADC_SPARE;
     uint16_t        GPIO_Pin_ADC_SPARE;
-    GPIO_TypeDef    *GPIOx_AMP_CTRL1;
-    uint16_t        GPIO_Pin_AMP_CTRL1;
-    GPIO_TypeDef    *GPIOx_AMP_CTRL2;
-    uint16_t        GPIO_Pin_AMP_CTRL2;
-    GPIO_TypeDef    *GPIOx_VALVE_CTRL1;
-    uint16_t        GPIO_Pin_VALVE_CTRL1;
-    GPIO_TypeDef    *GPIOx_VALVE_CTRL2;
-    uint16_t        GPIO_Pin_VALVE_CTRL2;
+    GPIO_TypeDef    *GPIOx_H1_CTRL;
+    uint16_t        GPIO_Pin_H1_CTRL;
+    GPIO_TypeDef    *GPIOx_H2_CTRL;
+    uint16_t        GPIO_Pin_H2_CTRL;
+    GPIO_TypeDef    *GPIOx_H3_CTRL;
+    uint16_t        GPIO_Pin_H3_CTRL;
+    GPIO_TypeDef    *GPIOx_H4_CTRL;
+    uint16_t        GPIO_Pin_H4_CTRL;
     GPIO_TypeDef    *GPIOx_PUSHBUTTON;
     uint16_t        GPIO_Pin_PUSHBUTTON;
 } Pin_assignments_t;
