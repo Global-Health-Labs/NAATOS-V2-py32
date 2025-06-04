@@ -18,6 +18,9 @@
 #include "timers.h"
 
 /* Private define ------------------------------------------------------------*/
+
+#define DEBUG_HEATERS
+
 /* Private variables ---------------------------------------------------------*/
 UART_HandleTypeDef UartHandle;
 GPIO_InitTypeDef GpioInitStruct;
@@ -40,8 +43,8 @@ int8_t LogTimerNumber;
 
 GPIO_PinState pushbutton_value, last_pushbutton_value;
 
-#define SH_FIXED_PWM_TEST 255
-#define VH_FIXED_PWM_TEST 255
+#define SH_FIXED_PWM_TEST 250
+#define VH_FIXED_PWM_TEST 250
 
 CONTROL sample_amp_control[NUMPROCESS] = 
 {
@@ -240,12 +243,8 @@ int main(void)
             }
             
             // Start the test:
-            start_naat_test();            
-            Enable_timer(PWMTimerNumber);
-            //HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL1, Pins.GPIO_Pin_AMP_CTRL1, GPIO_PIN_RESET);
-            //HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL2, Pins.GPIO_Pin_AMP_CTRL2, GPIO_PIN_RESET);
-            //HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL1, Pins.GPIO_Pin_VALVE_CTRL1, GPIO_PIN_SET);
-            //HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL2, Pins.GPIO_Pin_VALVE_CTRL2, GPIO_PIN_SET);
+            start_naat_test();                        
+            Enable_timer(PWMTimerNumber);            
         }                
 
         if (flags.flag_1minute) {
@@ -359,7 +358,15 @@ void start_naat_test(void) {
     
     data.test_active = true;
     if (data.state == low_power) {
+#if defined(DEBUG_HEATERS)
+        data.state = amplification;     // skip the self test if we are debugging 
+        data.heater_control_not_simultaneous = true;
+        pwm_amp_ctrl.heater_level_high = false;
+        pwm_valve_ctrl.heater_level_high = false;
+
+#else
         data.state = self_test_1;
+#endif
         pid_init(SAMPLE_HEATER, sample_amp_control[amplification]);
         pid_init(VALVE_HEATER,valve_amp_control[amplification]);
     } else {
@@ -517,19 +524,27 @@ void Update_PID(void)
     // Since the 2 heater controls are aligned with opposite sides of the PWM period, they will not be
     // turned on simultaniously when in this mode. 
     if (data.heater_control_not_simultaneous) {
+#ifdef DEBUG_HEATERS
+        // turn on the heaters at full power (no PWM). This should not be done unattended!
         //data.sample_heater_pwm_value = SH_FIXED_PWM_TEST /2;
-        //data.valve_heater_pwm_value = VH_FIXED_PWM_TEST /2;
-        //data.sample_heater_pwm_value = (pid_data[SAMPLE_HEATER].out * (100-HEATER_ELEMENT_POWER_RATIO)) /100;
-        //data.valve_heater_pwm_value = (pid_data[VALVE_HEATER].out * HEATER_ELEMENT_POWER_RATIO) /100;
-        
+        data.sample_heater_pwm_value = 0;       // disable SH
+        data.valve_heater_pwm_value = VH_FIXED_PWM_TEST /2;
+        //data.valve_heater_pwm_value = 0;       // disable SH
+#else        
         // Apply maximum power to each heater during self-test
         data.sample_heater_pwm_value = (PWM_MAX * (100-HEATER_ELEMENT_POWER_RATIO)) /100;
         data.valve_heater_pwm_value = (PWM_MAX * HEATER_ELEMENT_POWER_RATIO) /100;
+#endif
     } else {
+#ifdef DEBUG_HEATERS
         //data.sample_heater_pwm_value = SH_FIXED_PWM_TEST;
-        //data.valve_heater_pwm_value = VH_FIXED_PWM_TEST;
+        data.sample_heater_pwm_value = 0;       // disable SH
+        data.valve_heater_pwm_value = VH_FIXED_PWM_TEST;
+        //data.valve_heater_pwm_value = 0;       // disable SH
+#else        
         data.sample_heater_pwm_value = pid_data[SAMPLE_HEATER].out;
         data.valve_heater_pwm_value = pid_data[VALVE_HEATER].out;
+#endif
     }
     
     // Start the PWM controller at a new cycle after updating the PWM values:
