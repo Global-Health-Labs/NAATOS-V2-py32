@@ -33,11 +33,20 @@
 /* Defines ------------------------------------------------------------------*/
 
 //#define DEBUG 1
+//#define DEBUG_HEATERS
+
+
+#if defined(BOARDCONFIG_MK7R) || defined(BOARDCONFIG_MK7C)
+    #define NUM_HEATERS 4
+#else
+    #define NUM_HEATERS 2
+#endif
 
 typedef enum {
-    // define alarm states here, probably related to LED indicators
     H1_HEATER = 0,
-    H2_HEATER = 1
+    H2_HEATER = 1,
+    H3_HEATER = 2,
+    H4_HEATER = 3
 } heater_t;
 
 /* Exported functions prototypes ---------------------------------------------*/

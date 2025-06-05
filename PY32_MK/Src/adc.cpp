@@ -331,6 +331,8 @@ void ADC_Read(void)
 		
     data.H1_pwm_during_adc_meas = data.H1_pwm_value;    
     data.H2_pwm_during_adc_meas = data.H2_pwm_value;        
+    data.H3_pwm_during_adc_meas = data.H3_pwm_value;    
+    data.H4_pwm_during_adc_meas = data.H4_pwm_value;        
 }
 
 

@@ -20,10 +20,6 @@
 #define PID_ANTIWINDUP_ERR_RANGE 6.0f
 #define PID_DELTA_T 0.5f        // PID is run twice per second
 
-/*CONTROL structure
-  holds process steps for each STATE in application. Each [INDEX] maps to enum state_machine
-*/
-
 #ifdef BOARDCONFIG_MK6F
 #define PID_SH_P_TERM 5
 #define PID_SH_I_TERM 0.5
@@ -45,6 +41,20 @@
 //#define PID_VH_I_TERM 0.5
 //#define PID_VH_D_TERM 0.333
 #endif
+
+/*CONTROL structure
+  holds process steps for each STATE in application. Each [INDEX] maps to enum state_machine
+*/
+typedef struct pid_init_t 
+{
+    float setpoint;
+    float input;
+    float output;
+    float kp;
+    float ki;
+    float kd;
+} pid_init_t;
+
 
 typedef struct {
   /* Controller Gains */
@@ -75,6 +85,10 @@ typedef struct {
 void pid_controller_init(heater_t heater, float setpoint, float k_p, float k_i, float k_d, int pid_max, float slew_rate);
 void pid_controller_compute(heater_t heater, float measurement);
 
+extern pid_init_t H1_pid_control[];
+extern pid_init_t H2_pid_control[];
+extern pid_init_t H3_pid_control[];
+extern pid_init_t H4_pid_control[];
 extern pid_controller_t pid_data[];
 
 #endif

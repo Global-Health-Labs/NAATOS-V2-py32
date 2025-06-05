@@ -9,7 +9,44 @@
 #include "alarm.h"
 
 // PID structures
-pid_controller_t pid_data[2];
+pid_controller_t pid_data[NUM_HEATERS];
+
+#define SH_FIXED_PWM_TEST 250
+#define VH_FIXED_PWM_TEST 250
+
+pid_init_t H1_pid_control[NUMPROCESS] = 
+{
+  {HEATER_SHUTDOWN_C, 0, 0, 0, 0, 0},
+  {STAGE1_H1_TARGET_C, 0,0, PID_VH_P_TERM, PID_VH_I_TERM, PID_VH_D_TERM},
+  {STAGE2_H1_TARGET_C, 0,0, PID_VH_P_TERM, PID_VH_I_TERM, PID_VH_D_TERM},
+  {STAGE3_H1_TARGET_C,0, 0, PID_VH_P_TERM, PID_VH_I_TERM, PID_VH_D_TERM},
+  {HEATER_SHUTDOWN_C, 0, 0, 0, 0, 0}
+};
+pid_init_t H2_pid_control[NUMPROCESS] = 
+{
+  {HEATER_SHUTDOWN_C, 0, 0, 0, 0, 0},
+  {STAGE1_H2_TARGET_C, 0,0, PID_VH_P_TERM, PID_VH_I_TERM, PID_VH_D_TERM},
+  {STAGE2_H2_TARGET_C, 0,0, PID_VH_P_TERM, PID_VH_I_TERM, PID_VH_D_TERM},
+  {STAGE3_H2_TARGET_C,0, 0, PID_VH_P_TERM, PID_VH_I_TERM, PID_VH_D_TERM},
+  {HEATER_SHUTDOWN_C, 0, 0, 0, 0, 0}
+};
+
+pid_init_t H3_pid_control[NUMPROCESS] = 
+{
+  {HEATER_SHUTDOWN_C, 0, 0, 0, 0, 0},
+  {STAGE1_H3_TARGET_C, 0,0, PID_VH_P_TERM, PID_VH_I_TERM, PID_VH_D_TERM},
+  {STAGE2_H3_TARGET_C, 0,0, PID_VH_P_TERM, PID_VH_I_TERM, PID_VH_D_TERM},
+  {STAGE3_H3_TARGET_C, 0, 0, PID_VH_P_TERM, PID_VH_I_TERM, PID_VH_D_TERM},
+  {HEATER_SHUTDOWN_C, 0, 0, 0, 0, 0}
+};
+pid_init_t H4_pid_control[NUMPROCESS] = 
+{
+  {HEATER_SHUTDOWN_C, 0, 0, 0, 0, 0},
+  {STAGE1_H4_TARGET_C, 0,0, PID_VH_P_TERM, PID_VH_I_TERM, PID_VH_D_TERM},
+  {STAGE2_H4_TARGET_C, 0,0, PID_VH_P_TERM, PID_VH_I_TERM, PID_VH_D_TERM},
+  {STAGE3_H4_TARGET_C, 0, 0, PID_VH_P_TERM, PID_VH_I_TERM, PID_VH_D_TERM},
+  {HEATER_SHUTDOWN_C, 0, 0, 0, 0, 0}
+};
 
 float constrain(float input_val, float min_val, float max_val) 
 {
@@ -24,6 +61,11 @@ float constrain(float input_val, float min_val, float max_val)
 
 // slew_rate : 255 negates slew rate limiting
 void pid_controller_init(heater_t heater, float setpoint, float k_p, float k_i, float k_d, int pid_max, float slew_rate) {
+	if (heater > NUM_HEATERS-1) {
+		APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
+		return;
+	}
+	
     // Clear controller variables
     pid_data[heater].integrator = 0.0f;
     pid_data[heater].prevMesurement = 0.0f;
@@ -46,6 +88,13 @@ void pid_controller_init(heater_t heater, float setpoint, float k_p, float k_i, 
 
 void pid_controller_compute(heater_t heater, float measurement) {
     float out;
+    
+    // Don't perform the PID calculation if the setpoint is 0.
+    if (pid_data[heater].setpoint <= PID_LIM_MIN) {
+        pid_data[heater].out = 0;
+        return;
+    }
+    
     // Error Signal
     float error = pid_data[heater].setpoint - measurement;
   

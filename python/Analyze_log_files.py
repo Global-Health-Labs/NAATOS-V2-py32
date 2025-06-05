@@ -260,18 +260,18 @@ class Analyze_log_files:
             #mk_match = re.search(r'(MK[^.]*)(?=\.)',file_path)      # extract the MK board number substring
             #self.calculate_mwh_energy(mk_match.group(1), log_df)
 
-            calc_start = 300
-            calc_end = 700
-            self.calculate_temperature_stats("SH, amplification", calc_start, calc_end, time, sh_temp, sh_pwm)
-            self.calculate_temperature_stats("VH, amplification", calc_start, calc_end, time, vh_temp, vh_pwm)
-            #calc_start = 850
-            #calc_end = 1150
-            calc_start = 2000
-            calc_end = 2400
-            self.calculate_temperature_stats("VH, actuation", calc_start, calc_end, time, vh_temp, vh_pwm)
+            if False:
+                calc_start = 300
+                calc_end = 700
+                self.calculate_temperature_stats("SH, amplification", calc_start, calc_end, time, sh_temp, sh_pwm)
+                self.calculate_temperature_stats("VH, amplification", calc_start, calc_end, time, vh_temp, vh_pwm)
+                #calc_start = 850
+                #calc_end = 1150
+                calc_start = 2000
+                calc_end = 2400
+                self.calculate_temperature_stats("VH, actuation", calc_start, calc_end, time, vh_temp, vh_pwm)
 
-
-            if True:
+            if False:
                 calc_start = 300
                 calc_end = 500
                 plt1 = self.plot_data(time[calc_start:calc_end], file_path, "Temperature (c)", vh_temp[calc_start:calc_end], "VH Temperature", vh_temp[calc_start:calc_end], "VH Temperature")
@@ -286,7 +286,7 @@ class Analyze_log_files:
                 if file_path2 is None:
                     plt1 = self.plot_data(time, file_path, "Temperature (c)", sh_temp, "SH Temperature", vh_temp, "VH Temperature")
                     plt2 = self.plot_data(time, file_path, "PWM Control (0 to 255)", sh_pwm, "SH PWM", vh_pwm, "VH PWM")
-                    #plt3 = self.plot_data(time, file_path, "Battery Voltage", voltage, "VBat")
+                    plt3 = self.plot_data(time, file_path, "Battery Voltage", voltage, "VBat")
                 else:
                     plt1 = self.plot_data(time, file_path, "Temperature (c)", vh_temp, "VH_Temp1", vh_temp2, "VH_Temp2")
                     plt2 = self.plot_data(time, file_path, "VH PWM Control", vh_pwm, "VH PWM1", vh_pwm2, "VH PWM2")

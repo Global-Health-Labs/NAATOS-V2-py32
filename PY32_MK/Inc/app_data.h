@@ -11,10 +11,10 @@
 #include "main.h"
 #include "timers.h"
 
-#define AMPLIFICATION_TIME_MIN          15
-#define ACTUATION_PREP_TIME_MIN         1    // Option to change the controls during the last minute of amplification.
-#define ACTUATION_TIME_MIN              5
-#define DETECTION_TIME_MIN              1
+#define STAGE1_TIME_MIN        	1
+#define STAGE2_TIME_MIN         0
+#define STAGE3_TIME_MIN         0
+#define DETECTION_TIME_MIN     	0
 
 #define SELFTEST_TIME_MSEC              12000
 #define SELFTEST_MIN_TEMP_RISE_C        4.0
@@ -37,7 +37,7 @@
 #elif defined(BOARDCONFIG_MK6F)
     #define BUILD_HW_STR                    "HW:MK6F"
 #elif defined(BOARDCONFIG_MK7R)
-    #define BUILD_HW_STR                    "HW:MK7R_B001"
+    #define BUILD_HW_STR                    "HW:MK7R_B002"
 #elif defined(BOARDCONFIG_MK7C)
     #define BUILD_HW_STR                    "HW:MK7C"
 #else
@@ -64,30 +64,37 @@
 #endif
 
 #if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C) || defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA) || defined(BOARDCONFIG_MK6F)
-#define SAMPLE_ZONE_AMP_SOAK_TARGET_C   72
-#define VALVE_ZONE_AMP_SOAK_TARGET_C    72
-#define SAMPLE_ZONE_VALVE_SOAK_TARGET_C 0
-#define VALVE_ZONE_VALVE_PREP_TARGET_C  72
-#define VALVE_ZONE_VALVE_SOAK_TARGET_C  101
+#define STAGE1_H1_TARGET_C   72
+#define STAGE1_H2_TARGET_C   72
+#define STAGE2_H1_TARGET_C   72
+#define STAGE2_H2_TARGET_C   72
+#define STAGE3_H2_TARGET_C   101
 #define COLD_TEMP_SETPOINT_OFFSET_C     2           //cold temp values are dependent on the outer device packaging (convective shielding and insulation)
 #define COLD_TEMP_OFFSET_THRESHOLD_C    14
-#define AMPLIFICATION_MIN_VALID_TEMP_C  65
-#define ACTUATION_MIN_VALID_TEMP_C      95
+#define STAGE1_MIN_VALID_TEMP_C         65
+#define STAGE3_MIN_VALID_TEMP_C         95
 #define HEATER_SHUTDOWN_C               0
 #define HEATER_ELEMENT_POWER_RATIO      35
 #define OVERTEMP_ERR_C                  110
 #define SLEW_RATE_LIMIT                 250
 
 #elif defined(BOARDCONFIG_MK7R) || defined(BOARDCONFIG_MK7C)
-#define SAMPLE_ZONE_AMP_SOAK_TARGET_C   72
-#define VALVE_ZONE_AMP_SOAK_TARGET_C    72
-#define SAMPLE_ZONE_VALVE_SOAK_TARGET_C 0
-#define VALVE_ZONE_VALVE_PREP_TARGET_C  72
-#define VALVE_ZONE_VALVE_SOAK_TARGET_C  101
+#define STAGE1_H1_TARGET_C   65
+#define STAGE1_H2_TARGET_C   67
+#define STAGE1_H3_TARGET_C   69
+#define STAGE1_H4_TARGET_C   72
+#define STAGE2_H1_TARGET_C   0
+#define STAGE2_H2_TARGET_C   72
+#define STAGE2_H3_TARGET_C   0
+#define STAGE2_H4_TARGET_C   0
+#define STAGE3_H1_TARGET_C   0
+#define STAGE3_H2_TARGET_C   0
+#define STAGE3_H3_TARGET_C   0
+#define STAGE3_H4_TARGET_C   80
 #define COLD_TEMP_SETPOINT_OFFSET_C     2           //cold temp values are dependent on the outer device packaging (convective shielding and insulation)
 #define COLD_TEMP_OFFSET_THRESHOLD_C    14
-#define AMPLIFICATION_MIN_VALID_TEMP_C  65
-#define ACTUATION_MIN_VALID_TEMP_C      95
+#define STAGE1_MIN_VALID_TEMP_C  	    65
+#define STAGE3_MIN_VALID_TEMP_C         95
 #define HEATER_SHUTDOWN_C               0
 #define HEATER_ELEMENT_POWER_RATIO      50
 #define OVERTEMP_ERR_C                  110
@@ -105,7 +112,7 @@
 
 #define PID_TIMER_INTERVAL              (500L * TICKS_PER_MSEC)
 #define DATA_COLLECTION_TIMER_INTERVAL  (500L * TICKS_PER_MSEC)
-#define LED_TIMER_INTERVAL_AMPLIFICATION (500L * TICKS_PER_MSEC)
+#define LED_TIMER_INTERVAL_STAGE1 (500L * TICKS_PER_MSEC)
 #define LED_TIMER_INTERVAL_ACTIVATION   (250L * TICKS_PER_MSEC)
 #define LED_TIMER_INTERVAL_DONE         (1000L * TICKS_PER_MSEC)
 #define PUSHBUTTON_TIMER_INTERVAL       (10L * TICKS_PER_MSEC)
@@ -117,15 +124,6 @@
 #define NUMPROCESS                      5  
 
 // Data Structures
-struct CONTROL 
-{
-    float setpoint;
-    float input;
-    float output;
-    float kp;
-    float ki;
-    float kd;
-};
 
 typedef struct app_data_t {
     // structure containing application data, for passing through LOG and DEBUG interfaces
@@ -171,7 +169,7 @@ typedef struct app_data_t {
     bool usb_cc_adc_read_enabled;
     float usb_cc1_voltage;
     float usb_cc2_voltage;
-    uint32_t valve_ramp_time;
+    uint32_t stage1_ramp_time;
     uint32_t test_interval;
 	uint8_t H1_pwm_during_adc_meas;
 	uint8_t H2_pwm_during_adc_meas;
