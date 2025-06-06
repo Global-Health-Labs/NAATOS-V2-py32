@@ -16,6 +16,8 @@ enum state_machine
     detection,
     self_test_1,
     self_test_2,
+    self_test_3,
+    self_test_4,
     preheat
 };
 

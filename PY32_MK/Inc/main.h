@@ -127,6 +127,8 @@ typedef struct {
     uint16_t        GPIO_Pin_H4_CTRL;
     GPIO_TypeDef    *GPIOx_PUSHBUTTON;
     uint16_t        GPIO_Pin_PUSHBUTTON;
+    GPIO_TypeDef    *GPIOx_USB_DN;
+    uint16_t        GPIO_Pin_USB_DN;
 } Pin_assignments_t;
 
 /* Exported variables prototypes ---------------------------------------------*/
