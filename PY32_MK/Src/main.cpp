@@ -21,6 +21,10 @@
 
 /* Private variables ---------------------------------------------------------*/
 UART_HandleTypeDef UartHandle;
+#define UART_RX_BUFFER_SIZE 128
+uint8_t Uart_rxBuffer[UART_RX_BUFFER_SIZE];  // Buffer to store received data
+uint16_t Uart_RxSize;
+
 GPIO_InitTypeDef GpioInitStruct;
 GPIO_InitTypeDef AdcPinStruct;
 
@@ -157,9 +161,8 @@ void system_setup() {
 int main(void)
 {
     //uint32_t start_tick;
-    uint32_t rcc_csr_bootstate;
-    
-    rcc_csr_bootstate = RCC->CSR;
+    //uint32_t rcc_csr_bootstate;    
+    //rcc_csr_bootstate = RCC->CSR;
     
     system_setup();
     
@@ -174,16 +177,16 @@ int main(void)
     ADC_Read();
     //sprintf(outputStr, "ADCs: %d %d %d %d %d %d %d\r\n", data.adcReading[0], data.adcReading[1], data.adcReading[6], data.adcReading[4], data.adcReading[5], data.adcReading[7], data.adcReading[8]);
     //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
-    sprintf(outputStr, "system_input_voltage: %1.2f vcc_mcu_voltage: %1.2f\r\n", data.system_input_voltage, data.vcc_mcu_voltage);
-    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
+    //sprintf(outputStr, "system_input_voltage: %1.2f vcc_mcu_voltage: %1.2f\r\n", data.system_input_voltage, data.vcc_mcu_voltage);
+    //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
     
     // py32_temperature_c does not work correctly. The ADC value reads higher than HAL_ADC_TSCAL2 (85c)
     //sprintf(outputStr, "py32_temperature_c: %1.2f ADC->CHSELR: %08X bits: %d vrefint:%d HAL_ADC_TSCAL1: %d HAL_ADC_TSCAL2: %d\r\n", data.py32_temperature_c, ADC1->CHSELR, data.adcReading[7], data.adcReading[8], HAL_ADC_TSCAL1, HAL_ADC_TSCAL2);
     //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
     
     data.usb_dn_value = HAL_GPIO_ReadPin(Pins.GPIOx_USB_DN, Pins.GPIO_Pin_USB_DN);
-    sprintf(outputStr, "rcc->csr: %08X usb_cc1_voltage: %1.2f usb_cc2_voltage: %1.2f usb_dn_value: %d\r\n", rcc_csr_bootstate, data.usb_cc1_voltage, data.usb_cc2_voltage, data.usb_dn_value);
-    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
+    //sprintf(outputStr, "rcc->csr: %08X usb_cc1_voltage: %1.2f usb_cc2_voltage: %1.2f usb_dn_value: %d\r\n", rcc_csr_bootstate, data.usb_cc1_voltage, data.usb_cc2_voltage, data.usb_dn_value);
+    //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
     //sprintf(outputStr, "H1_temperature_c: %1.2f H2_temperature_c: %1.2f H3_temperature_c: %1.2f H4_temperature_c: %1.2f\r\n", data.H1_temperature_c, data.H2_temperature_c, data.H3_temperature_c, data.H4_temperature_c);
     //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);   
 
@@ -317,6 +320,10 @@ int main(void)
         if (flags.flagSendLogData) {
             flags.flagSendLogData = false;
             print_log_data();
+        }
+        if (flags.flagNewUARTData) {
+            flags.flagNewUARTData = false;
+            Process_UARTRxData();
         }
     }    
 }
@@ -1067,6 +1074,43 @@ void UART_Init(void)
   {
     APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
   }
+  
+  // Start UART reception:
+  // DMA mode will fill the rxBuffer, then call a callback function.
+  // Since we don't know how much data is coming in, we will instead detect when the UART rx line is idle.
+  // This will call UART_IdleCallback where we will receive the data.
+  Uart_RxSize = 0;
+  flags.flagNewUARTData = false;
+  HAL_UART_Receive_DMA(&UartHandle, Uart_rxBuffer, UART_RX_BUFFER_SIZE);
+  
+}
+
+void USART1_IRQHandler(void)
+{
+    HAL_UART_IRQHandler(&UartHandle);
+    
+    if (__HAL_UART_GET_FLAG(&UartHandle, UART_FLAG_IDLE)) {
+        __HAL_UART_CLEAR_IDLEFLAG(&UartHandle); // Clear the idle flag
+        UART_IdleCallback(&UartHandle);         // Custom processing
+    }
+}
+
+void UART_IdleCallback(UART_HandleTypeDef *huart)
+{
+    // Stop the DMA to get how many bytes were received
+    Uart_RxSize = UART_RX_BUFFER_SIZE - __HAL_DMA_GET_COUNTER(huart->hdmarx);
+    HAL_UART_DMAStop(huart);
+
+    // Process the received data in user space
+    flags.flagNewUARTData = true;
+}
+
+void Process_UARTRxData(void)
+{
+    sprintf(outputStr, "UartRx: %s\r\n", Uart_rxBuffer);		
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
+    // Restart UART RX DMA reception
+    HAL_UART_Receive_DMA(&UartHandle, Uart_rxBuffer, UART_RX_BUFFER_SIZE);
 }
 
 // Timer ISR functions are called from the HAL_TIM ISR.

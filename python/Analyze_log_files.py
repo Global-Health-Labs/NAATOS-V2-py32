@@ -20,13 +20,15 @@ VERSION = "v1.0"
 
 class Analyze_log_files:
 
-    def __init__(self):
+    def __init__(self, board_type):
         """Initialize the class and load the board resistance CSV into a DataFrame."""
         heater_r_file_path = "MK_heater_resistance.csv"
-        self.sh_resistance_ratio = 1.28
-        self.sh_heater_level_high = False
-        self.vh_resistance_ratio = 1.42
-        self.vh_heater_level_high = False
+        self.H1_resistance_ratio = 1.28
+        self.H1_heater_level_high = False
+        self.H2_resistance_ratio = 1.42
+        self.H2_heater_level_high = False
+        
+        self.board_type = board_type
         
         try:
             self.heater_r_df = pd.read_csv(heater_r_file_path)
@@ -73,23 +75,23 @@ class Analyze_log_files:
 
     def calculate_mwh_energy(self, mk_board, log_df):
 
-        sh_r_low, vh_r_low = self.get_heater_r(mk_board)
+        H1_r_low, H2_r_low = self.get_heater_r(mk_board)
         
         # MK6C boards use the high power setting for most of the test
         # MK6AA boards use low power setting for amplification and high power for valve actuation
         
-        #sh_r = sh_r_low / self.sh_resistance_ratio
-        #vh_r = vh_r_low / self.vh_resistance_ratio
-        sh_r = sh_r_low
-        vh_r = vh_r_low
+        #H1_r = H1_r_low / self.H1_resistance_ratio
+        #H2_r = H2_r_low / self.H2_resistance_ratio
+        H1_r = H1_r_low
+        H2_r = H2_r_low
         
-        print(f"calculate_mwh_energy for {mk_board} with sh_r = {sh_r} and vh_r = {vh_r}")
+        print(f"calculate_mwh_energy for {mk_board} with H1_r = {H1_r} and H2_r = {H2_r}")
 
         time = log_df.iloc[:, 0]        #
-        sh_temp = log_df.iloc[:, 1]     # SH Temperature
-        vh_temp = log_df.iloc[:, 4]     # VH Temperature
-        sh_pwm = log_df.iloc[:, 3]      # SH PWM
-        vh_pwm = log_df.iloc[:, 6]      # VH PWM
+        H1_temp = log_df.iloc[:, 1]     # SH Temperature
+        H2_temp = log_df.iloc[:, 4]     # VH Temperature
+        H1_pwm = log_df.iloc[:, 3]      # SH PWM
+        H2_pwm = log_df.iloc[:, 6]      # VH PWM
         voltage = log_df.iloc[:, 7]     # Voltage in mv
 
         power_sum = 0
@@ -102,15 +104,15 @@ class Analyze_log_files:
         vbat_min = 10
         vbat_min_i = 0
 
-        for i in range(len(sh_pwm)):
+        for i in range(len(H1_pwm)):
             
             # Valve actuation uses the high power setting
             if i== 900:
-               vh_r = vh_r_low / self.vh_resistance_ratio
+               H2_r = H2_r_low / self.H2_resistance_ratio
                
             # Calculate temperature compensated R values
-            sh_r_temp = sh_r*(1+(sh_temp[i]-25)*0.0039)
-            vh_r_temp = vh_r*(1+(vh_temp[i]-25)*0.0039)
+            H1_r_temp = H1_r*(1+(H1_temp[i]-25)*0.0039)
+            H2_r_temp = H2_r*(1+(H2_temp[i]-25)*0.0039)
 
             v_bat = voltage[i]
             #v_bat = 2.5
@@ -118,13 +120,13 @@ class Analyze_log_files:
                 vbat_min = v_bat
                 vbat_min_i = i
 
-            sh_p = sh_pwm[i]
-            if sh_p < 0: sh_p = 0
-            vh_p = vh_pwm[i]
-            if vh_p < 0: vh_p = 0
+            H1_p = H1_pwm[i]
+            if H1_p < 0: H1_p = 0
+            H2_p = H2_pwm[i]
+            if H2_p < 0: H2_p = 0
 
-            power_sh = v_bat * v_bat * (sh_p / 255) / sh_r_temp
-            power_vh = v_bat * v_bat * (vh_p / 255) / vh_r_temp
+            power_sh = v_bat * v_bat * (H1_p / 255) / H1_r_temp
+            power_vh = v_bat * v_bat * (H2_p / 255) / H2_r_temp
 
             power = power_sh + power_vh
 
@@ -142,23 +144,23 @@ class Analyze_log_files:
             power_sum_vh += power_vh
             power_sum += power
             #if (i > 1195) & (i < 1205):
-            #    print(f"{time[i]}: sh_r_temp: {sh_r_temp} vh_r_temp: {vh_r_temp} power: {power1 + power2}")
+            #    print(f"{time[i]}: H1_r_temp: {H1_r_temp} H2_r_temp: {H2_r_temp} power: {power1 + power2}")
             if i==5:
                 print(f"\tStarting VBat: {v_bat}")
             if i==1190:
                 print(f"\tFinal VBat: {v_bat}")
 
-            avg_power = power_sum / len(sh_pwm)
-            avg_power_sh = power_sum_sh / len(sh_pwm)
-            avg_power_vh = power_sum_vh / len(sh_pwm)
-            total_energy_mwh = avg_power *1000 * len(sh_pwm) / 3600
-            sh_energy_mwh = avg_power_sh *1000 * len(sh_pwm) / 3600
-            vh_energy_mwh = avg_power_vh *1000 * len(sh_pwm) / 3600
+            avg_power = power_sum / len(H1_pwm)
+            avg_power_sh = power_sum_sh / len(H1_pwm)
+            avg_power_vh = power_sum_vh / len(H1_pwm)
+            total_energy_mwh = avg_power *1000 * len(H1_pwm) / 3600
+            H1_energy_mwh = avg_power_sh *1000 * len(H1_pwm) / 3600
+            H2_energy_mwh = avg_power_vh *1000 * len(H1_pwm) / 3600
 
         print(f"\tMinimum VBat: {vbat_min} @ time: {time[vbat_min_i]}")
         print(f"\tmax_power: {max_power:.3} max_power_sh: {max_power_sh:.3} max_power_vh: {max_power_vh:.3} @ time: {time[max_power_time]}")
         print(f"\tavg_power: {avg_power:.3} avg_power_sh: {avg_power_sh:.3} avg_power_vh: {avg_power_vh:.3}")
-        print(f"total_energy_mwh: {int(total_energy_mwh)} sh_energy_mwh: {int(sh_energy_mwh)} vh_energy_mwh: {int(vh_energy_mwh)}")
+        print(f"total_energy_mwh: {int(total_energy_mwh)} H1_energy_mwh: {int(H1_energy_mwh)} H2_energy_mwh: {int(H2_energy_mwh)}")
 
         return
         
@@ -234,25 +236,32 @@ class Analyze_log_files:
                     print("Error: The CSV file does not have enough columns (needs at least 6).")
                     return
                 voltage2 = log_df2.iloc[:, 7]  # Fifth column (Voltage in mv)
-                vh_temp2 = log_df2.iloc[:, 4]  # Fifth column (VH Temperature)
-                vh_pwm2 = log_df2.iloc[:, 6]  #  Seventh column (VH PWM)
+                H2_temp2 = log_df2.iloc[:, 4]  # Fifth column (VH Temperature)
+                H2_pwm2 = log_df2.iloc[:, 6]  #  Seventh column (VH PWM)
 
 
             # Extract relevant columns
-            sh_temp = log_df.iloc[:, 1]         # SH Temperature
-            vh_temp = log_df.iloc[:, 4]         # VH Temperature
-            vh_setpoint = log_df.iloc[:, 5]     # VH Setpoint
-            sh_pwm = log_df.iloc[:, 3]          # SH PWM
-            vh_pwm = log_df.iloc[:, 6]          # VH PWM
-            voltage = log_df.iloc[:, 7]         # Voltage in mv
+            H1_temp = log_df.iloc[:, 1]         # H1 Temperature
+            H2_temp = log_df.iloc[:, 4]         # H2 Temperature
+            H2_setpoint = log_df.iloc[:, 5]     # H2 Setpoint
+            H1_pwm = log_df.iloc[:, 3]          # H1 PWM
+            H2_pwm = log_df.iloc[:, 6]          # H2 PWM
+            if self.board_type == "MK7":
+                H3_temp = log_df.iloc[:, 7]  
+                H4_temp = log_df.iloc[:, 10]   
+                H3_pwm = log_df.iloc[:, 9]      
+                H4_pwm = log_df.iloc[:, 12]    
+                voltage = log_df.iloc[:, 13]         # Voltage in mv
+            else: 
+                voltage = log_df.iloc[:, 7]         # Voltage in mv
 
-            sh_ramp_time = self.find_first_exceeding(sh_temp, 65)
-            print(f"sh_ramp_time to 65c: {sh_ramp_time}")
-            vh_start_time = self.find_first_exceeding(vh_setpoint, 96)
-            #print(f"vh_start_time: {vh_start_time}")
-            vh_ramp_time = self.find_first_exceeding(vh_temp, 89)
-            print(f"vh_ramp_time to 89c: {vh_ramp_time - vh_start_time}")
-            print(f"vh max temperature: {vh_temp.max()}")
+            H1_ramp_time = self.find_first_exceeding(H1_temp, 65)
+            print(f"H1_ramp_time to 65c: {H1_ramp_time}")
+            H2_start_time = self.find_first_exceeding(H2_setpoint, 96)
+            #print(f"H2_start_time: {H2_start_time}")
+            H2_ramp_time = self.find_first_exceeding(H2_temp, 89)
+            print(f"H2_ramp_time to 89c: {H2_ramp_time - H2_start_time}")
+            print(f"vh max temperature: {H2_temp.max()}")
 
             #mk_board = "MK6AA_B202"
             mk_board = "MK6C_B254"
@@ -263,38 +272,43 @@ class Analyze_log_files:
             if False:
                 calc_start = 300
                 calc_end = 700
-                self.calculate_temperature_stats("SH, amplification", calc_start, calc_end, time, sh_temp, sh_pwm)
-                self.calculate_temperature_stats("VH, amplification", calc_start, calc_end, time, vh_temp, vh_pwm)
+                self.calculate_temperature_stats("SH, amplification", calc_start, calc_end, time, H1_temp, H1_pwm)
+                self.calculate_temperature_stats("VH, amplification", calc_start, calc_end, time, H2_temp, H2_pwm)
                 #calc_start = 850
                 #calc_end = 1150
                 calc_start = 2000
                 calc_end = 2400
-                self.calculate_temperature_stats("VH, actuation", calc_start, calc_end, time, vh_temp, vh_pwm)
+                self.calculate_temperature_stats("VH, actuation", calc_start, calc_end, time, H2_temp, H2_pwm)
 
             if False:
                 calc_start = 300
                 calc_end = 500
-                plt1 = self.plot_data(time[calc_start:calc_end], file_path, "Temperature (c)", vh_temp[calc_start:calc_end], "VH Temperature", vh_temp[calc_start:calc_end], "VH Temperature")
+                plt1 = self.plot_data(time[calc_start:calc_end], file_path, "Temperature (c)", H2_temp[calc_start:calc_end], "VH Temperature", H2_temp[calc_start:calc_end], "VH Temperature")
                 calc_start = 0
                 calc_end = 400
-                plt2 = self.plot_data(time[calc_start:calc_end], file_path, "Temperature (c)", sh_temp[calc_start:calc_end], "SH Temperature", sh_temp[calc_start:calc_end], "SH Temperature")
+                plt2 = self.plot_data(time[calc_start:calc_end], file_path, "Temperature (c)", H1_temp[calc_start:calc_end], "SH Temperature", H1_temp[calc_start:calc_end], "SH Temperature")
                 input("Press Enter to continue...")
                 plt1.close()
                 plt2.close()
 
             if True:
                 if file_path2 is None:
-                    plt1 = self.plot_data(time, file_path, "Temperature (c)", sh_temp, "SH Temperature", vh_temp, "VH Temperature")
-                    plt2 = self.plot_data(time, file_path, "PWM Control (0 to 255)", sh_pwm, "SH PWM", vh_pwm, "VH PWM")
-                    plt3 = self.plot_data(time, file_path, "Battery Voltage", voltage, "VBat")
+                    plt1 = self.plot_data(time, file_path, "Temperature (c)", H1_temp, "H1 Temperature", H2_temp, "H2 Temperature")
+                    plt2 = self.plot_data(time, file_path, "PWM Control (0 to 255)", H1_pwm, "H1 PWM", H2_pwm, "H2 PWM")
+                    if self.board_type == "MK7":
+                        plt3 = self.plot_data(time, file_path, "Temperature (c)", H3_temp, "H3 Temperature", H4_temp, "H4 Temperature")
+                        plt4 = self.plot_data(time, file_path, "PWM Control (0 to 255)", H3_pwm, "H3 PWM", H4_pwm, "H4 PWM")
+                    #plt5 = self.plot_data(time, file_path, "Battery Voltage", voltage, "VBat")
                 else:
-                    plt1 = self.plot_data(time, file_path, "Temperature (c)", vh_temp, "VH_Temp1", vh_temp2, "VH_Temp2")
-                    plt2 = self.plot_data(time, file_path, "VH PWM Control", vh_pwm, "VH PWM1", vh_pwm2, "VH PWM2")
+                    plt1 = self.plot_data(time, file_path, "Temperature (c)", H2_temp, "VH_Temp1", H2_temp2, "VH_Temp2")
+                    plt2 = self.plot_data(time, file_path, "VH PWM Control", H2_pwm, "VH PWM1", H2_pwm2, "VH PWM2")
                     #plt3 = self.plot_data(time, file_path, "Battery Voltage", voltage, "VBat1", voltage2, "VBat2")
                 input("Press Enter to continue...")
                 plt1.close()
                 plt2.close()
-                #plt3.close()
+                if self.board_type == "MK7":
+                    plt3.close()
+                    plt4.close()
 
         except FileNotFoundError:
             print(f"Error: The file '{file_path}' was not found.")
@@ -306,10 +320,11 @@ class Analyze_log_files:
 def main():
     """Main function to handle command-line argument."""
     debug = False
+    board_type = "MK7"
 
     print(f"\nNAATOS v2 Analyze_log_files version: {VERSION}")
 
-    a = Analyze_log_files()
+    a = Analyze_log_files(board_type)
 
     if len(sys.argv) < 2:
         print(f"\tUsage: python -m Analyze_log_files <mk_log_file> [optional: mk_log_file2]")

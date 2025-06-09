@@ -54,6 +54,8 @@ void APP_ErrorHandler(uint8_t errnum);
 
 void GPIO_Init(void);
 void UART_Init(void);
+void UART_IdleCallback(UART_HandleTypeDef *huart);
+void Process_UARTRxData(void);
 
 void PWMTimer_ISR(void);
 void LEDTimer_ISR(void);

@@ -11,20 +11,25 @@
 #include "main.h"
 #include "timers.h"
 
-#define STAGE1_TIME_MIN        	10
-#define STAGE2_TIME_MIN         0
-#define STAGE3_TIME_MIN         0
-#define DETECTION_TIME_MIN     	0
+#define STAGE1_TIME_MIN        	1
+#define STAGE2_TIME_MIN         1
+#define STAGE3_TIME_MIN         1
+#define DETECTION_TIME_MIN     	1
 
-#define ENABLE_SELF_TEST                1
+//#define ENABLE_SELF_TEST                1
 #define SELFTEST_TIME_MSEC              10000
 #define SELFTEST_MIN_TEMP_RISE_C        4.0
 #define PREHEAT_TEMP_C    	            30	    // Start the heaters in non simultaneous mode until they hit this temperature
 #define PREHEAT_MAX_TIME_MSEC           150000  // Go to a failure state if the board cannot preheat within this amount of time.
 
+// On the MK7, the pushbutton is connected to PF2_NRST. 
+//    The option byte must be programmed to change PF2 from reset to GPIO.
+//    The option byte can be set with the PY32CubeProgrammer tool.
+#define PUSHBUTTON_UI_ENABLED           1     
+
 #define BOARDCONFIG_MK7C
 
-#define FW_VERSION_STR                  "FW:v1.0"
+#define FW_VERSION_STR                  "FW:v1.1"
 
 
 #if defined(BOARDCONFIG_MK5AA) 
@@ -40,13 +45,11 @@
 #elif defined(BOARDCONFIG_MK7R)
     #define BUILD_HW_STR                    "HW:MK7R_B002"
 #elif defined(BOARDCONFIG_MK7C)
-    #define BUILD_HW_STR                    "HW:MK7C_B009"
+    #define BUILD_HW_STR                    "HW:MK7C_B001"
 #else
     FAIL -- invalid board
 #endif
 
-
-//#define PUSHBUTTON_UI_ENABLED           1      
 
 #if defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA) 
     #define VCC_MCU_MIN_VOLTAGE     2.2
@@ -81,16 +84,16 @@
 
 #elif defined(BOARDCONFIG_MK7R) || defined(BOARDCONFIG_MK7C)
 #define STAGE1_H1_TARGET_C  65
-#define STAGE1_H2_TARGET_C  65
+#define STAGE1_H2_TARGET_C  0
 #define STAGE1_H3_TARGET_C  0
 #define STAGE1_H4_TARGET_C  0
 #define STAGE2_H1_TARGET_C   0
-#define STAGE2_H2_TARGET_C   0
+#define STAGE2_H2_TARGET_C   68
 #define STAGE2_H3_TARGET_C   0
 #define STAGE2_H4_TARGET_C   0
 #define STAGE3_H1_TARGET_C   0
 #define STAGE3_H2_TARGET_C   0
-#define STAGE3_H3_TARGET_C   0
+#define STAGE3_H3_TARGET_C   72
 #define STAGE3_H4_TARGET_C   80
 #define COLD_TEMP_SETPOINT_OFFSET_C     2           //cold temp values are dependent on the outer device packaging (convective shielding and insulation)
 #define COLD_TEMP_OFFSET_THRESHOLD_C    14
@@ -187,6 +190,7 @@ typedef struct flags_t {
     volatile bool flagSendLogData;
     volatile bool flagDelayedStart;
     volatile bool flagPushbutton;
+    volatile bool flagNewUARTData;    
 } flags_t;
 
 

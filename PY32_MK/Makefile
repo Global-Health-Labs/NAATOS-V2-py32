@@ -17,7 +17,7 @@ MCU_TYPE		= PY32F003x8
 # Use LL library instead of HAL, y:yes, n:no
 USE_LL_LIB ?= n
 # Enable printf float %f support, y:yes, n:no
-ENABLE_PRINTF_FLOAT	?= n
+ENABLE_PRINTF_FLOAT	?= y
 # Build with FreeRTOS, y:yes, n:no
 USE_FREERTOS	?= n
 # Build with CMSIS DSP functions, y:yes, n:no
