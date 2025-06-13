@@ -33,6 +33,7 @@
 /* Defines ------------------------------------------------------------------*/
 
 //#define DEBUG 1
+#define DEBUG_REDUCE_MEMORY
 //#define DEBUG_HEATERS
 
 
@@ -127,8 +128,8 @@ typedef struct {
     uint16_t        GPIO_Pin_H3_CTRL;
     GPIO_TypeDef    *GPIOx_H4_CTRL;
     uint16_t        GPIO_Pin_H4_CTRL;
-    GPIO_TypeDef    *GPIOx_PUSHBUTTON;
-    uint16_t        GPIO_Pin_PUSHBUTTON;
+    GPIO_TypeDef    *GPIOx_PUSHBUTTON_UART_RX;
+    uint16_t        GPIO_Pin_PUSHBUTTON_UART_RX;
     GPIO_TypeDef    *GPIOx_USB_DN;
     uint16_t        GPIO_Pin_USB_DN;
 } Pin_assignments_t;

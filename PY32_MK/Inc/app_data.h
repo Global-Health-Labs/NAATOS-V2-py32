@@ -22,10 +22,13 @@
 #define PREHEAT_TEMP_C    	            30	    // Start the heaters in non simultaneous mode until they hit this temperature
 #define PREHEAT_MAX_TIME_MSEC           150000  // Go to a failure state if the board cannot preheat within this amount of time.
 
-// On the MK7, the pushbutton is connected to PF2_NRST. 
+// On the MK7, the pushbutton and uart rx pins are both connected to PF2_NRST. 
 //    The option byte must be programmed to change PF2 from reset to GPIO.
 //    The option byte can be set with the PY32CubeProgrammer tool.
-#define PUSHBUTTON_UI_ENABLED           1     
+
+// Only one of these can be enabled. Disable both for "normal" operation (heater sequence starts after power-up)
+// #define PUSHBUTTON_UI_ENABLED           1     
+#define UART_RX_ENABLED           1     
 
 #define BOARDCONFIG_MK7C
 

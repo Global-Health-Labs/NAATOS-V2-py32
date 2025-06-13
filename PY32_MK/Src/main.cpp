@@ -21,9 +21,17 @@
 
 /* Private variables ---------------------------------------------------------*/
 UART_HandleTypeDef UartHandle;
-#define UART_RX_BUFFER_SIZE 128
-uint8_t Uart_rxBuffer[UART_RX_BUFFER_SIZE];  // Buffer to store received data
-uint16_t Uart_RxSize;
+#define UART_RX_BUFFER_SIZE 64
+#define MAX_RX_COMMAND_SIZE 64
+volatile uint8_t Uart_RxQ[UART_RX_BUFFER_SIZE+1];  // Buffer to store received data
+volatile uint8_t Uart_rxChar = 0;                       // Buffer to store received character
+DMA_HandleTypeDef hdma_usart2_rx;       // The DMA handle for USART2
+
+uint16_t Uart_RxQ_wrPtr = 0;
+uint16_t Uart_RxQ_rdPtr = 0;
+uint16_t Uart_RxQ_size = 0;
+uint8_t  rxCommand[MAX_RX_COMMAND_SIZE];
+uint16_t rxCommandSize = 0;
 
 GPIO_InitTypeDef GpioInitStruct;
 GPIO_InitTypeDef AdcPinStruct;
@@ -70,9 +78,11 @@ void print_UID(void)
 {
     //uint8_t *uid;
     
-    //uid = (uint8_t *) UID_BASE_ADDR;
-    //sprintf(outputStr, "UID_%02X%02X%02X\r\n", uid[15], uid[14], uid[13]);
-    //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
+#ifndef DEBUG_REDUCE_MEMORY
+    uid = (uint8_t *) UID_BASE_ADDR;
+    sprintf(outputStr, "UID_%02X%02X%02X\r\n", uid[15], uid[14], uid[13]);
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
+#endif
     
 #if 0    
     for (int i=0; i<16; i++)
@@ -128,7 +138,8 @@ void system_setup() {
     DelayedStartTimerNumber = Register_timer(DelayedStart_ISR,  STARTUP_DELAY_MS);
 #ifdef PUSHBUTTON_UI_ENABLED    
     PushbuttonTimerNumber = Register_timer(Pushbutton_ISR,  PUSHBUTTON_TIMER_INTERVAL);
-#else     
+#elif UART_RX_ENABLED
+#else    
     flags.flagPushbutton = true;    // start the test right away
 #endif
 
@@ -144,7 +155,6 @@ void system_setup() {
     
     // start the timers:
     Enable_timer(LEDTimerNumber);
-    Enable_timer(MinuteTimerNumber);
     
 #ifdef PUSHBUTTON_UI_ENABLED    
     Enable_timer(PushbuttonTimerNumber);
@@ -177,18 +187,23 @@ int main(void)
     ADC_Read();
     //sprintf(outputStr, "ADCs: %d %d %d %d %d %d %d\r\n", data.adcReading[0], data.adcReading[1], data.adcReading[6], data.adcReading[4], data.adcReading[5], data.adcReading[7], data.adcReading[8]);
     //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
-    //sprintf(outputStr, "system_input_voltage: %1.2f vcc_mcu_voltage: %1.2f\r\n", data.system_input_voltage, data.vcc_mcu_voltage);
-    //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
     
+#ifndef DEBUG_REDUCE_MEMORY
+    sprintf(outputStr, "system_input_voltage: %1.2f vcc_mcu_voltage: %1.2f\r\n", data.system_input_voltage, data.vcc_mcu_voltage);
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
+#endif
+
     // py32_temperature_c does not work correctly. The ADC value reads higher than HAL_ADC_TSCAL2 (85c)
     //sprintf(outputStr, "py32_temperature_c: %1.2f ADC->CHSELR: %08X bits: %d vrefint:%d HAL_ADC_TSCAL1: %d HAL_ADC_TSCAL2: %d\r\n", data.py32_temperature_c, ADC1->CHSELR, data.adcReading[7], data.adcReading[8], HAL_ADC_TSCAL1, HAL_ADC_TSCAL2);
     //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
     
     data.usb_dn_value = HAL_GPIO_ReadPin(Pins.GPIOx_USB_DN, Pins.GPIO_Pin_USB_DN);
-    //sprintf(outputStr, "rcc->csr: %08X usb_cc1_voltage: %1.2f usb_cc2_voltage: %1.2f usb_dn_value: %d\r\n", rcc_csr_bootstate, data.usb_cc1_voltage, data.usb_cc2_voltage, data.usb_dn_value);
-    //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
-    //sprintf(outputStr, "H1_temperature_c: %1.2f H2_temperature_c: %1.2f H3_temperature_c: %1.2f H4_temperature_c: %1.2f\r\n", data.H1_temperature_c, data.H2_temperature_c, data.H3_temperature_c, data.H4_temperature_c);
-    //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);   
+#ifndef DEBUG_REDUCE_MEMORY
+    sprintf(outputStr, "rcc->csr: %08X usb_cc1_voltage: %1.2f usb_cc2_voltage: %1.2f usb_dn_value: %d\r\n", rcc_csr_bootstate, data.usb_cc1_voltage, data.usb_cc2_voltage, data.usb_dn_value);
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
+    sprintf(outputStr, "H1_temperature_c: %1.2f H2_temperature_c: %1.2f H3_temperature_c: %1.2f H4_temperature_c: %1.2f\r\n", data.H1_temperature_c, data.H2_temperature_c, data.H3_temperature_c, data.H4_temperature_c);
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);   
+#endif
 
     data.self_test_H1_start_temp_c = data.H1_temperature_c;
     data.self_test_H2_start_temp_c = data.H2_temperature_c;
@@ -386,6 +401,7 @@ void start_naat_test(void) {
     pwm_H4_ctrl.enabled = true;
       
     Enable_timer(PIDTimerNumber);
+    Enable_timer(MinuteTimerNumber);
     
 }
 
@@ -402,8 +418,14 @@ void stop_naat_test(void) {
     pwm_H3_ctrl.enabled = false;    
     pwm_H4_ctrl.enabled = false;
     
+    Disable_timer(PIDTimerNumber);                
     Disable_timer(LogTimerNumber);                
     Disable_timer(MinuteTimerNumber);
+    
+    HAL_GPIO_WritePin(Pins.GPIOx_H1_CTRL, Pins.GPIO_Pin_H1_CTRL, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(Pins.GPIOx_H2_CTRL, Pins.GPIO_Pin_H2_CTRL, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(Pins.GPIOx_H3_CTRL, Pins.GPIO_Pin_H3_CTRL, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(Pins.GPIOx_H4_CTRL, Pins.GPIO_Pin_H4_CTRL, GPIO_PIN_RESET);
     
 	Update_TimerTickInterval(LEDTimerNumber, LED_TIMER_INTERVAL_DONE);
     sprintf(outputStr, "Test stopped.\r\n");		
@@ -510,6 +532,8 @@ void ADC_data_collect(void)
 
 void Update_PID(void)
 {    
+#ifndef DEBUG_REDUCE_MEMORY
+
     if (data.state == self_test_1) {
         if (data.H1_temperature_c >= (data.self_test_H1_start_temp_c + SELFTEST_MIN_TEMP_RISE_C)) {
             data.state = self_test_2;
@@ -608,10 +632,13 @@ void Update_PID(void)
     pwm_H2_ctrl.pwm_tick_count = 0;
     pwm_H3_ctrl.pwm_tick_count = 0;
     pwm_H4_ctrl.pwm_tick_count = 0;
+#endif
 }
 
 void print_log_data(void) 
 {
+#ifndef DEBUG_REDUCE_MEMORY
+
 #if defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA) || defined(BOARDCONFIG_MK6F)
     sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d %d %d\r\n", data.msec_test_count, data.H1_temperature_c, pid_data[H1_HEATER].setpoint, data.H1_pwm_during_adc_meas, data.H2_temperature_c, pid_data[H2_HEATER].setpoint, data.H2_pwm_during_adc_meas, data.system_input_voltage, data.state, (int) pid_data[H2_HEATER].integrator,(int) pid_data[H2_HEATER].dTerm);
     //sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.H1_temperature_c, pid_data[H1_HEATER].setpoint, data.H1_pwm_during_adc_meas, data.H2_temperature_c, pid_data[H2_HEATER].setpoint, data.H2_pwm_during_adc_meas, data.system_input_voltage, data.state);
@@ -625,11 +652,14 @@ void print_log_data(void)
 #endif
     
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
+#endif
 }
 
 void send_max_temps(void) {
-    //sprintf(outputStr, "H1 Max: %1.2f H2 Max: %1.2f H3 Max: %1.2f H4 Max: %1.2f\r\n", data.H1_max_temperature_c, data.H2_max_temperature_c, data.H3_max_temperature_c, data.H4_max_temperature_c);
-    //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
+#ifndef DEBUG_REDUCE_MEMORY
+    sprintf(outputStr, "H1 Max: %1.2f H2 Max: %1.2f H3 Max: %1.2f H4 Max: %1.2f\r\n", data.H1_max_temperature_c, data.H2_max_temperature_c, data.H3_max_temperature_c, data.H4_max_temperature_c);
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
+#endif
 }
 
 #define PWM_BITS 8
@@ -804,8 +834,9 @@ void GPIO_Init(void)
     __HAL_RCC_GPIOB_CLK_ENABLE();
     __HAL_RCC_GPIOF_CLK_ENABLE();
 	
-	// Initialize UART pins
-	GpioInitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_1;
+	// Initialize UART TX pins
+	//GpioInitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_1;
+	GpioInitStruct.Pin = GPIO_PIN_0;
 	GpioInitStruct.Mode = GPIO_MODE_AF_PP;
 	GpioInitStruct.Pull = GPIO_PULLUP;
 	GpioInitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
@@ -880,8 +911,8 @@ void GPIO_Init(void)
     Pins.GPIO_Pin_H3_CTRL = GPIO_PIN_0;
     Pins.GPIOx_H4_CTRL = GPIOF;
     Pins.GPIO_Pin_H4_CTRL = GPIO_PIN_1;
-    Pins.GPIOx_PUSHBUTTON = GPIOF;
-    Pins.GPIO_Pin_PUSHBUTTON = GPIO_PIN_2;
+    Pins.GPIOx_PUSHBUTTON_UART_RX = GPIOF;
+    Pins.GPIO_Pin_PUSHBUTTON_UART_RX = GPIO_PIN_2;
     Pins.GPIOx_USB_DN = GPIOA;
     Pins.GPIO_Pin_USB_DN = GPIO_PIN_12;
 
@@ -1015,11 +1046,18 @@ void GPIO_Init(void)
     HAL_GPIO_Init(Pins.GPIOx_USB_DN, &GPIO_InitStruct);    
 
 #ifdef PUSHBUTTON_UI_ENABLED
-    GPIO_InitStruct.Pin = Pins.GPIO_Pin_PUSHBUTTON;
+    GPIO_InitStruct.Pin = Pins.GPIO_Pin_PUSHBUTTON_UART_RX;
     GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
     GPIO_InitStruct.Pull = GPIO_PULLUP;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(Pins.GPIOx_PUSHBUTTON, &GPIO_InitStruct);    
+    HAL_GPIO_Init(Pins.GPIOx_PUSHBUTTON_UART_RX, &GPIO_InitStruct);    
+#elif UART_RX_ENABLED
+    GPIO_InitStruct.Pin = Pins.GPIO_Pin_PUSHBUTTON_UART_RX;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+	GpioInitStruct.Pull = GPIO_PULLUP;
+	GpioInitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    GPIO_InitStruct.Alternate = GPIO_AF4_USART2;
+    HAL_GPIO_Init(Pins.GPIOx_PUSHBUTTON_UART_RX, &GPIO_InitStruct);    
 #endif
     pushbutton_value = GPIO_PIN_SET;
     last_pushbutton_value = GPIO_PIN_SET;
@@ -1058,59 +1096,117 @@ void GPIO_Init(void)
 
 void UART_Init(void)
 {
-	//Configure UART1
+	//Configure UART2
 	//PA0 is TX
 	//PA1 is RX (PF2 on MK7)
 	
-  UartHandle.Instance          = USART2;
-  UartHandle.Init.BaudRate     = 115200;
-  UartHandle.Init.WordLength   = UART_WORDLENGTH_8B;
-  UartHandle.Init.StopBits     = UART_STOPBITS_1;
-  UartHandle.Init.Parity       = UART_PARITY_NONE;
-  UartHandle.Init.HwFlowCtl    = UART_HWCONTROL_NONE;
-  UartHandle.Init.Mode         = UART_MODE_TX_RX;
+    UartHandle.Instance          = USART2;
+    UartHandle.Init.BaudRate     = 115200;
+    UartHandle.Init.WordLength   = UART_WORDLENGTH_8B;
+    UartHandle.Init.StopBits     = UART_STOPBITS_1;
+    UartHandle.Init.Parity       = UART_PARITY_NONE;
+    UartHandle.Init.HwFlowCtl    = UART_HWCONTROL_NONE;
+    UartHandle.Init.Mode         = UART_MODE_TX_RX;
+    UartHandle.Init.OverSampling = UART_OVERSAMPLING_16;
 	
-  if (HAL_UART_Init(&UartHandle) != HAL_OK)
-  {
-    APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
-  }
-  
-  // Start UART reception:
-  // DMA mode will fill the rxBuffer, then call a callback function.
-  // Since we don't know how much data is coming in, we will instead detect when the UART rx line is idle.
-  // This will call UART_IdleCallback where we will receive the data.
-  Uart_RxSize = 0;
-  flags.flagNewUARTData = false;
-  HAL_UART_Receive_DMA(&UartHandle, Uart_rxBuffer, UART_RX_BUFFER_SIZE);
-  
+    if (HAL_UART_Init(&UartHandle) != HAL_OK)
+    {
+        APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
+    }
+
+    // Start UART reception:
+    // 
+    Uart_RxQ_wrPtr = 0;
+    Uart_RxQ_rdPtr = 0;
+    Uart_RxQ_size = 0;
+    flags.flagNewUARTData = false;
+
+    // enable USART2 interrupts:
+    HAL_NVIC_SetPriority(USART2_IRQn, 0, 0);
+    HAL_NVIC_EnableIRQ(USART2_IRQn);
+
+    HAL_UART_Receive_IT(&UartHandle, (uint8_t *) &Uart_rxChar, 1);
 }
 
-void USART1_IRQHandler(void)
+// The interrupt handler must be defined with extern "C" to properly override the default handler.
+extern "C" void USART2_IRQHandler(void)
 {
     HAL_UART_IRQHandler(&UartHandle);
     
     if (__HAL_UART_GET_FLAG(&UartHandle, UART_FLAG_IDLE)) {
         __HAL_UART_CLEAR_IDLEFLAG(&UartHandle); // Clear the idle flag
-        UART_IdleCallback(&UartHandle);         // Custom processing
+        //UART_IdleCallback(&UartHandle);         // Custom processing
+    }
+    if (__HAL_UART_GET_FLAG(&UartHandle, UART_FLAG_RXNE)) {
+        __HAL_UART_CLEAR_FLAG(&UartHandle, UART_FLAG_RXNE); // Clear the rxne flag
     }
 }
 
-void UART_IdleCallback(UART_HandleTypeDef *huart)
-{
-    // Stop the DMA to get how many bytes were received
-    Uart_RxSize = UART_RX_BUFFER_SIZE - __HAL_DMA_GET_COUNTER(huart->hdmarx);
-    HAL_UART_DMAStop(huart);
-
-    // Process the received data in user space
-    flags.flagNewUARTData = true;
-}
 
 void Process_UARTRxData(void)
 {
-    sprintf(outputStr, "UartRx: %s\r\n", Uart_rxBuffer);		
-    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
-    // Restart UART RX DMA reception
-    HAL_UART_Receive_DMA(&UartHandle, Uart_rxBuffer, UART_RX_BUFFER_SIZE);
+    uint8_t c;
+    bool rxErr = false;
+    bool rxCommandValid = false;
+    int qSize;
+    int i;
+    
+    while (Uart_RxQ_size > 0) {
+        __disable_irq();
+        qSize = Uart_RxQ_size;
+        if ((qSize + rxCommandSize) >= MAX_RX_COMMAND_SIZE-1 || qSize >= UART_RX_BUFFER_SIZE) {
+            rxErr = true;
+            rxCommandSize = 0;
+            Uart_RxQ_size = 0;
+            Uart_RxQ_wrPtr = 0;
+            Uart_RxQ_rdPtr = 0;
+        } else {
+            for (i=0; i < qSize; i++) {
+                c = Uart_RxQ[Uart_RxQ_rdPtr++];
+                if (Uart_RxQ_rdPtr >=UART_RX_BUFFER_SIZE) Uart_RxQ_rdPtr = 0;
+                Uart_RxQ_size--;
+                if (rxCommandSize == 0 && c == '{') {       // commands start with the '{' delimeter
+                    rxCommand[rxCommandSize] = c;
+                    rxCommandSize++;
+                } else if (rxCommandSize > 0) {
+                    if (c == '}') {                         // commands end with the '}' delimeter
+                        rxCommand[rxCommandSize] = c;
+                        rxCommandSize++;
+                        rxCommandValid = true;
+                        break;                              // stop receiving any more bytes and process the command
+                    } else {
+                        rxCommand[rxCommandSize] = c;
+                        rxCommandSize++;
+                    }
+                }
+            }
+        }
+        __enable_irq();
+        
+        if (rxErr) {
+            sprintf(outputStr, "UartRx err: %d %d %d %d\r\n", rxCommandSize, Uart_RxQ_size, Uart_RxQ_wrPtr, Uart_RxQ_rdPtr);		
+            HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
+        } else if (rxCommandValid) {
+            rxCommand[rxCommandSize] = 0;     // add a null char after the last byte
+            sprintf(outputStr, "rxCommand: %d %s\r\n", rxCommandSize, rxCommand);		
+            HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
+            rxCommandSize = 0;
+            rxCommandValid = false;
+        }
+    }
+}
+
+extern "C" void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+    // put the data in the RxBuffer
+    Uart_RxQ[Uart_RxQ_wrPtr++] = Uart_rxChar;
+    if (Uart_RxQ_wrPtr >= UART_RX_BUFFER_SIZE) Uart_RxQ_wrPtr = 0;
+    Uart_RxQ_size++;
+
+    HAL_UART_Receive_IT(&UartHandle, (uint8_t *) &Uart_rxChar, 1);
+    
+    // Set flag to process the received data in user space
+    flags.flagNewUARTData = true;
 }
 
 // Timer ISR functions are called from the HAL_TIM ISR.
@@ -1119,6 +1215,8 @@ void Process_UARTRxData(void)
 
 void PWMTimer_ISR(void)
 {       
+#ifndef DEBUG_REDUCE_MEMORY
+
     if (data.state == self_test_1) {
         HAL_GPIO_WritePin(Pins.GPIOx_H1_CTRL, Pins.GPIO_Pin_H1_CTRL, GPIO_PIN_SET);
         HAL_GPIO_WritePin(Pins.GPIOx_H2_CTRL, Pins.GPIO_Pin_H2_CTRL, GPIO_PIN_RESET);
@@ -1207,6 +1305,8 @@ void PWMTimer_ISR(void)
         pwm_H4_ctrl.pwm_tick_count += 1;
         if (pwm_H4_ctrl.pwm_tick_count >= PWM_MAX) pwm_H4_ctrl.pwm_tick_count = 0;
     }
+#endif
+
 }
 
 void LEDTimer_ISR(void)
@@ -1247,7 +1347,7 @@ void LogData_ISR(void)
 void Pushbutton_ISR(void)
 {
     // Latch the pushbutton_flag when the button is pressed (falling edge of PA12)
-    pushbutton_value = HAL_GPIO_ReadPin(Pins.GPIOx_PUSHBUTTON, Pins.GPIO_Pin_PUSHBUTTON);
+    pushbutton_value = HAL_GPIO_ReadPin(Pins.GPIOx_PUSHBUTTON_UART_RX, Pins.GPIO_Pin_PUSHBUTTON_UART_RX);
     if (pushbutton_value == GPIO_PIN_RESET && last_pushbutton_value == GPIO_PIN_SET) flags.flagPushbutton = true;
     last_pushbutton_value = pushbutton_value;    
 }
@@ -1297,6 +1397,9 @@ void APP_ErrorHandler(uint8_t errnum)
 {
     __disable_irq(); // Disable all interrupts
     
+#ifdef DEBUG_REDUCE_MEMORY
+    while (1) {}
+#else
     // Make sure all heaters are disabled
     HAL_GPIO_WritePin(Pins.GPIOx_H1_CTRL, Pins.GPIO_Pin_H1_CTRL, GPIO_PIN_RESET);
     HAL_GPIO_WritePin(Pins.GPIOx_H2_CTRL, Pins.GPIO_Pin_H2_CTRL, GPIO_PIN_RESET);
@@ -1325,6 +1428,7 @@ void APP_ErrorHandler(uint8_t errnum)
         HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_SET);   // LED off for 1 sec        
         sw_delay_100msec(10);
     }
+#endif
 }
 
 

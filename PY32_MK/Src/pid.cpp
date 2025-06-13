@@ -88,6 +88,7 @@ void pid_controller_init(heater_t heater, float setpoint, float k_p, float k_i, 
 
 void pid_controller_compute(heater_t heater, float measurement) {
     float out;
+#ifndef DEBUG_REDUCE_MEMORY
     
     // Don't perform the PID calculation if the setpoint is 0.
     if (pid_data[heater].setpoint <= PID_LIM_MIN) {
@@ -137,4 +138,5 @@ void pid_controller_compute(heater_t heater, float measurement) {
     pid_data[heater].out = out;
     // Keep Track of for Next Execution
     pid_data[heater].prevMesurement = measurement;
+#endif
 }
