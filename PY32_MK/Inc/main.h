@@ -33,7 +33,7 @@
 /* Defines ------------------------------------------------------------------*/
 
 //#define DEBUG 1
-#define DEBUG_REDUCE_MEMORY
+//#define DEBUG_REDUCE_MEMORY
 //#define DEBUG_HEATERS
 
 
@@ -49,6 +49,12 @@ typedef enum {
     H3_HEATER = 2,
     H4_HEATER = 3
 } heater_t;
+
+typedef enum {
+    CMD_START = 0,
+    CMD_STOP,
+    NUM_HOST_COMMANDS
+} host_commands_t;
 
 /* Exported functions prototypes ---------------------------------------------*/
 void APP_ErrorHandler(uint8_t errnum);

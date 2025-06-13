@@ -53,6 +53,10 @@ int8_t LogTimerNumber;
 
 GPIO_PinState pushbutton_value, last_pushbutton_value;
 
+const char *host_commands[NUM_HOST_COMMANDS] = {
+    [CMD_START] = "CMD_START",
+    [CMD_STOP] = "CMD_STOP"
+};
 
 /* Private user code ---------------------------------------------------------*/
 void Data_init(void);
@@ -76,9 +80,9 @@ Pin_pwm_t pwm_H4_ctrl;
 // Each PY32 has a unique ID (UID).
 void print_UID(void)
 {
-    //uint8_t *uid;
     
 #ifndef DEBUG_REDUCE_MEMORY
+    uint8_t *uid;
     uid = (uint8_t *) UID_BASE_ADDR;
     sprintf(outputStr, "UID_%02X%02X%02X\r\n", uid[15], uid[14], uid[13]);
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
@@ -199,7 +203,7 @@ int main(void)
     
     data.usb_dn_value = HAL_GPIO_ReadPin(Pins.GPIOx_USB_DN, Pins.GPIO_Pin_USB_DN);
 #ifndef DEBUG_REDUCE_MEMORY
-    sprintf(outputStr, "rcc->csr: %08X usb_cc1_voltage: %1.2f usb_cc2_voltage: %1.2f usb_dn_value: %d\r\n", rcc_csr_bootstate, data.usb_cc1_voltage, data.usb_cc2_voltage, data.usb_dn_value);
+    sprintf(outputStr, "usb_cc1_voltage: %1.2f usb_cc2_voltage: %1.2f usb_dn_value: %d\r\n", data.usb_cc1_voltage, data.usb_cc2_voltage, data.usb_dn_value);
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
     sprintf(outputStr, "H1_temperature_c: %1.2f H2_temperature_c: %1.2f H3_temperature_c: %1.2f H4_temperature_c: %1.2f\r\n", data.H1_temperature_c, data.H2_temperature_c, data.H3_temperature_c, data.H4_temperature_c);
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);   
@@ -1150,8 +1154,13 @@ void Process_UARTRxData(void)
     bool rxCommandValid = false;
     int qSize;
     int i;
+    int command_found;
+    char command_key[MAX_RX_COMMAND_SIZE];
+    int command_value;
+    int num_parameters_found;
     
     while (Uart_RxQ_size > 0) {
+        command_found = -1;
         __disable_irq();
         qSize = Uart_RxQ_size;
         if ((qSize + rxCommandSize) >= MAX_RX_COMMAND_SIZE-1 || qSize >= UART_RX_BUFFER_SIZE) {
@@ -1188,8 +1197,32 @@ void Process_UARTRxData(void)
             HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
         } else if (rxCommandValid) {
             rxCommand[rxCommandSize] = 0;     // add a null char after the last byte
-            sprintf(outputStr, "rxCommand: %d %s\r\n", rxCommandSize, rxCommand);		
+            for (i=0; i<NUM_HOST_COMMANDS; i++) {
+                if (strncmp((const char *) &rxCommand[2], host_commands[i], strlen(host_commands[i])) == 0) {
+                    command_found = i;
+                }
+            }
+            num_parameters_found = sscanf((const char *) rxCommand, "{\"%10[^\"]\":%d}", command_key, &command_value); 
+     
+            sprintf(outputStr, "rxCommand: %d %s\r\n", command_found, rxCommand);		
             HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
+            sprintf(outputStr, "sscanf: %d %s %d\r\n", num_parameters_found, command_key, command_value);		
+            HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
+            switch (command_found) {
+                case CMD_START: 
+                    if (!data.test_active) {
+                        data.msec_test_count = 0;
+                        data.minute_test_count = 0;
+                        Enable_timer(DelayedStartTimerNumber);
+                        Enable_timer(LogTimerNumber);                
+                    }                
+                    break;
+                case CMD_STOP: 
+                    if (data.test_active) {
+                        stop_naat_test();
+                    }                
+                    break;
+            }
             rxCommandSize = 0;
             rxCommandValid = false;
         }
