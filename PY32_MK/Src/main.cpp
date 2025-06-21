@@ -16,22 +16,11 @@
 #include "adc.h"
 #include "app_data.h"
 #include "timers.h"
+#include "serial.h"
 
 /* Private define ------------------------------------------------------------*/
 
 /* Private variables ---------------------------------------------------------*/
-UART_HandleTypeDef UartHandle;
-#define UART_RX_BUFFER_SIZE 64
-#define MAX_RX_COMMAND_SIZE 64
-volatile uint8_t Uart_RxQ[UART_RX_BUFFER_SIZE+1];  // Buffer to store received data
-volatile uint8_t Uart_rxChar = 0;                       // Buffer to store received character
-DMA_HandleTypeDef hdma_usart2_rx;       // The DMA handle for USART2
-
-uint16_t Uart_RxQ_wrPtr = 0;
-uint16_t Uart_RxQ_rdPtr = 0;
-uint16_t Uart_RxQ_size = 0;
-uint8_t  rxCommand[MAX_RX_COMMAND_SIZE];
-uint16_t rxCommandSize = 0;
 
 GPIO_InitTypeDef GpioInitStruct;
 GPIO_InitTypeDef AdcPinStruct;
@@ -53,19 +42,11 @@ int8_t LogTimerNumber;
 
 GPIO_PinState pushbutton_value, last_pushbutton_value;
 
-const char *host_commands[NUM_HOST_COMMANDS] = {
-    [CMD_START] = "CMD_START",
-    [CMD_STOP] = "CMD_STOP"
-};
-
 /* Private user code ---------------------------------------------------------*/
 void Data_init(void);
-void Distribute_PWM_Bits(uint8_t pwm_val, uint64_t *pwm_bit_array);
 
 void start_naat_test(void);
 void stop_naat_test(void);
-
-char outputStr[192];
 
 // Heater control structures
 Pin_pwm_t pwm_H1_ctrl;
@@ -182,32 +163,24 @@ int main(void)
     
   	//start_tick = TIM1_tick_count;    
 
-#ifdef DEBUG    
-    //Distribute_PWM_Bits((uint8_t) 3, (uint64_t *) pwm_H1_ctrl.pwm_bits);    
-    //Distribute_PWM_Bits((uint8_t) 7, (uint64_t *) pwm_H1_ctrl.pwm_bits);    
-    //Distribute_PWM_Bits((uint8_t) 254, (uint64_t *) pwm_H1_ctrl.pwm_bits);   
-#endif
-
     ADC_Read();
     //sprintf(outputStr, "ADCs: %d %d %d %d %d %d %d\r\n", data.adcReading[0], data.adcReading[1], data.adcReading[6], data.adcReading[4], data.adcReading[5], data.adcReading[7], data.adcReading[8]);
     //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
     
-#ifndef DEBUG_REDUCE_MEMORY
-    sprintf(outputStr, "system_input_voltage: %1.2f vcc_mcu_voltage: %1.2f\r\n", data.system_input_voltage, data.vcc_mcu_voltage);
+    sprintf(outputStr, "system_input_voltage: %1.2f vcc_mcu_voltage: %1.2f %04X\r\n", data.system_input_voltage, data.vcc_mcu_voltage, data.adcReading[8]);
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
-#endif
 
     // py32_temperature_c does not work correctly. The ADC value reads higher than HAL_ADC_TSCAL2 (85c)
     //sprintf(outputStr, "py32_temperature_c: %1.2f ADC->CHSELR: %08X bits: %d vrefint:%d HAL_ADC_TSCAL1: %d HAL_ADC_TSCAL2: %d\r\n", data.py32_temperature_c, ADC1->CHSELR, data.adcReading[7], data.adcReading[8], HAL_ADC_TSCAL1, HAL_ADC_TSCAL2);
     //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
     
     data.usb_dn_value = HAL_GPIO_ReadPin(Pins.GPIOx_USB_DN, Pins.GPIO_Pin_USB_DN);
-#ifndef DEBUG_REDUCE_MEMORY
+
     sprintf(outputStr, "usb_cc1_voltage: %1.2f usb_cc2_voltage: %1.2f usb_dn_value: %d\r\n", data.usb_cc1_voltage, data.usb_cc2_voltage, data.usb_dn_value);
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
     sprintf(outputStr, "H1_temperature_c: %1.2f H2_temperature_c: %1.2f H3_temperature_c: %1.2f H4_temperature_c: %1.2f\r\n", data.H1_temperature_c, data.H2_temperature_c, data.H3_temperature_c, data.H4_temperature_c);
-    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);   
-#endif
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);  
+    print_settings();
 
     data.self_test_H1_start_temp_c = data.H1_temperature_c;
     data.self_test_H2_start_temp_c = data.H2_temperature_c;
@@ -229,6 +202,11 @@ int main(void)
         data.cold_ambient_temp_mode = true;
     }
 
+#ifdef UART_RX_ENABLED
+    sprintf(outputStr, "Waiting for UART commands.\r\n");		
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
+#endif
+
     while (1) 
     {
         if (flags.flagPushbutton) {
@@ -237,10 +215,7 @@ int main(void)
             if (data.test_active) {
                 stop_naat_test();
             } else {
-                data.msec_test_count = 0;
-                data.minute_test_count = 0;
-                Enable_timer(DelayedStartTimerNumber);
-                Enable_timer(LogTimerNumber);                
+                start_naat_delay_sequence();
             }                
         }
         
@@ -263,7 +238,7 @@ int main(void)
             flags.flag_1minute = false;
             data.minute_test_count++;
 
-			if (data.minute_test_count  >= STAGE1_TIME_MIN + STAGE2_TIME_MIN + STAGE3_TIME_MIN + DETECTION_TIME_MIN) {
+			if (data.minute_test_count  >= data.stage1_time_min + data.stage2_time_min + data.stage3_time_min + data.detection_time_min) {
 				// final state -- END
 				if (data.state != low_power) {
 					data.state = low_power;
@@ -281,7 +256,7 @@ int main(void)
 */
 				}
 			}		
-		} else if (data.minute_test_count >= STAGE1_TIME_MIN + STAGE2_TIME_MIN + STAGE3_TIME_MIN) {
+		} else if (data.minute_test_count >= data.stage1_time_min + data.stage2_time_min + data.stage3_time_min) {
 			// in detection, shut down the loads
 			if (data.state != detection) {
 				data.state = detection;
@@ -294,7 +269,7 @@ int main(void)
 				pwm_H3_ctrl.enabled = false;      
 				pwm_H4_ctrl.enabled = false;      
 			}
-		} else if (data.minute_test_count >= STAGE1_TIME_MIN + STAGE2_TIME_MIN) {
+		} else if (data.minute_test_count >= data.stage1_time_min + data.stage2_time_min) {
 			if (data.state != stage3) {
 				data.state = stage3;                      
 				pid_init(H1_HEATER,H1_pid_control[data.state]);
@@ -303,7 +278,7 @@ int main(void)
 				pid_init(H4_HEATER,H4_pid_control[data.state]);
 				Update_TimerTickInterval(LEDTimerNumber, LED_TIMER_INTERVAL_ACTIVATION);
 			}        
-		} else if (data.minute_test_count >= STAGE1_TIME_MIN) {
+		} else if (data.minute_test_count >= data.stage1_time_min) {
 			if (data.state != stage2) {
 				data.state = stage2;
 				
@@ -345,6 +320,16 @@ int main(void)
             Process_UARTRxData();
         }
     }    
+}
+
+// This will start the delay timer. 
+// The NAAT test will start when the delay timer expires.
+void start_naat_delay_sequence(void)
+{
+    data.msec_test_count = 0;
+    data.minute_test_count = 0;
+    Enable_timer(DelayedStartTimerNumber);
+    Enable_timer(LogTimerNumber);                
 }
 
 void start_naat_test(void) {
@@ -477,6 +462,11 @@ void Data_init(void)
     data.H2_pwm_during_adc_meas = 0;    
     data.H3_pwm_during_adc_meas = 0;    
     data.H4_pwm_during_adc_meas = 0;    
+
+    data.stage1_time_min = STAGE1_TIME_MIN;    
+    data.stage2_time_min = STAGE2_TIME_MIN;    
+    data.stage3_time_min = STAGE3_TIME_MIN;    
+    data.detection_time_min = DETECTION_TIME_MIN;        
 }
 
 void ADC_data_collect(void) 
@@ -530,7 +520,7 @@ void ADC_data_collect(void)
 
     // Measure the number of seconds it takes to ramp to the minimum H1 temperature:
     if (data.state == stage3 && data.stage1_ramp_time == 0 && data.H1_temperature_c >= STAGE1_MIN_VALID_TEMP_C) {
-        data.stage1_ramp_time = data.msec_test_count / 1000 - (STAGE1_TIME_MIN * 60);
+        data.stage1_ramp_time = data.msec_test_count / 1000 - (data.stage1_time_min * 60);
     }
 }
 
@@ -647,7 +637,7 @@ void print_log_data(void)
     sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d %d %d\r\n", data.msec_test_count, data.H1_temperature_c, pid_data[H1_HEATER].setpoint, data.H1_pwm_during_adc_meas, data.H2_temperature_c, pid_data[H2_HEATER].setpoint, data.H2_pwm_during_adc_meas, data.system_input_voltage, data.state, (int) pid_data[H2_HEATER].integrator,(int) pid_data[H2_HEATER].dTerm);
     //sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.H1_temperature_c, pid_data[H1_HEATER].setpoint, data.H1_pwm_during_adc_meas, data.H2_temperature_c, pid_data[H2_HEATER].setpoint, data.H2_pwm_during_adc_meas, data.system_input_voltage, data.state);
 #elif defined(BOARDCONFIG_MK7C)
-    sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.H1_temperature_c, pid_data[H1_HEATER].setpoint, data.H1_pwm_during_adc_meas, data.H2_temperature_c, pid_data[H2_HEATER].setpoint, data.H2_pwm_during_adc_meas, data.H3_temperature_c, pid_data[H3_HEATER].setpoint, data.H3_pwm_during_adc_meas, data.H4_temperature_c, pid_data[H4_HEATER].setpoint, data.H4_pwm_during_adc_meas, data.vcc_mcu_voltage, data.state);
+    sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", (int)data.msec_test_count, data.H1_temperature_c, pid_data[H1_HEATER].setpoint, (int)data.H1_pwm_during_adc_meas, data.H2_temperature_c, pid_data[H2_HEATER].setpoint, data.H2_pwm_during_adc_meas, data.H3_temperature_c, pid_data[H3_HEATER].setpoint, data.H3_pwm_during_adc_meas, data.H4_temperature_c, pid_data[H4_HEATER].setpoint, data.H4_pwm_during_adc_meas, data.vcc_mcu_voltage, data.state);
 #elif defined(BOARDCONFIG_MK7R)
     sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.H1_temperature_c, pid_data[H1_HEATER].setpoint, data.H1_pwm_during_adc_meas, data.H2_temperature_c, pid_data[H2_HEATER].setpoint, data.H2_pwm_during_adc_meas, data.H3_temperature_c, pid_data[H3_HEATER].setpoint, data.H3_pwm_during_adc_meas, data.H4_temperature_c, pid_data[H4_HEATER].setpoint, data.H4_pwm_during_adc_meas, data.system_input_voltage, data.state);
 #else
@@ -666,114 +656,6 @@ void send_max_temps(void) {
 #endif
 }
 
-#define PWM_BITS 8
-#define PWM_BITFIELD_SIZE 256
-
-#ifdef DEBUG    
-
-/**
- * Shifts a 256-bit unsigned integer (represented as an array of four 64-bit unsigned integers)
- * to the left by shift_val bits.
- *
- * Parameters:
- * - input (uint64_t*): Pointer to an array of four 64-bit unsigned integers.
- * - shift_val (uint8_t): Number of bits to shift to the left (0-255).
- *
- * Returns:
- * - The input array is modified in place to reflect the shifted value.
- */
-void Shift_left_256(uint64_t *input, uint8_t shift_val) {
-
-    if (shift_val == 0) {
-        return;
-    }
-
-    int word_shift = shift_val / 64;      // Number of 64-bit words to shift
-    int bit_shift = shift_val % 64;       // Number of bits to shift within words
-
-    // Temporary array to store the result
-    uint64_t result[4] = {0, 0, 0, 0};
-
-    // Perform the bit shift
-    for (int i = 3; i >= 0; i--) {
-        if (i - word_shift >= 0) {
-            result[i] = input[i - word_shift] << bit_shift;
-            if (bit_shift > 0 && i - word_shift - 1 >= 0) {
-                // Add the carry bits from the lower word
-                result[i] |= input[i - word_shift - 1] >> (64 - bit_shift);
-            }
-        }
-    }
-
-    // Copy (OR) the result back to the input array
-    for (int i = 0; i < 4; i++) {
-        input[i] |= result[i];
-    }
-}
-
-// Distribute_PWM_Bits takes an 8 bit PWM value and distributes the bits (energy) evenly across 256 timeslots.
-void Distribute_PWM_Bits(uint8_t pwm_val, uint64_t *pwm_bit_array)
-{
-    uint64_t sub_bitfield[4];
-    uint32_t data_pos, bit_pos;   
-    uint32_t base_val, shift;
-
-    sprintf(outputStr, "Distribute_PWM_Bits %d\r\n", pwm_val);
-    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);        
-    
-    pwm_bit_array[0] = 0;
-    pwm_bit_array[1] = 0;
-    pwm_bit_array[2] = 0;
-    pwm_bit_array[3] = 0;
-    
-    if (pwm_val == 0x0) return;
-    else if (pwm_val == 0xFF) {
-        pwm_bit_array[0] = 0xFFFFFFFFFFFFFFFF;
-        pwm_bit_array[1] = 0xFFFFFFFFFFFFFFFF;
-        pwm_bit_array[2] = 0xFFFFFFFFFFFFFFFF;
-        pwm_bit_array[3] = 0xFFFFFFFFFFFFFFFF;
-        return;
-    }    
-    
-    data_pos = 1;    
-    for (uint32_t i=0; i< PWM_BITS; i++) {
-        bit_pos = PWM_BITS - i - 1;
-        if (((pwm_val>>bit_pos) & 0x1) == 0x01) {
-            base_val = PWM_BITFIELD_SIZE / (1<<bit_pos);
-            sub_bitfield[0] = 0;
-            sub_bitfield[1] = 0;
-            sub_bitfield[2] = 0;
-            sub_bitfield[3] = 0;
-            if (data_pos < 64) sub_bitfield[0] = (uint64_t)(1<<data_pos);
-            else if (data_pos < 2*64) sub_bitfield[1] = (uint64_t)(1<<(data_pos-64));
-            else if (data_pos < 3*64) sub_bitfield[2] = (uint64_t)(1<<(data_pos-2*64));
-            else sub_bitfield[3] = (uint64_t)(1<<(data_pos-3*64));
-
-            shift = base_val;
-            for (uint32_t j=1; j < (bit_pos+1); j++) {
-                //sub_bitfield[0] |= (sub_bitfield[0] << shift);
-                Shift_left_256(sub_bitfield, shift);
-                shift *= 2;
-            }           
-            pwm_bit_array[0] |= sub_bitfield[0];
-            pwm_bit_array[1] |= sub_bitfield[1];
-            pwm_bit_array[2] |= sub_bitfield[2];
-            pwm_bit_array[3] |= sub_bitfield[3];
-        }
-        data_pos *= 2;
-    }    
-    
-    sprintf(outputStr, "0: %32llx\r\n", pwm_bit_array[0]);
-    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);        
-    sprintf(outputStr, "1: %32llx\r\n", pwm_bit_array[1]);
-    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);        
-    sprintf(outputStr, "2: %32llx\r\n", pwm_bit_array[2]);
-    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);        
-    sprintf(outputStr, "3: %32llx\r\n", pwm_bit_array[3]);
-    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);        
-}
-    
-#endif 
 
 void GPIO_Init(void)
 {
@@ -1096,150 +978,6 @@ void GPIO_Init(void)
 
     HAL_GPIO_WritePin(Pins.GPIOx_H3_CTRL, Pins.GPIO_Pin_H3_CTRL, GPIO_PIN_RESET);    
     HAL_GPIO_WritePin(Pins.GPIOx_H4_CTRL, Pins.GPIO_Pin_H4_CTRL, GPIO_PIN_RESET);    
-}
-
-void UART_Init(void)
-{
-	//Configure UART2
-	//PA0 is TX
-	//PA1 is RX (PF2 on MK7)
-	
-    UartHandle.Instance          = USART2;
-    UartHandle.Init.BaudRate     = 115200;
-    UartHandle.Init.WordLength   = UART_WORDLENGTH_8B;
-    UartHandle.Init.StopBits     = UART_STOPBITS_1;
-    UartHandle.Init.Parity       = UART_PARITY_NONE;
-    UartHandle.Init.HwFlowCtl    = UART_HWCONTROL_NONE;
-    UartHandle.Init.Mode         = UART_MODE_TX_RX;
-    UartHandle.Init.OverSampling = UART_OVERSAMPLING_16;
-	
-    if (HAL_UART_Init(&UartHandle) != HAL_OK)
-    {
-        APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
-    }
-
-    // Start UART reception:
-    // 
-    Uart_RxQ_wrPtr = 0;
-    Uart_RxQ_rdPtr = 0;
-    Uart_RxQ_size = 0;
-    flags.flagNewUARTData = false;
-
-    // enable USART2 interrupts:
-    HAL_NVIC_SetPriority(USART2_IRQn, 0, 0);
-    HAL_NVIC_EnableIRQ(USART2_IRQn);
-
-    HAL_UART_Receive_IT(&UartHandle, (uint8_t *) &Uart_rxChar, 1);
-}
-
-// The interrupt handler must be defined with extern "C" to properly override the default handler.
-extern "C" void USART2_IRQHandler(void)
-{
-    HAL_UART_IRQHandler(&UartHandle);
-    
-    if (__HAL_UART_GET_FLAG(&UartHandle, UART_FLAG_IDLE)) {
-        __HAL_UART_CLEAR_IDLEFLAG(&UartHandle); // Clear the idle flag
-        //UART_IdleCallback(&UartHandle);         // Custom processing
-    }
-    if (__HAL_UART_GET_FLAG(&UartHandle, UART_FLAG_RXNE)) {
-        __HAL_UART_CLEAR_FLAG(&UartHandle, UART_FLAG_RXNE); // Clear the rxne flag
-    }
-}
-
-
-void Process_UARTRxData(void)
-{
-    uint8_t c;
-    bool rxErr = false;
-    bool rxCommandValid = false;
-    int qSize;
-    int i;
-    int command_found;
-    char command_key[MAX_RX_COMMAND_SIZE];
-    int command_value;
-    int num_parameters_found;
-    
-    while (Uart_RxQ_size > 0) {
-        command_found = -1;
-        __disable_irq();
-        qSize = Uart_RxQ_size;
-        if ((qSize + rxCommandSize) >= MAX_RX_COMMAND_SIZE-1 || qSize >= UART_RX_BUFFER_SIZE) {
-            rxErr = true;
-            rxCommandSize = 0;
-            Uart_RxQ_size = 0;
-            Uart_RxQ_wrPtr = 0;
-            Uart_RxQ_rdPtr = 0;
-        } else {
-            for (i=0; i < qSize; i++) {
-                c = Uart_RxQ[Uart_RxQ_rdPtr++];
-                if (Uart_RxQ_rdPtr >=UART_RX_BUFFER_SIZE) Uart_RxQ_rdPtr = 0;
-                Uart_RxQ_size--;
-                if (rxCommandSize == 0 && c == '{') {       // commands start with the '{' delimeter
-                    rxCommand[rxCommandSize] = c;
-                    rxCommandSize++;
-                } else if (rxCommandSize > 0) {
-                    if (c == '}') {                         // commands end with the '}' delimeter
-                        rxCommand[rxCommandSize] = c;
-                        rxCommandSize++;
-                        rxCommandValid = true;
-                        break;                              // stop receiving any more bytes and process the command
-                    } else {
-                        rxCommand[rxCommandSize] = c;
-                        rxCommandSize++;
-                    }
-                }
-            }
-        }
-        __enable_irq();
-        
-        if (rxErr) {
-            sprintf(outputStr, "UartRx err: %d %d %d %d\r\n", rxCommandSize, Uart_RxQ_size, Uart_RxQ_wrPtr, Uart_RxQ_rdPtr);		
-            HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
-        } else if (rxCommandValid) {
-            rxCommand[rxCommandSize] = 0;     // add a null char after the last byte
-            for (i=0; i<NUM_HOST_COMMANDS; i++) {
-                if (strncmp((const char *) &rxCommand[2], host_commands[i], strlen(host_commands[i])) == 0) {
-                    command_found = i;
-                }
-            }
-            num_parameters_found = sscanf((const char *) rxCommand, "{\"%10[^\"]\":%d}", command_key, &command_value); 
-     
-            sprintf(outputStr, "rxCommand: %d %s\r\n", command_found, rxCommand);		
-            HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
-            sprintf(outputStr, "sscanf: %d %s %d\r\n", num_parameters_found, command_key, command_value);		
-            HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
-            switch (command_found) {
-                case CMD_START: 
-                    if (!data.test_active) {
-                        data.msec_test_count = 0;
-                        data.minute_test_count = 0;
-                        Enable_timer(DelayedStartTimerNumber);
-                        Enable_timer(LogTimerNumber);                
-                    }                
-                    break;
-                case CMD_STOP: 
-                    if (data.test_active) {
-                        stop_naat_test();
-                    }                
-                    break;
-            }
-            rxCommandSize = 0;
-            rxCommandValid = false;
-        }
-    }
-}
-
-extern "C" void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
-{
-    // put the data in the RxBuffer
-    Uart_RxQ[Uart_RxQ_wrPtr++] = Uart_rxChar;
-    if (Uart_RxQ_wrPtr >= UART_RX_BUFFER_SIZE) Uart_RxQ_wrPtr = 0;
-    Uart_RxQ_size++;
-
-    HAL_UART_Receive_IT(&UartHandle, (uint8_t *) &Uart_rxChar, 1);
-    
-    // Set flag to process the received data in user space
-    flags.flagNewUARTData = true;
 }
 
 // Timer ISR functions are called from the HAL_TIM ISR.

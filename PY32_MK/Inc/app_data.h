@@ -158,14 +158,12 @@ typedef struct app_data_t {
     uint32_t H4_thermistor_r;
     float H4_temperature_c;
     float py32_temperature_c;
+    uint32_t stage1_time_min;
+    uint32_t stage2_time_min;
+    uint32_t stage3_time_min;
+    uint32_t detection_time_min;
     uint8_t state;
     uint8_t alarm;
-    volatile uint32_t msec_tick_count;
-    volatile uint32_t msec_test_count;
-    volatile uint32_t minute_test_count;
-
-    uint32_t adcReading[9];
-    float adcVoltage[9];         
 
     float vcc_mcu_voltage;       
     float system_input_voltage;
@@ -183,6 +181,11 @@ typedef struct app_data_t {
 	uint8_t H2_pwm_during_adc_meas;
 	uint8_t H3_pwm_during_adc_meas;
 	uint8_t H4_pwm_during_adc_meas;
+    uint32_t adcReading[9];
+    float adcVoltage[9];         
+    volatile uint32_t msec_tick_count;
+    volatile uint32_t msec_test_count;
+    volatile uint32_t minute_test_count;
 } app_data_t;
 
 typedef struct flags_t {

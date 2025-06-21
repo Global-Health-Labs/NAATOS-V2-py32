@@ -53,6 +53,23 @@ typedef enum {
 typedef enum {
     CMD_START = 0,
     CMD_STOP,
+    CMD_STATUS,
+    CMD_STAGE1_TIME_MINUTES,
+    CMD_STAGE2_TIME_MINUTES,
+    CMD_STAGE3_TIME_MINUTES,
+    CMD_DETECT_TIME_MINUTES,
+    CMD_HEATER1_STAGE1_SETPOINT,
+    CMD_HEATER2_STAGE1_SETPOINT,
+    CMD_HEATER3_STAGE1_SETPOINT,
+    CMD_HEATER4_STAGE1_SETPOINT,
+    CMD_HEATER1_STAGE2_SETPOINT,
+    CMD_HEATER2_STAGE2_SETPOINT,
+    CMD_HEATER3_STAGE2_SETPOINT,
+    CMD_HEATER4_STAGE2_SETPOINT,
+    CMD_HEATER1_STAGE3_SETPOINT,
+    CMD_HEATER2_STAGE3_SETPOINT,
+    CMD_HEATER3_STAGE3_SETPOINT,
+    CMD_HEATER4_STAGE3_SETPOINT,
     NUM_HOST_COMMANDS
 } host_commands_t;
 
@@ -60,9 +77,7 @@ typedef enum {
 void APP_ErrorHandler(uint8_t errnum);
 
 void GPIO_Init(void);
-void UART_Init(void);
-void UART_IdleCallback(UART_HandleTypeDef *huart);
-void Process_UARTRxData(void);
+void print_settings(void);
 
 void PWMTimer_ISR(void);
 void LEDTimer_ISR(void);
@@ -72,6 +87,9 @@ void DataCollection_ISR(void);
 void DelayedStart_ISR(void);
 void Pushbutton_ISR(void);
 void LogData_ISR(void);
+
+void start_naat_delay_sequence(void);
+void stop_naat_test(void);
 
 void print_log_data(void);
 void send_max_temps(void);
