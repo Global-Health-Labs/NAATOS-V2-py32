@@ -328,7 +328,8 @@ void ADC_Read(void)
 		APP_ErrorHandler(ERR_OVERTEMP_SHUTDOWN);
     }
 #endif
-		
+	// Save the PWM value that was set during the ADC measurement.
+    // This is needed for accurate power calculations.
     data.H1_pwm_during_adc_meas = data.H1_pwm_value;    
     data.H2_pwm_during_adc_meas = data.H2_pwm_value;        
     data.H3_pwm_during_adc_meas = data.H3_pwm_value;    
@@ -380,7 +381,7 @@ float thermistor_r_to_temperature(uint32_t resistance)
 	temp = 1.0 / temp;			// Invert
 	temp -= 273.15;				// convert to C
     
-    // round the temperature to 1 decimal place:
+    // round the temperature to 1 decimal place
     temp = roundf(temp * 10.0f) / 10.0f;
 
 	return temp;

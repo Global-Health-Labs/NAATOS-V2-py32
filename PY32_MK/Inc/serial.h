@@ -17,5 +17,8 @@ extern UART_HandleTypeDef UartHandle;
 void UART_Init(void);
 void UART_IdleCallback(UART_HandleTypeDef *huart);
 void Process_UARTRxData(void);
+void print_status(void);
+void print_log_data(void);
+void print_max_temps(void);
 
 #endif

@@ -11,9 +11,6 @@
 // PID structures
 pid_controller_t pid_data[NUM_HEATERS];
 
-#define SH_FIXED_PWM_TEST 250
-#define VH_FIXED_PWM_TEST 250
-
 pid_init_t H1_pid_control[NUMPROCESS] = 
 {
   {HEATER_SHUTDOWN_C, 0, 0, 0, 0, 0},

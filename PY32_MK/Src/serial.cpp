@@ -14,7 +14,7 @@
 
 
 UART_HandleTypeDef UartHandle;
-#define UART_RX_BUFFER_SIZE 64
+#define UART_RX_BUFFER_SIZE 512
 #define MAX_RX_COMMAND_SIZE 64
 volatile uint8_t Uart_RxQ[UART_RX_BUFFER_SIZE+1];  // Buffer to store received data
 volatile uint8_t Uart_rxChar = 0;                       // Buffer to store received character
@@ -102,9 +102,26 @@ extern "C" void USART2_IRQHandler(void)
     }
 }
 
-void print_settings(void)
+void print_status(void)
 {
 #ifndef DEBUG_REDUCE_MEMORY
+    //sprintf(outputStr, "ADCs: %d %d %d %d %d %d %d\r\n", data.adcReading[0], data.adcReading[1], data.adcReading[6], data.adcReading[4], data.adcReading[5], data.adcReading[7], data.adcReading[8]);
+    //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
+    
+    sprintf(outputStr, "system_input_voltage: %1.2f vcc_mcu_voltage: %1.2f\r\n", data.system_input_voltage, data.vcc_mcu_voltage);
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
+
+    // py32_temperature_c does not work correctly. The ADC value reads higher than HAL_ADC_TSCAL2 (85c)
+    //sprintf(outputStr, "py32_temperature_c: %1.2f ADC->CHSELR: %08X bits: %d vrefint:%d HAL_ADC_TSCAL1: %d HAL_ADC_TSCAL2: %d\r\n", data.py32_temperature_c, ADC1->CHSELR, data.adcReading[7], data.adcReading[8], HAL_ADC_TSCAL1, HAL_ADC_TSCAL2);
+    //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
+    
+    data.usb_dn_value = HAL_GPIO_ReadPin(Pins.GPIOx_USB_DN, Pins.GPIO_Pin_USB_DN);
+
+    sprintf(outputStr, "usb_cc1_voltage: %1.2f usb_cc2_voltage: %1.2f usb_dn_value: %d\r\n", data.usb_cc1_voltage, data.usb_cc2_voltage, data.usb_dn_value);
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
+    sprintf(outputStr, "Heater temperatures: %1.2f %1.2f %1.2f %1.2f\r\n", data.H1_temperature_c, data.H2_temperature_c, data.H3_temperature_c, data.H4_temperature_c);
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);  
+    
     sprintf(outputStr, "Stage 1,2,3,detect times: %d %d %d %d\r\n", (int) data.stage1_time_min, (int)data.stage2_time_min, (int)data.stage3_time_min, (int)data.detection_time_min);		
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
     sprintf(outputStr, "Stage 1 heater setpoints: %d %d %d %d\r\n", (int)H1_pid_control[1].setpoint, (int)H2_pid_control[1].setpoint, (int)H3_pid_control[1].setpoint, (int)H4_pid_control[1].setpoint);		
@@ -113,6 +130,34 @@ void print_settings(void)
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
     sprintf(outputStr, "Stage 3 heater setpoints: %d %d %d %d\r\n", (int)H1_pid_control[3].setpoint, (int)H2_pid_control[3].setpoint, (int)H3_pid_control[3].setpoint, (int)H4_pid_control[3].setpoint);		
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
+
+#endif
+}
+
+void print_log_data(void) 
+{
+#ifndef DEBUG_REDUCE_MEMORY
+
+#if defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA) || defined(BOARDCONFIG_MK6F)
+    sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d %d %d\r\n", data.msec_test_count, data.H1_temperature_c, pid_data[H1_HEATER].setpoint, data.H1_pwm_during_adc_meas, data.H2_temperature_c, pid_data[H2_HEATER].setpoint, data.H2_pwm_during_adc_meas, data.system_input_voltage, data.state, (int) pid_data[H2_HEATER].integrator,(int) pid_data[H2_HEATER].dTerm);
+    //sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.H1_temperature_c, pid_data[H1_HEATER].setpoint, data.H1_pwm_during_adc_meas, data.H2_temperature_c, pid_data[H2_HEATER].setpoint, data.H2_pwm_during_adc_meas, data.system_input_voltage, data.state);
+#elif defined(BOARDCONFIG_MK7C)
+    sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", (int)data.msec_test_count, data.H1_temperature_c, pid_data[H1_HEATER].setpoint, (int)data.H1_pwm_during_adc_meas, data.H2_temperature_c, pid_data[H2_HEATER].setpoint, data.H2_pwm_during_adc_meas, data.H3_temperature_c, pid_data[H3_HEATER].setpoint, data.H3_pwm_during_adc_meas, data.H4_temperature_c, pid_data[H4_HEATER].setpoint, data.H4_pwm_during_adc_meas, data.vcc_mcu_voltage, data.state);
+#elif defined(BOARDCONFIG_MK7R)
+    sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.H1_temperature_c, pid_data[H1_HEATER].setpoint, data.H1_pwm_during_adc_meas, data.H2_temperature_c, pid_data[H2_HEATER].setpoint, data.H2_pwm_during_adc_meas, data.H3_temperature_c, pid_data[H3_HEATER].setpoint, data.H3_pwm_during_adc_meas, data.H4_temperature_c, pid_data[H4_HEATER].setpoint, data.H4_pwm_during_adc_meas, data.system_input_voltage, data.state);
+#else
+    sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %1.2f, %d %d %d\r\n", data.msec_test_count, data.H1_temperature_c, pid_data[H1_HEATER].setpoint, data.H1_pwm_during_adc_meas, data.H2_temperature_c, pid_data[H2_HEATER].setpoint, data.H2_pwm_during_adc_meas, data.H3_temperature_c, data.H4_temperature_c, data.vcc_mcu_voltage, data.state, (int) pid_data[H2_HEATER].integrator,(int) pid_data[H2_HEATER].dTerm);
+    //sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.H1_temperature_c, pid_data[H1_HEATER].setpoint, data.H1_pwm_during_adc_meas, data.H2_temperature_c, pid_data[H2_HEATER].setpoint, data.H1_pwm_during_adc_meas, data.vcc_mcu_voltage, data.state);
+#endif
+    
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
+#endif
+}
+
+void print_max_temps(void) {
+#ifndef DEBUG_REDUCE_MEMORY
+    sprintf(outputStr, "H1 Max: %1.2f H2 Max: %1.2f H3 Max: %1.2f H4 Max: %1.2f\r\n", data.H1_max_temperature_c, data.H2_max_temperature_c, data.H3_max_temperature_c, data.H4_max_temperature_c);
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
 #endif
 }
 
@@ -177,9 +222,10 @@ void Process_UARTRxData(void)
                 }
             }
             
-            if (command_found >=0 && num_parameters_found == 1) {
+            if (command_found >=0 && num_parameters_found == 2 && command_value >= 0 && command_value <= OVERTEMP_ERR_C) {
                 sprintf(outputStr, "rxCommand: %d %s %d\r\n", num_parameters_found, command_key, command_value);		
                 HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
+
                 switch (command_found) {
                     case CMD_START: 
                         if (!data.test_active) {
@@ -192,14 +238,8 @@ void Process_UARTRxData(void)
                         }                
                         break;
                     case CMD_STATUS: 
-                        print_settings();
+                        print_status();
                         break;
-                }
-            } else if (command_found >=0 && num_parameters_found == 2 && command_value >= 0 && command_value <= OVERTEMP_ERR_C) {
-                sprintf(outputStr, "rxCommand: %d %s %d\r\n", num_parameters_found, command_key, command_value);		
-                HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
-
-                switch (command_found) {
                     case CMD_STAGE1_TIME_MINUTES:
                         data.stage1_time_min = command_value;
                         break;

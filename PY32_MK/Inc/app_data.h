@@ -11,6 +11,8 @@
 #include "main.h"
 #include "timers.h"
 
+// default stage times (minutes)
+// These can be changed by the host if UART_RX_ENABLED option is enabled
 #define STAGE1_TIME_MIN        	1
 #define STAGE2_TIME_MIN         1
 #define STAGE3_TIME_MIN         1
@@ -27,13 +29,12 @@
 //    The option byte can be set with the PY32CubeProgrammer tool.
 
 // Only one of these can be enabled. Disable both for "normal" operation (heater sequence starts after power-up)
-// #define PUSHBUTTON_UI_ENABLED           1     
+//#define PUSHBUTTON_UI_ENABLED           1     
 #define UART_RX_ENABLED           1     
 
 #define BOARDCONFIG_MK7C
 
 #define FW_VERSION_STR                  "FW:v1.1"
-
 
 #if defined(BOARDCONFIG_MK5AA) 
     #define BUILD_HW_STR                    "HW:MK5AA"
@@ -55,7 +56,7 @@
 
 
 #if defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA) 
-    #define VCC_MCU_MIN_VOLTAGE     2.2
+    #define VCC_MCU_MIN_VOLTAGE     1.8
     #define VCC_MCU_MAX_VOLTAGE     3.6
 #elif defined(BOARDCONFIG_MK6F)
     #define VCC_MCU_MIN_VOLTAGE     4.5
@@ -69,6 +70,9 @@
 #else
     FAIL -- invalid board type
 #endif
+
+// default heater temperatures
+// These can be changed by the host if UART_RX_ENABLED option is enabled
 
 #if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C) || defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA) || defined(BOARDCONFIG_MK6F)
 #define STAGE1_H1_TARGET_C   72

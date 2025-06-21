@@ -164,23 +164,7 @@ int main(void)
   	//start_tick = TIM1_tick_count;    
 
     ADC_Read();
-    //sprintf(outputStr, "ADCs: %d %d %d %d %d %d %d\r\n", data.adcReading[0], data.adcReading[1], data.adcReading[6], data.adcReading[4], data.adcReading[5], data.adcReading[7], data.adcReading[8]);
-    //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
-    
-    sprintf(outputStr, "system_input_voltage: %1.2f vcc_mcu_voltage: %1.2f %04X\r\n", data.system_input_voltage, data.vcc_mcu_voltage, data.adcReading[8]);
-    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
-
-    // py32_temperature_c does not work correctly. The ADC value reads higher than HAL_ADC_TSCAL2 (85c)
-    //sprintf(outputStr, "py32_temperature_c: %1.2f ADC->CHSELR: %08X bits: %d vrefint:%d HAL_ADC_TSCAL1: %d HAL_ADC_TSCAL2: %d\r\n", data.py32_temperature_c, ADC1->CHSELR, data.adcReading[7], data.adcReading[8], HAL_ADC_TSCAL1, HAL_ADC_TSCAL2);
-    //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
-    
-    data.usb_dn_value = HAL_GPIO_ReadPin(Pins.GPIOx_USB_DN, Pins.GPIO_Pin_USB_DN);
-
-    sprintf(outputStr, "usb_cc1_voltage: %1.2f usb_cc2_voltage: %1.2f usb_dn_value: %d\r\n", data.usb_cc1_voltage, data.usb_cc2_voltage, data.usb_dn_value);
-    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
-    sprintf(outputStr, "H1_temperature_c: %1.2f H2_temperature_c: %1.2f H3_temperature_c: %1.2f H4_temperature_c: %1.2f\r\n", data.H1_temperature_c, data.H2_temperature_c, data.H3_temperature_c, data.H4_temperature_c);
-    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);  
-    print_settings();
+    print_status();
 
     data.self_test_H1_start_temp_c = data.H1_temperature_c;
     data.self_test_H2_start_temp_c = data.H2_temperature_c;
@@ -203,8 +187,11 @@ int main(void)
     }
 
 #ifdef UART_RX_ENABLED
-    sprintf(outputStr, "Waiting for UART commands.\r\n");		
+    sprintf(outputStr, "Waiting for UART_RX commands.\r\n");		
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
+#elif PUSHBUTTON_UI_ENABLED
+    sprintf(outputStr, "Press button to start.\r\n");		
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
 #endif
 
     while (1) 
@@ -244,7 +231,7 @@ int main(void)
 					data.state = low_power;
 					stop_naat_test();
 
-					send_max_temps();
+					print_max_temps();
 /*
 					if (data.H1_max_temperature_c < STAGE1_MIN_VALID_TEMP_C) {
 						// Set an alarm if the minimum sample temperature was not reached.
@@ -328,6 +315,7 @@ void start_naat_delay_sequence(void)
 {
     data.msec_test_count = 0;
     data.minute_test_count = 0;
+    data.state = low_power;
     Enable_timer(DelayedStartTimerNumber);
     Enable_timer(LogTimerNumber);                
 }
@@ -390,8 +378,7 @@ void start_naat_test(void) {
     pwm_H4_ctrl.enabled = true;
       
     Enable_timer(PIDTimerNumber);
-    Enable_timer(MinuteTimerNumber);
-    
+    Enable_timer(MinuteTimerNumber);    
 }
 
 void stop_naat_test(void) {
@@ -598,10 +585,10 @@ void Update_PID(void)
     if (data.heater_control_not_simultaneous) {
 #ifdef DEBUG_HEATERS
         // turn on the heaters at full power (no PWM). This should not be done unattended!
-        //data.H1_pwm_value = VH_FIXED_PWM_TEST;
         data.H1_pwm_value = 0;       
-        data.H2_pwm_value = VH_FIXED_PWM_TEST;
-        //data.H2_pwm_value = 0;      
+        data.H2_pwm_value = FIXED_PWM_TEST;
+        data.H3_pwm_value = 0;       
+        data.H4_pwm_value = 0;       
 #else        
         // Apply maximum power to each heater during self-test
         data.H1_pwm_value = (PWM_MAX * (100-HEATER_ELEMENT_POWER_RATIO)) /100;
@@ -609,10 +596,10 @@ void Update_PID(void)
 #endif
     } else {
 #ifdef DEBUG_HEATERS
-        //data.H1_pwm_value = VH_FIXED_PWM_TEST;
         data.H1_pwm_value = 0;       
-        data.H2_pwm_value = VH_FIXED_PWM_TEST;
-        //data.H2_pwm_value = 0;       
+        data.H2_pwm_value = FIXED_PWM_TEST;
+        data.H3_pwm_value = 0;       
+        data.H4_pwm_value = 0;       
 #else        
         data.H1_pwm_value = pid_data[H1_HEATER].out;
         data.H2_pwm_value = pid_data[H2_HEATER].out;
@@ -626,33 +613,6 @@ void Update_PID(void)
     pwm_H2_ctrl.pwm_tick_count = 0;
     pwm_H3_ctrl.pwm_tick_count = 0;
     pwm_H4_ctrl.pwm_tick_count = 0;
-#endif
-}
-
-void print_log_data(void) 
-{
-#ifndef DEBUG_REDUCE_MEMORY
-
-#if defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA) || defined(BOARDCONFIG_MK6F)
-    sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d %d %d\r\n", data.msec_test_count, data.H1_temperature_c, pid_data[H1_HEATER].setpoint, data.H1_pwm_during_adc_meas, data.H2_temperature_c, pid_data[H2_HEATER].setpoint, data.H2_pwm_during_adc_meas, data.system_input_voltage, data.state, (int) pid_data[H2_HEATER].integrator,(int) pid_data[H2_HEATER].dTerm);
-    //sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.H1_temperature_c, pid_data[H1_HEATER].setpoint, data.H1_pwm_during_adc_meas, data.H2_temperature_c, pid_data[H2_HEATER].setpoint, data.H2_pwm_during_adc_meas, data.system_input_voltage, data.state);
-#elif defined(BOARDCONFIG_MK7C)
-    sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", (int)data.msec_test_count, data.H1_temperature_c, pid_data[H1_HEATER].setpoint, (int)data.H1_pwm_during_adc_meas, data.H2_temperature_c, pid_data[H2_HEATER].setpoint, data.H2_pwm_during_adc_meas, data.H3_temperature_c, pid_data[H3_HEATER].setpoint, data.H3_pwm_during_adc_meas, data.H4_temperature_c, pid_data[H4_HEATER].setpoint, data.H4_pwm_during_adc_meas, data.vcc_mcu_voltage, data.state);
-#elif defined(BOARDCONFIG_MK7R)
-    sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.H1_temperature_c, pid_data[H1_HEATER].setpoint, data.H1_pwm_during_adc_meas, data.H2_temperature_c, pid_data[H2_HEATER].setpoint, data.H2_pwm_during_adc_meas, data.H3_temperature_c, pid_data[H3_HEATER].setpoint, data.H3_pwm_during_adc_meas, data.H4_temperature_c, pid_data[H4_HEATER].setpoint, data.H4_pwm_during_adc_meas, data.system_input_voltage, data.state);
-#else
-    sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %1.2f, %d %d %d\r\n", data.msec_test_count, data.H1_temperature_c, pid_data[H1_HEATER].setpoint, data.H1_pwm_during_adc_meas, data.H2_temperature_c, pid_data[H2_HEATER].setpoint, data.H2_pwm_during_adc_meas, data.H3_temperature_c, data.H4_temperature_c, data.vcc_mcu_voltage, data.state, (int) pid_data[H2_HEATER].integrator,(int) pid_data[H2_HEATER].dTerm);
-    //sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.H1_temperature_c, pid_data[H1_HEATER].setpoint, data.H1_pwm_during_adc_meas, data.H2_temperature_c, pid_data[H2_HEATER].setpoint, data.H1_pwm_during_adc_meas, data.vcc_mcu_voltage, data.state);
-#endif
-    
-    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
-#endif
-}
-
-void send_max_temps(void) {
-#ifndef DEBUG_REDUCE_MEMORY
-    sprintf(outputStr, "H1 Max: %1.2f H2 Max: %1.2f H3 Max: %1.2f H4 Max: %1.2f\r\n", data.H1_max_temperature_c, data.H2_max_temperature_c, data.H3_max_temperature_c, data.H4_max_temperature_c);
-    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
 #endif
 }
 

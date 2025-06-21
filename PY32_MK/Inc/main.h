@@ -36,6 +36,7 @@
 //#define DEBUG_REDUCE_MEMORY
 //#define DEBUG_HEATERS
 
+#define FIXED_PWM_TEST 250
 
 #if defined(BOARDCONFIG_MK7R) || defined(BOARDCONFIG_MK7C)
     #define NUM_HEATERS 4
@@ -77,7 +78,6 @@ typedef enum {
 void APP_ErrorHandler(uint8_t errnum);
 
 void GPIO_Init(void);
-void print_settings(void);
 
 void PWMTimer_ISR(void);
 void LEDTimer_ISR(void);
@@ -91,8 +91,6 @@ void LogData_ISR(void);
 void start_naat_delay_sequence(void);
 void stop_naat_test(void);
 
-void print_log_data(void);
-void send_max_temps(void);
 bool Validate_USB_Power_Source(void);
 bool Validate_Power_Supply(void);
 
