@@ -11,10 +11,6 @@
 #include "main.h"
 #include "timers.h"
 
-// CONFIGURATION of OPTION BYTES - NOTE: Only used for Development. For production, flash once and set to 0 so firmware does not reset
-#define SET_OB_ONCE 0
-
-
 #define AMPLIFICATION_TIME_MIN          15
 #define ACTUATION_PREP_TIME_MIN         1    // Option to change the controls during the last minute of amplification.
 #define ACTUATION_TIME_MIN              5
