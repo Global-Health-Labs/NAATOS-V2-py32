@@ -11,6 +11,10 @@
 #include "main.h"
 #include "timers.h"
 
+// CONFIGURATION of OPTION BYTES - NOTE: Only used for Development. For production, flash once and set to 0 so firmware does not reset
+#define SET_OB_ONCE 0
+
+
 #define AMPLIFICATION_TIME_MIN          15
 #define ACTUATION_PREP_TIME_MIN         1    // Option to change the controls during the last minute of amplification.
 #define ACTUATION_TIME_MIN              5
@@ -21,7 +25,7 @@
 #define PREHEAT_TEMP_C    	            30	    // Start the heaters in non simultaneous mode until they hit this temperature
 #define PREHEAT_MAX_TIME_MSEC           150000  // Go to a failure state if the board cannot preheat within this amount of time.
 
-#define BOARDCONFIG_MK6C
+#define BOARDCONFIG_MK6AA
 
 #define FW_VERSION_STR                  "FW:v0.9"
 
@@ -44,7 +48,7 @@
 //#define PUSHBUTTON_UI_ENABLED           1      
 
 #if defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA) 
-    #define VCC_MCU_MIN_VOLTAGE     2.2
+    #define VCC_MCU_MIN_VOLTAGE     1.8
     #define VCC_MCU_MAX_VOLTAGE     3.6
 #elif defined(BOARDCONFIG_MK6F)
     #define VCC_MCU_MIN_VOLTAGE     4.5

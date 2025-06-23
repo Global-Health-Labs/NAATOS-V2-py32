@@ -17,9 +17,12 @@
 #include "app_data.h"
 #include "timers.h"
 
+
+
+
 /* Private define ------------------------------------------------------------*/
 
-#define DEBUG_HEATERS
+//#define DEBUG_HEATERS
 
 /* Private variables ---------------------------------------------------------*/
 UART_HandleTypeDef UartHandle;
@@ -97,6 +100,71 @@ void print_UID(void)
     }
 #endif
 }
+
+int __io_putchar(int ch) {
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
+    return ch;
+}
+
+#ifdef SET_OB_ONCE
+void SetOptionBytes(void)
+{
+    // Unlock FLASH and Option Bytes
+    HAL_FLASH_Unlock();
+    HAL_FLASH_OB_Unlock();
+
+    FLASH_OBProgramInitTypeDef OBInit;
+    OBInit.OptionType     = OPTIONBYTE_USER | OPTIONBYTE_RDP;
+    OBInit.RDPLevel       = OB_RDP_LEVEL_0;       // 0xAA
+    OBInit.USERType       = OB_USER_ALL;
+    //OBInit.USERConfig     = OB_WDG_HW | OB_STOP_RST | OB_STDBY_RST;
+		OBInit.USERConfig 		= OB_BOR_LEVEL_1p7_1p8 | OB_RESET_MODE_RESET | OB_IWDG_SW | OB_WWDG_SW | OB_BOOT1_SYSTEM;
+		
+
+	
+    if (HAL_FLASH_OBProgram(&OBInit) != HAL_OK) {
+        // Error handling
+    }
+
+    // Launch option byte loading
+    if (HAL_FLASH_OB_Launch() != HAL_OK) {
+        // Error handling
+    }
+
+    HAL_FLASH_OB_Lock();
+    HAL_FLASH_Lock();
+}
+
+#endif // SET_OB_ONCE
+void PrintOptionBytes(void)
+		{
+				FLASH_OBProgramInitTypeDef OBInit;
+				HAL_FLASH_OBGetConfig(&OBInit);
+
+				printf("Option Bytes:\r\n");
+				printf("  RDP Level   : 0x%02X\r\n", OBInit.RDPLevel);
+			
+				if OB_BOR_ENABLE {
+					printf("  BOR Level   : ");
+					switch (FLASH_OPTR_BOR_LEV) {
+							//case OB_BOR_OFF:     printf("BOR OFF\r\n"); break;
+							case FLASH_OPTR_BOR_LEV_0:  printf("1.8V\r\n"); break;
+							case FLASH_OPTR_BOR_LEV_1:  printf("2.1V\r\n"); break;
+							case FLASH_OPTR_BOR_LEV_2:  printf("2.4V\r\n"); break;
+							default:             printf("Unknown\r\n"); break;
+					}
+				}else {
+					printf("BOR disabled\r\n");
+				}
+
+				printf("  User Config : 0x%02X\r\n", OBInit.USERConfig);
+				printf("    WDG: %s\r\n", (OBInit.USERConfig & OB_IWDG_SW) ? "Software" : "Hardware");
+				printf("    STOP Reset: %s\r\n", (OBInit.USERConfig & OB_RESET_MODE_RESET) ? "Disabled" : "Enabled");
+				//printf("    STDBY Reset: %s\r\n", (OBInit.USERConfig & OB_STDBY_NO_RST) ? "Disabled" : "Enabled");
+		}
+
+
+
 
 // Init PID Controller based on the STATE MACHINE state
 void pid_init(heater_t heater, CONTROL pid_settings){
@@ -177,13 +245,27 @@ int main(void)
     rcc_csr_bootstate = RCC->CSR;
     
     system_setup();
+
+		// Set OPTION BYTES; for development
+		#if SET_OB_ONCE
+				SetOptionBytes();
+				while (1); // Wait for reset
+		#endif
+
+		PrintOptionBytes();
+	
+    // Application code
+
+
     
   	//start_tick = TIM1_tick_count;    
 
 #ifdef DEBUG    
     //Distribute_PWM_Bits((uint8_t) 3, (uint64_t *) pwm_amp_ctrl.pwm_bits);    
     //Distribute_PWM_Bits((uint8_t) 7, (uint64_t *) pwm_amp_ctrl.pwm_bits);    
-    //Distribute_PWM_Bits((uint8_t) 254, (uint64_t *) pwm_amp_ctrl.pwm_bits);   
+    //Distribute_PWM_Bits((uint8_t) 254, (uint64_t *) pwm_amp_ctrl.pwm_bits);  
+
+		
 #endif
 
     ADC_Read();
@@ -208,7 +290,7 @@ int main(void)
 
 #if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C)|| defined(BOARDCONFIG_MK6F)
     // Verify that the USB power supply can supply at least 1.5A:
-    if (Validate_USB_Power_Source() == false) APP_ErrorHandler(ERR_INVALID_USB_POWER_SOURCE);    
+    //if (Validate_USB_Power_Source() == false) APP_ErrorHandler(ERR_INVALID_USB_POWER_SOURCE);    
 #endif
     
     ADC_Set_USB_cc_read_state(false);       // disable reading of USB-C CC voltages in the ADC.
