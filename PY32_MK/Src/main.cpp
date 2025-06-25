@@ -246,13 +246,13 @@ int main(void)
     
     system_setup();
 
-		// Set OPTION BYTES; for development
-		#if SET_OB_ONCE
-				SetOptionBytes();
-				while (1); // Wait for reset
-		#endif
+    // Set OPTION BYTES; for development
+    #if SET_OB_ONCE
+            SetOptionBytes();
+            while (1); // Wait for reset
+    #endif
 
-		PrintOptionBytes();
+	PrintOptionBytes();
 	
     // Application code
 
