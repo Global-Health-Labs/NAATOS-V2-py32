@@ -34,7 +34,7 @@ ARM_TOOLCHAIN	?= "C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 re
 
 # path to JLinkExe
 #JLINKEXE		?= /opt/SEGGER/JLink/JLinkExe
-JLINKEXE		?= C:/Program Files/SEGGER/JLink/JLinkExe
+JLINKEXE		?= "C:/Program Files/SEGGER/JLink/JLinkExe"
 # path to PyOCD
 PYOCD_EXE		?= pyocd
 
