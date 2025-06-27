@@ -117,11 +117,13 @@ void SetOptionBytes(void)
     OBInit.OptionType     = OPTIONBYTE_USER | OPTIONBYTE_RDP;
     OBInit.RDPLevel       = OB_RDP_LEVEL_0;       // 0xAA
     OBInit.USERType       = OB_USER_ALL;
-    //OBInit.USERConfig     = OB_WDG_HW | OB_STOP_RST | OB_STDBY_RST;
-		OBInit.USERConfig 		= OB_BOR_LEVEL_1p7_1p8 | OB_RESET_MODE_RESET | OB_IWDG_SW | OB_WWDG_SW | OB_BOOT1_SYSTEM;
-		
+	OBInit.USERConfig 		=  
+        OB_USER_BOR_EN  |           // Enable BOR
+        OB_BOR_LEVEL_1p7_1p8 |      // 1.7V - 1.8V
+        OB_RESET_MODE_GPIO |        // GPIO usage for pin
+        OB_IWDG_SW |                // Software IWDG
+        OB_BOOT1_SYSTEM;            // Boot1 set to system memory		
 
-	
     if (HAL_FLASH_OBProgram(&OBInit) != HAL_OK) {
         // Error handling
     }
@@ -141,16 +143,28 @@ void PrintOptionBytes(void)
 				FLASH_OBProgramInitTypeDef OBInit;
 				HAL_FLASH_OBGetConfig(&OBInit);
 
+
+                // print 0 pin is GPIO, 1 if it is RESET
+                sprintf(outputStr, "Option Bytes:\r\n");
+                HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
+                sprintf(outputStr, "    RESET pin mode: %s\r\n", (OBInit.USERConfig & OB_RESET_MODE_RESET) ? "RESET" : "GPIO");
+                //printf("    RESET pin mode: %s\r\n", (OBInit.USERConfig & OB_RESET_MODE_RESET) ? "RESET" : "GPIO");
+                HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
+
 				printf("Option Bytes:\r\n");
 				printf("  RDP Level   : 0x%02X\r\n", OBInit.RDPLevel);
 			
-				if OB_BOR_ENABLE {
+				if (OBInit.USERConfig & OB_USER_BOR_EN) {
 					printf("  BOR Level   : ");
-					switch (FLASH_OPTR_BOR_LEV) {
-							//case OB_BOR_OFF:     printf("BOR OFF\r\n"); break;
-							case FLASH_OPTR_BOR_LEV_0:  printf("1.8V\r\n"); break;
-							case FLASH_OPTR_BOR_LEV_1:  printf("2.1V\r\n"); break;
-							case FLASH_OPTR_BOR_LEV_2:  printf("2.4V\r\n"); break;
+					switch (OBInit.USERConfig & FLASH_OPTR_BOR_LEV) {
+							case OB_BOR_LEVEL_1p7_1p8:  printf("1.8V\r\n"); break;
+							case OB_BOR_LEVEL_1p9_2p0:  printf("1.9V\r\n"); break;
+                            case OB_BOR_LEVEL_2p1_2p2:  printf("2.1V\r\n"); break;  // default
+                            case OB_BOR_LEVEL_2p3_2p4:  printf("2.3V\r\n"); break;
+                            case OB_BOR_LEVEL_2p5_2p6:  printf("2.5V\r\n"); break;
+                            case OB_BOR_LEVEL_2p7_2p8:  printf("2.7V\r\n"); break;
+                            case OB_BOR_LEVEL_2p9_3p0:  printf("2.9V\r\n"); break;
+                            case OB_BOR_LEVEL_3p1_3p2:  printf("3.1V\r\n"); break;
 							default:             printf("Unknown\r\n"); break;
 					}
 				}else {
@@ -248,10 +262,14 @@ int main(void)
 
     // Set OPTION BYTES; for development
     #if SET_OB_ONCE
+            sprintf(outputStr, "made it to SetOptionBytes\r\n");
+            HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
             SetOptionBytes();
             while (1); // Wait for reset
     #endif
 
+    sprintf(outputStr, "printing OPTION BYTES\r\n");
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
 	PrintOptionBytes();
 	
     // Application code
