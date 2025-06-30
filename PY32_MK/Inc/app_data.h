@@ -12,7 +12,8 @@
 #include "timers.h"
 
 // CONFIGURATION of OPTION BYTES - NOTE: Only used for Development. For production, flash once and set to 0 so firmware does not reset
-#define SET_OB_ONCE 0
+#define SET_OB_ONCE                     0
+
 
 
 #define AMPLIFICATION_TIME_MIN          15
@@ -25,7 +26,7 @@
 #define PREHEAT_TEMP_C    	            30	    // Start the heaters in non simultaneous mode until they hit this temperature
 #define PREHEAT_MAX_TIME_MSEC           150000  // Go to a failure state if the board cannot preheat within this amount of time.
 
-#define BOARDCONFIG_MK6AA
+#define BOARDCONFIG_MK6C
 
 #define FW_VERSION_STR                  "FW:v0.9"
 

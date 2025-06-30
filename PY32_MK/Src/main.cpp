@@ -20,6 +20,7 @@
 
 
 
+
 /* Private define ------------------------------------------------------------*/
 
 //#define DEBUG_HEATERS
@@ -83,6 +84,11 @@ Pin_pwm_t pwm_valve_ctrl;
 
 #define UID_BASE_ADDR 0x1FFF0E00
 
+int __io_putchar(int ch) {
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
+    return ch;
+}
+
 // Each PY32 has a unique ID (UID).
 void print_UID(void)
 {
@@ -101,12 +107,79 @@ void print_UID(void)
 #endif
 }
 
-int __io_putchar(int ch) {
-    HAL_UART_Transmit(&UartHandle, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
-    return ch;
+
+
+#define FLAG_ADDRESS  0x0800FC00  // Adjust if using this page for other config
+#define FLAG_VALUE    0xDEADBEEF  // Arbitrary "magic" flag
+
+uint32_t ReadFlag(void)
+{
+    return *(uint32_t *)FLAG_ADDRESS;
 }
 
-#ifdef SET_OB_ONCE
+void WriteFlag(uint32_t value)
+{
+
+    HAL_FLASH_Unlock();
+
+    FLASH_EraseInitTypeDef eraseInit;
+    uint32_t pageError = 0;
+    eraseInit.TypeErase   = FLASH_TYPEERASE_PAGEERASE;
+    eraseInit.PageAddress = FLAG_ADDRESS;
+    eraseInit.NbPages     = 1;
+
+    sprintf(outputStr,"attempting FLASH ERASE");
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
+
+    if (HAL_FLASHEx_Erase(&eraseInit, &pageError) != HAL_OK) {
+        sprintf(outputStr,"Flash erase failed! Error: 0x%lx\r\n", pageError);
+        HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
+        HAL_FLASH_Lock();
+        return;
+    }
+
+    sprintf(outputStr,"attempting FLASH PROGRAM");
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
+
+    if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_PAGE, FLAG_ADDRESS, &value) != HAL_OK) {
+        sprintf(outputStr,"Flash program failed!\r\n");
+        HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
+        HAL_FLASH_Lock();
+        return;
+    }
+
+    HAL_FLASH_Lock();
+    sprintf(outputStr,"Flash flag written: 0x%08lX\r\n", value);
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
+
+/*
+    HAL_FLASH_Unlock();
+
+    // Erase the page first
+    FLASH_EraseInitTypeDef eraseInit;
+    uint32_t pageError = 0;
+
+    eraseInit.TypeErase = FLASH_TYPEERASE_PAGEERASE;//FLASH_TYPEERASE_PAGE;
+    eraseInit.PageAddress = FLAG_ADDRESS;
+    eraseInit.NbPages = 1;
+
+    if (HAL_FLASHEx_Erase(&eraseInit, &pageError) != HAL_OK) {
+        // Handle error
+        while (1);
+    }
+
+    // Write the flag // FLASH_TYPEPROGRAM_WORD
+    if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_PAGE, FLAG_ADDRESS, (uint32_t *)&value) != HAL_OK) {
+        // Handle error
+        while (1);
+    }
+
+    HAL_FLASH_Lock();
+    */
+}
+
+
+//#ifdef SET_OB_ONCE
 void SetOptionBytes(void)
 {
     // Unlock FLASH and Option Bytes
@@ -116,28 +189,46 @@ void SetOptionBytes(void)
     FLASH_OBProgramInitTypeDef OBInit;
     OBInit.OptionType     = OPTIONBYTE_USER | OPTIONBYTE_RDP;
     OBInit.RDPLevel       = OB_RDP_LEVEL_0;       // 0xAA
-    OBInit.USERType       = OB_USER_ALL;
+    OBInit.USERType       =     OB_USER_BOR_EN | OB_USER_BOR_LEV | OB_USER_NRST_MODE | OB_USER_nBOOT1; //OB_USER_ALL;
 	OBInit.USERConfig 		=  
-        OB_USER_BOR_EN  |           // Enable BOR
-        OB_BOR_LEVEL_1p7_1p8 |      // 1.7V - 1.8V
-        OB_RESET_MODE_GPIO |        // GPIO usage for pin
-        OB_IWDG_SW |                // Software IWDG
-        OB_BOOT1_SYSTEM;            // Boot1 set to system memory		
+        OB_BOR_ENABLE           |           // Enable BOR
+        OB_BOR_LEVEL_1p7_1p8    |           // 1.7V - 1.8V
+        OB_RESET_MODE_RESET     |           // GPIO usage for pin OB_RESET_MODE_RESET | OB_RESET_MODE_GPIO
+        OB_BOOT1_SYSTEM;                    // Boot1 set to system memory
+        //OB_IWDG_SW |                
 
     if (HAL_FLASH_OBProgram(&OBInit) != HAL_OK) {
         // Error handling
     }
+    sprintf(outputStr,"HAL_FLASH_OBProgram done!\r\n");
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
 
     // Launch option byte loading
     if (HAL_FLASH_OB_Launch() != HAL_OK) {
         // Error handling
     }
+    sprintf(outputStr,"HAL_FLASH_OB_Launch() done!\r\n");
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
 
     HAL_FLASH_OB_Lock();
     HAL_FLASH_Lock();
+
 }
 
-#endif // SET_OB_ONCE
+//#endif // SET_OB_ONCE
+IWDG_HandleTypeDef hiwdg;          // Watchdog handle
+
+void InitWatchdog(void)
+{
+    hiwdg.Instance = IWDG;
+    hiwdg.Init.Prescaler = IWDG_PRESCALER_64;
+    hiwdg.Init.Reload = 0xFFF;  // Max timeout (around 1s+)
+    if (HAL_IWDG_Init(&hiwdg) != HAL_OK) {
+        printf("Failed to init watchdog!\r\n");
+        while (1);
+    }
+}
+
 void PrintOptionBytes(void)
 		{
 				FLASH_OBProgramInitTypeDef OBInit;
@@ -147,7 +238,7 @@ void PrintOptionBytes(void)
                 // print 0 pin is GPIO, 1 if it is RESET
                 sprintf(outputStr, "Option Bytes:\r\n");
                 HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
-                sprintf(outputStr, "    RESET pin mode: %s\r\n", (OBInit.USERConfig & OB_RESET_MODE_RESET) ? "RESET" : "GPIO");
+                sprintf(outputStr, "    RESET pin mode: %s\r\n", (OBInit.USERConfig & OB_RESET_MODE_GPIO) ? "GPIO":"RESET" );
                 //printf("    RESET pin mode: %s\r\n", (OBInit.USERConfig & OB_RESET_MODE_RESET) ? "RESET" : "GPIO");
                 HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
 
@@ -260,13 +351,39 @@ int main(void)
     
     system_setup();
 
+    //InitWatchdog();
+
+    sprintf(outputStr, "Startup complete.\r\n");
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
+
+    sprintf(outputStr,"Startup Flag Check: 0x%08lX\r\n", ReadFlag());
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
+
+    //#define SET_FLAG
+    #ifdef SET_FLAG
+    if (ReadFlag() != FLAG_VALUE) {
+        //SetOptionBytes();
+        sprintf(outputStr, "Attempting WriteFlag().\r\n");
+        HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
+        //WriteFlag(FLAG_VALUE);  // Prevent repeated OB setting
+        sprintf(outputStr, "OPTION BYTES SET.  Please manually reset.\r\n");
+        HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
+        while (1);              // Wait for reset after OB launch
+    }
+    #endif
+
     // Set OPTION BYTES; for development
     #if SET_OB_ONCE
             sprintf(outputStr, "made it to SetOptionBytes\r\n");
             HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
             SetOptionBytes();
+            sprintf(outputStr, "OPTION BYTES SET.  Please manually reset.\r\n");
+            HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
             while (1); // Wait for reset
     #endif
+
+    
+
 
     sprintf(outputStr, "printing OPTION BYTES\r\n");
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
@@ -319,6 +436,8 @@ int main(void)
 
     while (1) 
     {
+        //HAL_IWDG_Refresh(&hiwdg);
+
         if (flags.flagPushbutton) {
             flags.flagPushbutton = false;   
 

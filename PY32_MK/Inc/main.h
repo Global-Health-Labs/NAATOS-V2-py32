@@ -28,7 +28,9 @@
 /* Includes ------------------------------------------------------------------*/
 #include "timers.h"
 #include "py32f0xx_hal.h"
-#include "py32f002x5.h"
+#include <py32f0xx_hal_iwdg.h>
+#include "py32f0xx_hal_flash_ex.h"
+//#include "py32f002x5.h"
 #include "app_data.h"
 
 

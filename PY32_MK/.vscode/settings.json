@@ -1,0 +1,5 @@
+{
+    "files.associations": {
+        "py32f0xx_hal_conf.h": "c"
+    }
+}

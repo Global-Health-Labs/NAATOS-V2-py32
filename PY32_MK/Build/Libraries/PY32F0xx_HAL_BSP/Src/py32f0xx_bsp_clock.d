@@ -41,6 +41,7 @@ Build/Libraries/PY32F0xx_HAL_BSP/Src/py32f0xx_bsp_clock.o: \
  Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_adc.h \
  Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_adc_ex.h \
  Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_flash.h \
+ Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_iwdg.h \
  Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_pwr.h \
  Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_tim.h \
  Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_tim_ex.h \
@@ -87,6 +88,7 @@ Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_dma_ex.h:
 Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_adc.h:
 Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_adc_ex.h:
 Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_flash.h:
+Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_iwdg.h:
 Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_pwr.h:
 Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_tim.h:
 Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_tim_ex.h:

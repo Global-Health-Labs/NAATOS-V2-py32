@@ -40,11 +40,13 @@ Build/Src/timers.o: Src/timers.cpp Inc/timers.h \
  Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_adc.h \
  Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_adc_ex.h \
  Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_flash.h \
+ Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_iwdg.h \
  Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_pwr.h \
  Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_tim.h \
  Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_tim_ex.h \
  Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_uart.h Inc/main.h \
- Inc/timers.h Inc/app_data.h Inc/main.h Inc/app_data.h Inc/alarm.h
+ Inc/timers.h Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_flash_ex.h \
+ Inc/app_data.h Inc/main.h Inc/app_data.h Inc/alarm.h
 Inc/timers.h:
 C:/Program\ Files\ (x86)/Arm\ GNU\ Toolchain\ arm-none-eabi/14.2\ rel1/lib/gcc/arm-none-eabi/14.2.1/include/stdint.h:
 C:/Program\ Files\ (x86)/Arm\ GNU\ Toolchain\ arm-none-eabi/14.2\ rel1/arm-none-eabi/include/stdint.h:
@@ -88,12 +90,14 @@ Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_dma_ex.h:
 Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_adc.h:
 Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_adc_ex.h:
 Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_flash.h:
+Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_iwdg.h:
 Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_pwr.h:
 Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_tim.h:
 Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_tim_ex.h:
 Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_uart.h:
 Inc/main.h:
 Inc/timers.h:
+Libraries/PY32F0xx_HAL_Driver/Inc/py32f0xx_hal_flash_ex.h:
 Inc/app_data.h:
 Inc/main.h:
 Inc/app_data.h:
