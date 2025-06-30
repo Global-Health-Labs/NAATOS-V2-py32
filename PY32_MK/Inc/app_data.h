@@ -34,7 +34,7 @@
 
 #define BOARDCONFIG_MK7C
 
-#define FW_VERSION_STR                  "FW:v1.1"
+#define FW_VERSION_STR                  "FW:v1.2"
 
 #if defined(BOARDCONFIG_MK5AA) 
     #define BUILD_HW_STR                    "HW:MK5AA"
@@ -47,9 +47,9 @@
 #elif defined(BOARDCONFIG_MK6F)
     #define BUILD_HW_STR                    "HW:MK6F"
 #elif defined(BOARDCONFIG_MK7R)
-    #define BUILD_HW_STR                    "HW:MK7R_B002"
+    #define BUILD_HW_STR                    "HW:MK7R"
 #elif defined(BOARDCONFIG_MK7C)
-    #define BUILD_HW_STR                    "HW:MK7C_B001"
+    #define BUILD_HW_STR                    "HW:MK7C"
 #else
     FAIL -- invalid board
 #endif
