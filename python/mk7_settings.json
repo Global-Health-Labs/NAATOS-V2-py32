@@ -14,4 +14,5 @@
 {"CMD_H2S3":0},
 {"CMD_H3S3":68},
 {"CMD_H4S3":0},
+{"CMD_STATUS":1},
 {"CMD_START":1}]

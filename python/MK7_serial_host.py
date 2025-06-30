@@ -13,6 +13,9 @@ import datetime
 import serial
 import json
 import serial.tools.list_ports as port_list
+import threading
+import time
+import re
 
 VERSION = "v1.1"
 
@@ -44,9 +47,12 @@ class MK7_serial_host:
             self.json_data = None
             self.download_json_file = False           
 
+        self.stop_event = threading.Event()
+        self.receiver_thread = None
+
     def run(self):
         if self.isSerial:
-            self.serial_read_lines()
+            self.start_serial_threads()
         else:
             self.read_file()
         
@@ -92,7 +98,8 @@ class MK7_serial_host:
         
     def send_uart_text(self, text):
         """
-        Sends a text string over an open UART port.
+        Sends a text string over an open UART port, with a 10 ms delay between each character.
+        Adds a 1 second delay after sending the substring '{"CMD_STATUS":1}' (allowing for whitespace).
 
         Args:
             text (str): The text string to send.
@@ -102,8 +109,25 @@ class MK7_serial_host:
         """
         if not self.ser.is_open:
             raise ValueError("Serial port is not open.")
-        
-        self.ser.write(text.encode('utf-8'))
+        # Regex to match {"CMD_STATUS":1} with optional whitespace
+        pattern = re.compile(r'\{"CMD_STATUS":\s*1\}')
+        i = 0
+        while i < len(text):
+            match = pattern.search(text, i)
+            if match and match.start() == i:
+                seq = match.group(0)
+                for char in seq:
+                    self.ser.write(char.encode('utf-8'))
+                    self.ser.flush()
+                    time.sleep(0.01)
+                time.sleep(1.0)  # 1 second delay after the sequence
+                #print(f"Sent: {seq}")
+                i += len(seq)
+            else:
+                self.ser.write(text[i].encode('utf-8'))
+                self.ser.flush()
+                time.sleep(0.01)
+                i += 1
         
     def process_line(self, line):
         print(line, end='')  # Print each line without adding extra newlines
@@ -146,18 +170,46 @@ class MK7_serial_host:
             print(f"Error: Unable to open port {port} - {e}")
             sys.exit(1)
 
-    def serial_read_lines(self):
-        """Read and print incoming serial data line by line."""
+    def start_serial_threads(self):
+        """Start the serial receiver thread and interactive sender loop."""
+        self.receiver_thread = threading.Thread(target=self.serial_read_lines, daemon=True)
+        self.receiver_thread.start()
         try:
-            while True:
-                line = self.ser.readline().decode('utf-8', errors='ignore')
-                self.process_line(line)
-                
+            while not self.stop_event.is_set():
+                try:
+                    user_input = input("[32m[UART SEND]> [0m")
+                except EOFError:
+                    break
+                if user_input.strip().lower() in ["exit", "quit"]:
+                    print("Exiting interactive UART sender.")
+                    self.stop_event.set()
+                    break
+                if user_input.strip() != "":
+                    try:
+                        self.send_uart_text(user_input + "\n")
+                    except Exception as e:
+                        print(f"Error sending text: {e}")
         except KeyboardInterrupt:
-            print("\nStopping serial reader.")
+            print("\nKeyboardInterrupt received. Exiting...")
+            self.stop_event.set()
         finally:
-            self.ser.close()
-            print("Serial port closed.")                    
+            if self.receiver_thread:
+                self.receiver_thread.join()
+            if hasattr(self, 'ser') and self.ser.is_open:
+                self.ser.close()
+            print("Serial port closed.")
+
+    def serial_read_lines(self):
+        """Read and print incoming serial data line by line in a thread."""
+        try:
+            while not self.stop_event.is_set():
+                if self.ser.in_waiting:
+                    line = self.ser.readline().decode('utf-8', errors='ignore')
+                    self.process_line(line)
+        except Exception as e:
+            print(f"Serial read error: {e}")
+        finally:
+            self.stop_event.set()
 
     def read_file(self):
         """Read the file and print each line."""
