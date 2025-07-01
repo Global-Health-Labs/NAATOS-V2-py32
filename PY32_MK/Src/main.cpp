@@ -58,6 +58,79 @@ Pin_pwm_t pwm_H4_ctrl;
 
 #define UID_BASE_ADDR 0x1FFF0E00
 
+void SetOptionBytes(void)
+{
+    // Unlock FLASH and Option Bytes
+    HAL_FLASH_Unlock();
+    HAL_FLASH_OB_Unlock();
+
+    FLASH_OBProgramInitTypeDef OBInit;
+    OBInit.OptionType     = OPTIONBYTE_USER | OPTIONBYTE_RDP;
+    OBInit.RDPLevel       = OB_RDP_LEVEL_0;       // 0xAA
+    OBInit.USERType       = OB_USER_BOR_EN | OB_USER_BOR_LEV | OB_USER_NRST_MODE | OB_USER_nBOOT1; //OB_USER_ALL;
+	OBInit.USERConfig 	  =  
+        OB_BOR_ENABLE           |           // Enable BOR
+        OB_BOR_LEVEL_1p7_1p8    |           // 1.7V - 1.8V
+        OB_RESET_MODE_GPIO      |           // GPIO usage for pin OB_RESET_MODE_RESET | OB_RESET_MODE_GPIO
+        OB_BOOT1_SYSTEM;                    // Boot1 set to system memory
+        //OB_IWDG_SW |                
+
+    if (HAL_FLASH_OBProgram(&OBInit) != HAL_OK) {
+        // Error handling
+    }
+    sprintf(outputStr,"HAL_FLASH_OB Program done!\r\n");
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
+
+    // Launch option byte loading
+    if (HAL_FLASH_OB_Launch() != HAL_OK) {
+        // Error handling
+    }
+    sprintf(outputStr,"HAL_FLASH_OB_Launch() done!\r\n");
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
+
+    HAL_FLASH_OB_Lock();
+    HAL_FLASH_Lock();
+
+}
+
+void PrintOptionBytes(void){
+    FLASH_OBProgramInitTypeDef OBInit;
+    HAL_FLASH_OBGetConfig(&OBInit);
+
+
+    // print 0 pin is GPIO, 1 if it is RESET
+    sprintf(outputStr, "Option Bytes:\r\n");
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
+    sprintf(outputStr, "    RESET pin mode: %s\r\n", (OBInit.USERConfig & OB_RESET_MODE_GPIO) ? "GPIO":"RESET" );
+    //printf("    RESET pin mode: %s\r\n", (OBInit.USERConfig & OB_RESET_MODE_RESET) ? "RESET" : "GPIO");
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
+
+    printf("Option Bytes:\r\n");
+    printf("  RDP Level   : 0x%02X\r\n", OBInit.RDPLevel);
+
+    if (OBInit.USERConfig & OB_USER_BOR_EN) {
+        printf("  BOR Level   : ");
+        switch (OBInit.USERConfig & FLASH_OPTR_BOR_LEV) {
+                case OB_BOR_LEVEL_1p7_1p8:  printf("1.8V\r\n"); break;
+                case OB_BOR_LEVEL_1p9_2p0:  printf("1.9V\r\n"); break;
+                case OB_BOR_LEVEL_2p1_2p2:  printf("2.1V\r\n"); break;  // default
+                case OB_BOR_LEVEL_2p3_2p4:  printf("2.3V\r\n"); break;
+                case OB_BOR_LEVEL_2p5_2p6:  printf("2.5V\r\n"); break;
+                case OB_BOR_LEVEL_2p7_2p8:  printf("2.7V\r\n"); break;
+                case OB_BOR_LEVEL_2p9_3p0:  printf("2.9V\r\n"); break;
+                case OB_BOR_LEVEL_3p1_3p2:  printf("3.1V\r\n"); break;
+                default:             printf("Unknown\r\n"); break;
+        }
+    }else {
+        printf("BOR disabled\r\n");
+    }
+
+    printf("  User Config : 0x%02X\r\n", OBInit.USERConfig);
+    printf("    WDG: %s\r\n", (OBInit.USERConfig & OB_IWDG_SW) ? "Software" : "Hardware");
+    printf("    STOP Reset: %s\r\n", (OBInit.USERConfig & OB_RESET_MODE_RESET) ? "Disabled" : "Enabled");
+    //printf("    STDBY Reset: %s\r\n", (OBInit.USERConfig & OB_STDBY_NO_RST) ? "Disabled" : "Enabled");
+}
+
 // Each PY32 has a unique ID (UID).
 void print_UID(void)
 {
@@ -160,6 +233,18 @@ int main(void)
     //rcc_csr_bootstate = RCC->CSR;
     
     system_setup();
+
+    // Set OPTION BYTES; for development
+    #if SET_OB_ONCE
+            sprintf(outputStr, "made it to SetOptionBytes\r\n");
+            HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
+            SetOptionBytes();
+            sprintf(outputStr, "OPTION BYTES SET.  Please manually reset.\r\n");
+            HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
+            while (1); // Wait for reset
+    #endif
+
+    PrintOptionBytes();
     
   	//start_tick = TIM1_tick_count;    
 
@@ -177,7 +262,7 @@ int main(void)
 
 #if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C)|| defined(BOARDCONFIG_MK6F) || defined(BOARDCONFIG_MK7C)
     // Verify that the USB power supply can supply at least 1.5A:
-    if (Validate_USB_Power_Source() == false) APP_ErrorHandler(ERR_INVALID_USB_POWER_SOURCE);    
+    //if (Validate_USB_Power_Source() == false) APP_ErrorHandler(ERR_INVALID_USB_POWER_SOURCE);    
 #endif
     
     ADC_Set_USB_cc_read_state(false);       // disable reading of USB-C CC voltages in the ADC.

@@ -11,6 +11,7 @@
 #include "main.h"
 #include "timers.h"
 
+
 // default stage times (minutes)
 // These can be changed by the host if UART_RX_ENABLED option is enabled
 #define STAGE1_TIME_MIN        	1
@@ -24,13 +25,15 @@
 #define PREHEAT_TEMP_C    	            30	    // Start the heaters in non simultaneous mode until they hit this temperature
 #define PREHEAT_MAX_TIME_MSEC           150000  // Go to a failure state if the board cannot preheat within this amount of time.
 
+#define SET_OB_ONCE                     0 // Set to 1 to set the option byte once at startup.
+
 // On the MK7, the pushbutton and uart rx pins are both connected to PF2_NRST. 
 //    The option byte must be programmed to change PF2 from reset to GPIO.
 //    The option byte can be set with the PY32CubeProgrammer tool.
 
 // Only one of these can be enabled. Disable both for "normal" operation (heater sequence starts after power-up)
 //#define PUSHBUTTON_UI_ENABLED           1     
-#define UART_RX_ENABLED           1     
+#define UART_RX_ENABLED                 1    
 
 #define BOARDCONFIG_MK7C
 
