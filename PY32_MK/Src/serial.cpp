@@ -11,7 +11,8 @@
 #include "alarm.h"
 #include "timers.h"
 #include "pid.h"
-
+#include "adc.h"
+#include "state_machine.h"
 
 UART_HandleTypeDef UartHandle;
 #define UART_RX_BUFFER_SIZE 512
@@ -105,6 +106,10 @@ extern "C" void USART2_IRQHandler(void)
 void print_status(void)
 {
 #ifndef DEBUG_REDUCE_MEMORY
+    ADC_Set_USB_cc_read_state(true);        // enable reading of USB-C CC voltages in the ADC.
+    ADC_Read();
+    ADC_Set_USB_cc_read_state(false);       // disable reading of USB-C CC voltages in the ADC.
+
     //sprintf(outputStr, "ADCs: %d %d %d %d %d %d %d\r\n", data.adcReading[0], data.adcReading[1], data.adcReading[6], data.adcReading[4], data.adcReading[5], data.adcReading[7], data.adcReading[8]);
     //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
     
@@ -137,6 +142,10 @@ void print_status(void)
 void print_log_data(void) 
 {
 #ifndef DEBUG_REDUCE_MEMORY
+
+    if (data.state == low_power) {              // This ensures that the ADCs are read during the initial delay sequence.
+        ADC_Read();
+    }
 
 #if defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA) || defined(BOARDCONFIG_MK6F)
     sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d %d %d\r\n", data.msec_test_count, data.H1_temperature_c, pid_data[H1_HEATER].setpoint, data.H1_pwm_during_adc_meas, data.H2_temperature_c, pid_data[H2_HEATER].setpoint, data.H2_pwm_during_adc_meas, data.system_input_voltage, data.state, (int) pid_data[H2_HEATER].integrator,(int) pid_data[H2_HEATER].dTerm);
