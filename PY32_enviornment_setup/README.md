@@ -1,3 +1,7 @@
+#install_puya32_windows_env
+Batch file for quick call.
+Run BATCH file as administrator
+
 # py32
 Installs enviornment configuration required to BUILD, FLASH, DEBUG with PUYA32 
 
