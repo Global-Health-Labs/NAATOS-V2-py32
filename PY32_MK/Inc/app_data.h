@@ -14,10 +14,10 @@
 // CONFIGURATION of OPTION BYTES - NOTE: Only used for Development. For production, flash once and set to 0 so firmware does not reset
 #define SET_OB_ONCE                     0
 
-
+#define ENABLE_POWER_ON_TESTS           0
+#define IGNORE_RAMP_TIME                1   // Start the test timer after the heater has ramped to near the setpoint temperature
 
 #define AMPLIFICATION_TIME_MIN          15
-#define ACTUATION_PREP_TIME_MIN         1    // Option to change the controls during the last minute of amplification.
 #define ACTUATION_TIME_MIN              5
 #define DETECTION_TIME_MIN              1
 
@@ -143,7 +143,10 @@ typedef struct app_data_t {
     bool usb_cc_adc_read_enabled;
     float usb_cc1_voltage;
     float usb_cc2_voltage;
-    uint32_t valve_ramp_time;
+    uint32_t sample_ramp_start_time_msec;
+    uint32_t sample_ramp_time_sec;
+    uint32_t valve_ramp_start_time_msec;
+    uint32_t valve_ramp_time_sec;
     uint32_t test_interval;
 	uint8_t sh_pwm_during_adc_meas;
 	uint8_t vh_pwm_during_adc_meas;

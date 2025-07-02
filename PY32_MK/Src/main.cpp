@@ -421,11 +421,13 @@ int main(void)
     data.self_test_sh_start_temp_c = data.sample_temperature_c;
     data.self_test_vh_start_temp_c = data.valve_temperature_c;
 
+#if (ENABLE_POWER_ON_TESTS == 1)
     if (Validate_Power_Supply() == false) APP_ErrorHandler(ERR_POWER_SUPPLY);
 
 #if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C)|| defined(BOARDCONFIG_MK6F)
     // Verify that the USB power supply can supply at least 1.5A:
-    //if (Validate_USB_Power_Source() == false) APP_ErrorHandler(ERR_INVALID_USB_POWER_SOURCE);    
+    if (Validate_USB_Power_Source() == false) APP_ErrorHandler(ERR_INVALID_USB_POWER_SOURCE);    
+#endif
 #endif
     
     ADC_Set_USB_cc_read_state(false);       // disable reading of USB-C CC voltages in the ADC.
@@ -454,12 +456,14 @@ int main(void)
         if (flags.flagDelayedStart) {
             flags.flagDelayedStart = false;
             Disable_timer(DelayedStartTimerNumber);
-            
+
+#if (ENABLE_POWER_ON_TESTS == 1)            
             // Self-test: The heaters are off. 
             // Throw an error if either heater temperature has risen during the delayed start period.
             if ((data.sample_temperature_c > data.self_test_sh_start_temp_c + SELFTEST_MIN_TEMP_RISE_C/2.0) || (data.valve_temperature_c > data.self_test_vh_start_temp_c + SELFTEST_MIN_TEMP_RISE_C/2.0)) {
                 APP_ErrorHandler(ERR_SELFTEST_FAILED); 
             }
+#endif            
             
             // Start the test:
             start_naat_test();                        
@@ -502,7 +506,7 @@ int main(void)
                 } else if (data.minute_test_count >= AMPLIFICATION_TIME_MIN) {
                     if (data.state != actuation) {
                         data.state = actuation;
-                        
+                        data.valve_ramp_start_time_msec = data.msec_test_count;
                         // set valve heater high strength and 100%. (sample heater will be off)
                         data.heater_control_not_simultaneous = false;
                         pwm_valve_ctrl.heater_level_high = true;   
@@ -512,14 +516,6 @@ int main(void)
 						Update_TimerTickInterval(LEDTimerNumber, LED_TIMER_INTERVAL_ACTIVATION);
                     }
                 }
-            } else if (data.minute_test_count >= AMPLIFICATION_TIME_MIN - ACTUATION_PREP_TIME_MIN) {
-                // Change control settings during the last minute of amplification.
-                // This is an optional state -- no settings are currently changed
-                if (data.state != actuation_prep) {
-                    data.state = actuation_prep;                      
-                    //pid_init(SAMPLE_HEATER,sample_amp_control[data.state]);
-                    //pid_init(VALVE_HEATER,valve_amp_control[data.state]);
-                }        
             } 
         }
 
@@ -553,7 +549,9 @@ void start_naat_test(void) {
     data.state = low_power;
     data.valve_max_temperature_c = 0;
     data.sample_max_temperature_c = 0;
-    data.valve_ramp_time = 0;    
+    data.valve_ramp_start_time_msec = 0;        
+    data.valve_ramp_time_sec = 0;    
+    data.sample_ramp_time_sec = 0;    
 
     data.sample_heater_pwm_value = 0;
     data.valve_heater_pwm_value = 0;
@@ -564,9 +562,6 @@ void start_naat_test(void) {
     // self_test_2: heaters are turned on in high power mode for up to 10 seconds.
     //      If either heater does not rise in temperature by at least SELFTEST_MIN_TEMP_RISE_C, go to the error state.
     // 
-    pwm_amp_ctrl.heater_level_high = false;
-    pwm_valve_ctrl.heater_level_high = false;
-    data.heater_control_not_simultaneous = true;
     data.self_test_sh_start_temp_c = data.sample_temperature_c;
     data.self_test_vh_start_temp_c = data.valve_temperature_c;
 
@@ -583,8 +578,16 @@ void start_naat_test(void) {
         pwm_amp_ctrl.heater_level_high = false;
         pwm_valve_ctrl.heater_level_high = false;
 
-#else
+#elif (ENABLE_POWER_ON_TESTS == 1)
+        data.heater_control_not_simultaneous = true;
+        pwm_amp_ctrl.heater_level_high = false;
+        pwm_valve_ctrl.heater_level_high = false;
         data.state = self_test_1;
+#else         
+        data.heater_control_not_simultaneous = false;
+        pwm_amp_ctrl.heater_level_high = true;
+        pwm_valve_ctrl.heater_level_high = true;
+        data.state = amplification;
 #endif
         pid_init(SAMPLE_HEATER, sample_amp_control[amplification]);
         pid_init(VALVE_HEATER,valve_amp_control[amplification]);
@@ -642,7 +645,10 @@ void Data_init(void)
     data.system_input_voltage = 0;
     data.valve_max_temperature_c = 0;
     data.sample_max_temperature_c = 0;    
-    data.valve_ramp_time = 0;    
+    data.sample_ramp_start_time_msec = 0;    
+    data.sample_ramp_time_sec = 0;    
+    data.valve_ramp_start_time_msec = 0;    
+    data.valve_ramp_time_sec = 0;    
     data.sh_pwm_during_adc_meas = 0;    
     data.vh_pwm_during_adc_meas = 0;    
 }
@@ -679,8 +685,8 @@ void ADC_data_collect(void)
     }
 
     // Measure the number of seconds it takes to ramp to the minimum valve temperature:
-    if (data.state == actuation && data.valve_ramp_time == 0 && data.valve_temperature_c >= ACTUATION_MIN_VALID_TEMP_C) {
-        data.valve_ramp_time = data.msec_test_count / 1000 - (AMPLIFICATION_TIME_MIN * 60);
+    if (data.state == actuation && data.valve_ramp_time_sec == 0 && data.valve_temperature_c >= ACTUATION_MIN_VALID_TEMP_C) {
+        data.valve_ramp_time_sec = (data.msec_test_count - data.valve_ramp_start_time_msec) / 1000;
     }
 }
 
@@ -774,18 +780,18 @@ void Update_PID(void)
 void print_log_data(void) 
 {
 #if defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA) || defined(BOARDCONFIG_MK6F)
-    sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d %d %d\r\n", data.msec_test_count, data.sample_temperature_c, pid_data[SAMPLE_HEATER].setpoint, data.sh_pwm_during_adc_meas, data.valve_temperature_c, pid_data[VALVE_HEATER].setpoint, data.vh_pwm_during_adc_meas, data.system_input_voltage, data.state, (int) pid_data[VALVE_HEATER].integrator,(int) pid_data[VALVE_HEATER].dTerm);
-    //sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.sample_temperature_c, pid_data[SAMPLE_HEATER].setpoint, data.sh_pwm_during_adc_meas, data.valve_temperature_c, pid_data[VALVE_HEATER].setpoint, data.vh_pwm_during_adc_meas, data.system_input_voltage, data.state);
+    //sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d %d %d\r\n", data.msec_test_count, data.sample_temperature_c, pid_data[SAMPLE_HEATER].setpoint, data.sh_pwm_during_adc_meas, data.valve_temperature_c, pid_data[VALVE_HEATER].setpoint, data.vh_pwm_during_adc_meas, data.system_input_voltage, data.state, (int) pid_data[VALVE_HEATER].integrator,(int) pid_data[VALVE_HEATER].dTerm);
+    sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.sample_temperature_c, pid_data[SAMPLE_HEATER].setpoint, data.sh_pwm_during_adc_meas, data.valve_temperature_c, pid_data[VALVE_HEATER].setpoint, data.vh_pwm_during_adc_meas, data.system_input_voltage, data.state);
 #else
-    sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d %d %d\r\n", data.msec_test_count, data.sample_temperature_c, pid_data[SAMPLE_HEATER].setpoint, data.sh_pwm_during_adc_meas, data.valve_temperature_c, pid_data[VALVE_HEATER].setpoint, data.vh_pwm_during_adc_meas, data.vcc_mcu_voltage, data.state, (int) pid_data[VALVE_HEATER].integrator,(int) pid_data[VALVE_HEATER].dTerm);
-    //sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.sample_temperature_c, pid_data[SAMPLE_HEATER].setpoint, data.sh_pwm_during_adc_meas, data.valve_temperature_c, pid_data[VALVE_HEATER].setpoint, data.sh_pwm_during_adc_meas, data.vcc_mcu_voltage, data.state);
+    //sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d %d %d\r\n", data.msec_test_count, data.sample_temperature_c, pid_data[SAMPLE_HEATER].setpoint, data.sh_pwm_during_adc_meas, data.valve_temperature_c, pid_data[VALVE_HEATER].setpoint, data.vh_pwm_during_adc_meas, data.vcc_mcu_voltage, data.state, (int) pid_data[VALVE_HEATER].integrator,(int) pid_data[VALVE_HEATER].dTerm);
+    sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.sample_temperature_c, pid_data[SAMPLE_HEATER].setpoint, data.sh_pwm_during_adc_meas, data.valve_temperature_c, pid_data[VALVE_HEATER].setpoint, data.sh_pwm_during_adc_meas, data.vcc_mcu_voltage, data.state);
 #endif
     
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
 }
 
 void send_max_temps(void) {
-    sprintf(outputStr, "SH_MAX: %1.2f VH_MAX: %1.2f valve_ramp_time: %d\r\n", data.sample_max_temperature_c, data.valve_max_temperature_c, data.valve_ramp_time);
+    sprintf(outputStr, "SH_MAX: %1.2f VH_MAX: %1.2f sample_ramp_time: %d valve_ramp_time: %d\r\n", data.sample_max_temperature_c, data.valve_max_temperature_c, data.sample_ramp_time_sec, data.valve_ramp_time_sec);
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
 }
 
