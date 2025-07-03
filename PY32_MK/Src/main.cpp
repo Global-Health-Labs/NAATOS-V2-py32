@@ -62,7 +62,7 @@ CONTROL valve_amp_control[NUMPROCESS] =
 {
   {HEATER_SHUTDOWN_C, 0, 0, 0, 0, 0},
   {VALVE_ZONE_AMP_SOAK_TARGET_C, 0,0, PID_VH_P_TERM, PID_VH_I_TERM, PID_VH_D_TERM},
-  {VALVE_ZONE_VALVE_PREP_TARGET_C, 0,0, PID_VH_P_TERM, PID_VH_I_TERM, PID_VH_D_TERM},
+  {VALVE_ZONE_AMP_SOAK_TARGET_C, 0,0, PID_VH_P_TERM, PID_VH_I_TERM, PID_VH_D_TERM},
   {VALVE_ZONE_VALVE_SOAK_TARGET_C,0, 0, PID_VH_P_TERM, PID_VH_I_TERM, PID_VH_D_TERM},
   {HEATER_SHUTDOWN_C, 0, 0, 0, 0, 0}
 };
@@ -328,7 +328,6 @@ void system_setup() {
     
     // start the timers:
     Enable_timer(LEDTimerNumber);
-    Enable_timer(MinuteTimerNumber);
     
 #ifdef PUSHBUTTON_UI_ENABLED    
     Enable_timer(PushbuttonTimerNumber);
@@ -538,6 +537,9 @@ int main(void)
         
         if (flags.flagSendLogData) {
             flags.flagSendLogData = false;
+            if (data.state == low_power) {            
+                ADC_data_collect();         // Read the temperature sensors
+            }
             print_log_data();
         }
     }    
@@ -555,7 +557,10 @@ void start_naat_test(void) {
 
     data.sample_heater_pwm_value = 0;
     data.valve_heater_pwm_value = 0;
-	
+    
+#if (IGNORE_RAMP_TIME == 0)            
+    Enable_timer(MinuteTimerNumber);    
+#endif	
     // Upon system start, a self-test is performed:
     // self_test_1: heaters are turned on in low power mode for up to 10 seconds.
     //      If either heater does not rise in temperature by at least SELFTEST_MIN_TEMP_RISE_C, go to the error state.
@@ -587,7 +592,7 @@ void start_naat_test(void) {
         data.heater_control_not_simultaneous = false;
         pwm_amp_ctrl.heater_level_high = true;
         pwm_valve_ctrl.heater_level_high = true;
-        data.state = amplification;
+        data.state = amplification_ramp;
 #endif
         pid_init(SAMPLE_HEATER, sample_amp_control[amplification]);
         pid_init(VALVE_HEATER,valve_amp_control[amplification]);
@@ -718,7 +723,7 @@ void Update_PID(void)
         }
     } else if (data.state == preheat) {
         if (data.sample_temperature_c >= PREHEAT_TEMP_C && data.valve_temperature_c >= PREHEAT_TEMP_C) {
-            data.state = amplification;
+            data.state = amplification_ramp;
 #if defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA)
             data.heater_control_not_simultaneous = false;
             pwm_amp_ctrl.heater_level_high = false;
@@ -737,7 +742,21 @@ void Update_PID(void)
             //sprintf(outputStr, "preheat mode ended.\r\n");		   
             //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
         } else if (data.msec_test_count > PREHEAT_MAX_TIME_MSEC) {
-            APP_ErrorHandler(ERR_PREHEAT_TIMEOUT);    
+            APP_ErrorHandler(ERR_HEATER_TIMEOUT);    
+        }
+    } else if (data.state == amplification_ramp) {
+        if (data.sample_temperature_c >= (SAMPLE_ZONE_AMP_SOAK_TARGET_C - HEATER_RAMP_SETPOINT_OFFSET) && data.valve_temperature_c >= (VALVE_ZONE_AMP_SOAK_TARGET_C - HEATER_RAMP_SETPOINT_OFFSET)) {
+            data.state = amplification;
+            data.sample_ramp_time_sec = data.msec_test_count / 1000;
+#if (IGNORE_RAMP_TIME == 1)            
+            Disable_timer(MinuteTimerNumber);    
+            data.minute_test_count = 0;
+            Enable_timer(MinuteTimerNumber);        // start the test timer over
+#endif            
+            //sprintf(outputStr, "amplification_ramp ended.\r\n");		   
+            //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
+        } else if (data.msec_test_count > PREHEAT_MAX_TIME_MSEC) {
+            APP_ErrorHandler(ERR_HEATER_TIMEOUT);    
         }
     }
     
@@ -756,7 +775,7 @@ void Update_PID(void)
         data.valve_heater_pwm_value = VH_FIXED_PWM_TEST /2;
         //data.valve_heater_pwm_value = 0;       // disable SH
 #else        
-        // Apply maximum power to each heater during self-test
+        // Distribute maximum power such that heaters are not on simultaneously:
         data.sample_heater_pwm_value = (PWM_MAX * (100-HEATER_ELEMENT_POWER_RATIO)) /100;
         data.valve_heater_pwm_value = (PWM_MAX * HEATER_ELEMENT_POWER_RATIO) /100;
 #endif
@@ -784,7 +803,7 @@ void print_log_data(void)
     sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.sample_temperature_c, pid_data[SAMPLE_HEATER].setpoint, data.sh_pwm_during_adc_meas, data.valve_temperature_c, pid_data[VALVE_HEATER].setpoint, data.vh_pwm_during_adc_meas, data.system_input_voltage, data.state);
 #else
     //sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d %d %d\r\n", data.msec_test_count, data.sample_temperature_c, pid_data[SAMPLE_HEATER].setpoint, data.sh_pwm_during_adc_meas, data.valve_temperature_c, pid_data[VALVE_HEATER].setpoint, data.vh_pwm_during_adc_meas, data.vcc_mcu_voltage, data.state, (int) pid_data[VALVE_HEATER].integrator,(int) pid_data[VALVE_HEATER].dTerm);
-    sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.sample_temperature_c, pid_data[SAMPLE_HEATER].setpoint, data.sh_pwm_during_adc_meas, data.valve_temperature_c, pid_data[VALVE_HEATER].setpoint, data.sh_pwm_during_adc_meas, data.vcc_mcu_voltage, data.state);
+    sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.sample_temperature_c, pid_data[SAMPLE_HEATER].setpoint, data.sh_pwm_during_adc_meas, data.valve_temperature_c, pid_data[VALVE_HEATER].setpoint, data.vh_pwm_during_adc_meas, data.vcc_mcu_voltage, data.state);
 #endif
     
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
@@ -1217,23 +1236,21 @@ void PWMTimer_ISR(void)
 void LEDTimer_ISR(void)
 {
     if (data.state == self_test_1 || data.state == self_test_2 || data.state == preheat) {
-        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_SET); // turn LED off during self-test and preheat
-    } else if (data.test_active) {
-        HAL_GPIO_TogglePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1);
+        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_SET);   // turn LED off during self-test and preheat
+    } else if (data.state == amplification_ramp) {
+        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_SET);   // turn LED off during amplification_ramp
+    } else if (data.state == amplification) {
+        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_RESET); // turn LED on during amplification
+    } else if (data.state == actuation) {
+        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_SET);   // turn LED off during actuation
+    } else if (data.state == detection) {
+        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_RESET); // turn LED on during detection
+    } else if (data.minute_test_count == 0) {
+        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_RESET);   // turn LED on after system setup completes
     } else {
-        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_RESET); // turn LED on at the end of the test
+        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_SET);   // turn LED off at the end of the test
     }
-    
-    /*
-    // blink the LED (at 12.5% duty cycle) if either PWM is enabled:
-    if (pwm_amp_ctrl.enabled || pwm_valve_ctrl.enabled) && (TIM1_tick_count & 0x100) < 0x80) {
-        if ((TIM1_tick_count & 0x7) == 0) HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_RESET);
-        else HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_SET);
-    } else {
-        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_SET);
-    }
-    */
-    
+        
 }
 void PIDTimer_ISR(void)
 {

@@ -19,7 +19,7 @@
 
 #define AMPLIFICATION_TIME_MIN          15
 #define ACTUATION_TIME_MIN              5
-#define DETECTION_TIME_MIN              1
+#define DETECTION_TIME_MIN              7
 
 #define SELFTEST_TIME_MSEC              12000
 #define SELFTEST_MIN_TEMP_RISE_C        4.0
@@ -28,7 +28,7 @@
 
 #define BOARDCONFIG_MK6C
 
-#define FW_VERSION_STR                  "FW:v0.9"
+#define FW_VERSION_STR                  "FW:v1.0"
 
 
 #if defined(BOARDCONFIG_MK5AA) 
@@ -52,7 +52,7 @@
     #define VCC_MCU_MIN_VOLTAGE     1.8
     #define VCC_MCU_MAX_VOLTAGE     3.6
 #elif defined(BOARDCONFIG_MK6F)
-    #define VCC_MCU_MIN_VOLTAGE     4.5
+    #define VCC_MCU_MIN_VOLTAGE     4.5         // The flex board runs directly from 5v USB
     #define VCC_MCU_MAX_VOLTAGE     5.5
 #elif defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C)
     #define VCC_MCU_MIN_VOLTAGE     2.4
@@ -62,15 +62,15 @@
 #endif
 
 #if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C) || defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA) || defined(BOARDCONFIG_MK6F)
-#define SAMPLE_ZONE_AMP_SOAK_TARGET_C   72
-#define VALVE_ZONE_AMP_SOAK_TARGET_C    72
+#define SAMPLE_ZONE_AMP_SOAK_TARGET_C   68
+#define VALVE_ZONE_AMP_SOAK_TARGET_C    68
 #define SAMPLE_ZONE_VALVE_SOAK_TARGET_C 0
-#define VALVE_ZONE_VALVE_PREP_TARGET_C  72
-#define VALVE_ZONE_VALVE_SOAK_TARGET_C  101
+#define VALVE_ZONE_VALVE_SOAK_TARGET_C  97
 #define COLD_TEMP_SETPOINT_OFFSET_C     2           //cold temp values are dependent on the outer device packaging (convective shielding and insulation)
 #define COLD_TEMP_OFFSET_THRESHOLD_C    14
 #define AMPLIFICATION_MIN_VALID_TEMP_C  65
 #define ACTUATION_MIN_VALID_TEMP_C      95
+#define HEATER_RAMP_SETPOINT_OFFSET     3
 #define HEATER_SHUTDOWN_C               0
 #define HEATER_ELEMENT_POWER_RATIO      35
 #define OVERTEMP_ERR_C                  110

@@ -10,7 +10,6 @@ PY32_devkit/RTE/
 PY32_devkit/JLinkLog.txt
 PY32_MK/Objects/
 PY32_MK/Build/
-PY32_MK/Libraries/
 PY32_MK/.vscode/
 PY32_MK/Listings/
 PY32_MK/JLinkLog.txt

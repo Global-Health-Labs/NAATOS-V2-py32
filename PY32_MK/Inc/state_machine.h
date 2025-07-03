@@ -10,8 +10,8 @@
 enum state_machine
 {
     low_power = 0,
+    amplification_ramp,
     amplification,
-    actuation_prep,
     actuation,
     detection,
     self_test_1,
