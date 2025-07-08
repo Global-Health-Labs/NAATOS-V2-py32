@@ -18,7 +18,7 @@
 #include "timers.h"
 
 
-
+#include "sTune.h"
 
 
 /* Private define ------------------------------------------------------------*/
@@ -270,7 +270,6 @@ void PrintOptionBytes(void)
 
 
 
-
 // Init PID Controller based on the STATE MACHINE state
 void pid_init(heater_t heater, CONTROL pid_settings){
   float adjusted_setpoint;
@@ -323,8 +322,8 @@ void system_setup() {
     LogTimerNumber = Register_timer(LogData_ISR,  LOG_TIMER_INTERVAL);
     
     // INIT PID Structure
-    pid_init(SAMPLE_HEATER, sample_amp_control[data.state]);
-    pid_init(VALVE_HEATER, valve_amp_control[data.state]);
+    pid_init(SAMPLE_HEATER, sample_amp_control[0]);
+    pid_init(VALVE_HEATER, valve_amp_control[0]);
     
     // start the timers:
     Enable_timer(LEDTimerNumber);
@@ -336,6 +335,29 @@ void system_setup() {
     
     HAL_GPIO_WritePin(Pins.GPIOx_LED2, Pins.GPIO_Pin_LED2, GPIO_PIN_RESET); // Turn on LED2    
 }
+
+/*PID TUNER*/
+uint32_t settleTimeSec = 10;
+uint32_t testTimeSec = 500;
+const uint16_t samples = 500;
+const float inputSpan = 150;
+const float outputSpan = 255;
+float outputStart = 0;
+float outputStep = 50;
+float tempLimit = 90;
+float Setpoint = 60;
+float Input_SH, Input_VH, Output_SH, Output_VH;
+float kp,ki,kd;
+sTune tuner = sTune();
+sTune sample_tuner = sTune(&Input_SH, &Output_SH, tuner.ZN_PID, tuner.directIP,tuner.printALL);
+
+
+
+
+// PID structure holder
+pid_controller_t sample_zone;
+pid_controller_t valve_zone;
+
 
 /**
   * @brief  
@@ -350,50 +372,89 @@ int main(void)
     
     system_setup();
 
-    //InitWatchdog();
-
-    sprintf(outputStr, "Startup complete.\r\n");
-    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
-
-    sprintf(outputStr,"Startup Flag Check: 0x%08lX\r\n", ReadFlag());
-    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
-
-    //#define SET_FLAG
-    #ifdef SET_FLAG
-    if (ReadFlag() != FLAG_VALUE) {
-        //SetOptionBytes();
-        sprintf(outputStr, "Attempting WriteFlag().\r\n");
-        HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
-        //WriteFlag(FLAG_VALUE);  // Prevent repeated OB setting
-        sprintf(outputStr, "OPTION BYTES SET.  Please manually reset.\r\n");
-        HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
-        while (1);              // Wait for reset after OB launch
-    }
-    #endif
-
-    // Set OPTION BYTES; for development
-    #if SET_OB_ONCE
-            sprintf(outputStr, "made it to SetOptionBytes\r\n");
-            HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
-            SetOptionBytes();
-            sprintf(outputStr, "OPTION BYTES SET.  Please manually reset.\r\n");
-            HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
-            while (1); // Wait for reset
-    #endif
-
-    
 
 
-    sprintf(outputStr, "printing OPTION BYTES\r\n");
-    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
-	PrintOptionBytes();
 	
     // Application code
 
 
+     sample_tuner.Configure(inputSpan, outputSpan, outputStart, outputStep, testTimeSec, settleTimeSec, samples);
+    sample_tuner.SetEmergencyStop(tempLimit);
+  //valve_tuner.Configure(inputSpan, outputSpan, outputStart, outputStep, testTimeSec, settleTimeSec, samples);
+  //valve_tuner.SetEmergencyStop(tempLimit);
+  
+    // set HIGH power 
+    //HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL1, Pins.GPIO_Pin_VALVE_CTRL1, GPIO_PIN_SET);
+    //HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL1, Pins.GPIOx_AMP_CTRL1, GPIO_PIN_SET);
     
-  	//start_tick = TIM1_tick_count;    
+  
+    while (1){
+    float optimumOutput_SH = sample_tuner.softPwm(Pins.GPIOx_AMP_CTRL1, Pins.GPIOx_AMP_CTRL1, Input_SH, Output_SH, Setpoint, 255, 0);
+    //float optimumOutput_SH = sample_tuner.softPwm(SH_CTRL, Input_SH, Output_SH, Setpoint, 255, 0);
+    //float optimumOutput_SH = sample_tuner.softPwm(SH_CTRL, sample_amp_control[0].input, sample_amp_control[0].output, Setpoint, 255, 0);
+    //float optimumOutput_VH = valve_tuner.softPwm(VH_CTRL, valve_amp_control[0].input, valve_amp_control[0].output, Setpoint, 255, 0);
 
+    switch (sample_tuner.Run()) {
+      case sample_tuner.sample: // active once per sample during test
+        ADC_data_collect();
+        //Input_SH = TMP1.read_temperature_C();
+        Input_SH = data.adcReading[1];
+        Input_VH = data.adcReading[0];
+
+        //sample_amp_control[0].input = TMP1.read_temperature_C();
+        //valve_amp_control[0].input = TMP2.read_temperature_C();
+        //Input_SH = data.sample_temperature_c;
+        //Input_VH = data.valve_temperature_c;  
+
+        sample_tuner.plotter(Input_SH, Output_SH, Setpoint, 0.5f, 3);
+        //sample_tuner.plotter(sample_amp_control[0].input, sample_amp_control[0].output, Setpoint, 0.5f, 3);
+        //sample_tuner.plotter(valve_amp_control[0].input, valve_amp_control[0].output, Setpoint, 0.5f, 3);
+        break;
+
+      case sample_tuner.tunings: // active just once when sTune is done
+
+        sample_tuner.GetAutoTunings(&kp, &ki, &kd); // sketch variables updated by sTune
+        sample_zone.k_p = kp;
+        sample_zone.k_i = ki;
+        sample_zone.k_d = kd;
+
+        // sample_tuner.GetAutoTunings(&sample_zone.k_p,
+        //                             &sample_zone.k_i,
+        //                             &sample_zone.k_d);
+
+        // sample_tuner.GetAutoTunings(&valve_zone.k_p,
+        //                             &valve_zone.k_i,
+        //                             &valve_zone.k_d);
+
+        
+
+        //valve_zone.k_p = Kp;
+        //valve_zone.k_i = Ki;
+        //valve_zone.k_d = Kd;
+
+        break;
+
+      case sample_tuner.runPid: // active once per sample after tunings
+        Input_SH = TMP1.read_temperature_C();
+        // sample_amp_control[0].input = TMP1.read_temperature_C();
+  
+
+        //valve_amp_control[0].input = TMP2.read_temperature_C();
+
+        pid_controller_compute(&sample_zone,Input_SH);
+        Output_SH = sample_zone.out;
+        // pid_controller_compute(&sample_zone,sample_amp_control[0].input);
+        //pid_controller_compute(&valve_zone,valve_amp_control[0].input);
+
+        sample_tuner.plotter(Input_SH, optimumOutput_SH, Setpoint, 0.5f, 3);
+        // sample_tuner.plotter(sample_amp_control[0].input, optimumOutput_SH, Setpoint, 0.5f, 3);
+        //sample_tuner.plotter(valve_amp_control[0].input, optimumOutput_VH, Setpoint, 0.5f, 3);
+        break;
+    }
+
+
+  	//start_tick = TIM1_tick_count;    
+/*
 #ifdef DEBUG    
     //Distribute_PWM_Bits((uint8_t) 3, (uint64_t *) pwm_amp_ctrl.pwm_bits);    
     //Distribute_PWM_Bits((uint8_t) 7, (uint64_t *) pwm_amp_ctrl.pwm_bits);    
@@ -517,14 +578,13 @@ int main(void)
                 }
             } 
         }
+        
 
-        /*UPDATE INPUT::TEMPERATURE SENSORS*/
         if (flags.flagDataCollection){
             flags.flagDataCollection = false;
             //ADC_data_collect();
         }
 
-        /*UPDATE OUTPUT:HEATER LOAD*/
         if (flags.flagUpdatePID) {
             flags.flagUpdatePID = false;
             if (data.test_active) {
@@ -543,6 +603,7 @@ int main(void)
             print_log_data();
         }
     }    
+    */
 }
 
 void start_naat_test(void) {

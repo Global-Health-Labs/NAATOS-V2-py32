@@ -51,10 +51,13 @@ ADIRS		:= Src
 # Single ASM source files
 AFILES		:= 
 
+
+
 # Include paths
 INCLUDES	:= Libraries/CMSIS/Core/Include \
 			Libraries/CMSIS/Device/PY32F0xx/Include \
 			Inc \
+			"C:/Program Files (x86)/Arduino/hardware/arduino/avr/cores/arduino" \
 			$(CDIRS)
 
 ##### Library Paths ############
