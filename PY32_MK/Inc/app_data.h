@@ -12,12 +12,12 @@
 #include "timers.h"
 
 // CONFIGURATION of OPTION BYTES - NOTE: Only used for Development. For production, flash once and set to 0 so firmware does not reset
-#define SET_OB_ONCE                     0
+//#define SET_OB_ONCE                     0
 
 #define ENABLE_POWER_ON_TESTS           0
 #define IGNORE_RAMP_TIME                1   // Start the test timer after the heater has ramped to near the setpoint temperature
 
-#define AMPLIFICATION_TIME_MIN          15
+#define AMPLIFICATION_TIME_MIN          17.5
 #define ACTUATION_TIME_MIN              5
 #define DETECTION_TIME_MIN              7
 
@@ -28,7 +28,7 @@
 
 #define BOARDCONFIG_MK6C
 
-#define FW_VERSION_STR                  "FW:v1.0"
+#define FW_VERSION_STR                  "FW:v1.1"
 
 
 #if defined(BOARDCONFIG_MK5AA) 
@@ -62,18 +62,22 @@
 #endif
 
 #if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C) || defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA) || defined(BOARDCONFIG_MK6F)
-#define SAMPLE_ZONE_AMP_SOAK_TARGET_C   68
-#define VALVE_ZONE_AMP_SOAK_TARGET_C    68
+#define SAMPLE_ZONE_AMP_RAMP_TARGET_C   84
+#define VALVE_ZONE_AMP_RAMP_TARGET_C    75
+
+#define SAMPLE_ZONE_AMP_SOAK_TARGET_C   71
+#define VALVE_ZONE_AMP_SOAK_TARGET_C    71
 #define SAMPLE_ZONE_VALVE_SOAK_TARGET_C 0
-#define VALVE_ZONE_VALVE_SOAK_TARGET_C  97
+#define VALVE_ZONE_VALVE_SOAK_TARGET_C  102
+#define VALVE_ZONE_ACT_RAMP_TARGET_C    108
 #define COLD_TEMP_SETPOINT_OFFSET_C     2           //cold temp values are dependent on the outer device packaging (convective shielding and insulation)
 #define COLD_TEMP_OFFSET_THRESHOLD_C    14
 #define AMPLIFICATION_MIN_VALID_TEMP_C  65
 #define ACTUATION_MIN_VALID_TEMP_C      95
-#define HEATER_RAMP_SETPOINT_OFFSET     3
+#define HEATER_RAMP_SETPOINT_OFFSET     1
 #define HEATER_SHUTDOWN_C               0
 #define HEATER_ELEMENT_POWER_RATIO      35
-#define OVERTEMP_ERR_C                  110
+#define OVERTEMP_ERR_C                  115
 #define SLEW_RATE_LIMIT                 250
 
 #else
@@ -96,9 +100,11 @@
                                         
 #define STARTUP_DELAY_MS                (5000L * TICKS_PER_MSEC)
 
+#define ACTUATION_DELAY_TIMER_INTERVAL  (20000L * TICKS_PER_MSEC)
+
 #define PWM_MAX                         250
 
-#define NUMPROCESS                      5  
+#define NUMPROCESS                      6  
 
 // Data Structures
 struct CONTROL 
@@ -150,6 +156,8 @@ typedef struct app_data_t {
     uint32_t test_interval;
 	uint8_t sh_pwm_during_adc_meas;
 	uint8_t vh_pwm_during_adc_meas;
+
+    bool flag_reached_actuation_ramp_target;
 } app_data_t;
 
 typedef struct flags_t {
@@ -160,6 +168,7 @@ typedef struct flags_t {
     volatile bool flagSendLogData;
     volatile bool flagDelayedStart;
     volatile bool flagPushbutton;
+    volatile bool flagActuationDelay;
 } flags_t;
 
 

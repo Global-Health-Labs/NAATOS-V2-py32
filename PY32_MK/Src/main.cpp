@@ -44,6 +44,7 @@ int8_t DataCollectionTimerNumber;
 int8_t DelayedStartTimerNumber;
 int8_t PushbuttonTimerNumber;
 int8_t LogTimerNumber;
+int8_t ActuationDelayTimerNumber;
 
 GPIO_PinState pushbutton_value, last_pushbutton_value;
 
@@ -52,19 +53,21 @@ GPIO_PinState pushbutton_value, last_pushbutton_value;
 
 CONTROL sample_amp_control[NUMPROCESS] = 
 {
-  {HEATER_SHUTDOWN_C, 0, 0, 2, 1, .5},
-  {SAMPLE_ZONE_AMP_SOAK_TARGET_C, 0,0, PID_SH_P_TERM, PID_SH_I_TERM, PID_SH_D_TERM},
-  {SAMPLE_ZONE_AMP_SOAK_TARGET_C, 0,0, PID_SH_P_TERM, PID_SH_I_TERM, PID_SH_D_TERM},
-  {SAMPLE_ZONE_VALVE_SOAK_TARGET_C, 0, 0, PID_SH_P_TERM, PID_SH_I_TERM, PID_SH_D_TERM},
-  {HEATER_SHUTDOWN_C, 0, 0, 2, 5, 1}
+  {HEATER_SHUTDOWN_C, 0, 0, 2, 1, .5},                                                      // shutdown
+  {SAMPLE_ZONE_AMP_RAMP_TARGET_C, 0,0, PID_P_RAMP_TERM, 0, 0},                              // AMP RAMP
+  {SAMPLE_ZONE_AMP_SOAK_TARGET_C, 0,0, PID_SH_P_TERM, PID_SH_I_TERM, PID_SH_D_TERM},        // AMP SOAK
+  {SAMPLE_ZONE_VALVE_SOAK_TARGET_C, 0, 0, PID_SH_P_TERM, PID_SH_I_TERM, PID_SH_D_TERM},     // ACT SOAK
+  {HEATER_SHUTDOWN_C, 0, 0, 2, 5, 1},                                                       // DETECTION
+  {HEATER_SHUTDOWN_C, 0, 0, 0, 0, 0}
 };
 CONTROL valve_amp_control[NUMPROCESS] = 
 {
   {HEATER_SHUTDOWN_C, 0, 0, 0, 0, 0},
-  {VALVE_ZONE_AMP_SOAK_TARGET_C, 0,0, PID_VH_P_TERM, PID_VH_I_TERM, PID_VH_D_TERM},
+  {VALVE_ZONE_AMP_RAMP_TARGET_C, 0,0, PID_P_RAMP_TERM, 0, 0},
   {VALVE_ZONE_AMP_SOAK_TARGET_C, 0,0, PID_VH_P_TERM, PID_VH_I_TERM, PID_VH_D_TERM},
   {VALVE_ZONE_VALVE_SOAK_TARGET_C,0, 0, PID_VH_P_TERM, PID_VH_I_TERM, PID_VH_D_TERM},
-  {HEATER_SHUTDOWN_C, 0, 0, 0, 0, 0}
+  {HEATER_SHUTDOWN_C, 0, 0, 0, 0, 0},
+  {VALVE_ZONE_ACT_RAMP_TARGET_C, 0, 0, PID_P_RAMP_TERM, 0, 0}
 };
 
 
@@ -179,7 +182,7 @@ void WriteFlag(uint32_t value)
 }
 
 
-//#ifdef SET_OB_ONCE
+#ifdef SET_OB_ONCE
 void SetOptionBytes(void)
 {
     // Unlock FLASH and Option Bytes
@@ -215,9 +218,10 @@ void SetOptionBytes(void)
 
 }
 
-//#endif // SET_OB_ONCE
-IWDG_HandleTypeDef hiwdg;          // Watchdog handle
+#endif // SET_OB_ONCE
+//IWDG_HandleTypeDef hiwdg;          // Watchdog handle
 
+/*
 void InitWatchdog(void)
 {
     hiwdg.Instance = IWDG;
@@ -228,7 +232,7 @@ void InitWatchdog(void)
         while (1);
     }
 }
-
+*/
 void PrintOptionBytes(void)
 		{
 				FLASH_OBProgramInitTypeDef OBInit;
@@ -314,6 +318,9 @@ void system_setup() {
     
     MinuteTimerNumber = Register_timer(MinuteTimer_ISR,  MINUTE_TIMER_INTERVAL);
     DelayedStartTimerNumber = Register_timer(DelayedStart_ISR,  STARTUP_DELAY_MS);
+
+    ActuationDelayTimerNumber = Register_timer(ActuationDelay_ISR,  ACTUATION_DELAY_TIMER_INTERVAL);
+
 #ifdef PUSHBUTTON_UI_ENABLED    
     PushbuttonTimerNumber = Register_timer(Pushbutton_ISR,  PUSHBUTTON_TIMER_INTERVAL);
 #else     
@@ -333,7 +340,8 @@ void system_setup() {
     Enable_timer(PushbuttonTimerNumber);
 #endif
     Enable_timer(DataCollectionTimerNumber);
-    
+
+        
     HAL_GPIO_WritePin(Pins.GPIOx_LED2, Pins.GPIO_Pin_LED2, GPIO_PIN_RESET); // Turn on LED2    
 }
 
@@ -352,11 +360,8 @@ int main(void)
 
     //InitWatchdog();
 
-    sprintf(outputStr, "Startup complete.\r\n");
-    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
-
-    sprintf(outputStr,"Startup Flag Check: 0x%08lX\r\n", ReadFlag());
-    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
+    //sprintf(outputStr,"Startup Flag Check: 0x%08lX\r\n", ReadFlag());
+    //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
 
     //#define SET_FLAG
     #ifdef SET_FLAG
@@ -384,9 +389,9 @@ int main(void)
     
 
 
-    sprintf(outputStr, "printing OPTION BYTES\r\n");
-    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
-	PrintOptionBytes();
+    //sprintf(outputStr, "printing OPTION BYTES\r\n");
+    //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
+	//PrintOptionBytes();
 	
     // Application code
 
@@ -472,39 +477,63 @@ int main(void)
         if (flags.flag_1minute) {
             flags.flag_1minute = false;
             data.minute_test_count++;
+        }
             
-            if (data.minute_test_count >= AMPLIFICATION_TIME_MIN) {
-                if (data.minute_test_count >= AMPLIFICATION_TIME_MIN + ACTUATION_TIME_MIN) {
-                    // in detection
-                    if (data.state != detection) {
-                        data.state = detection;
+        if (data.minute_test_count >= AMPLIFICATION_TIME_MIN) {
+            if (data.minute_test_count >= AMPLIFICATION_TIME_MIN + ACTUATION_TIME_MIN) {
+                // in detection
+                if (data.state != detection) {
+                    data.state = detection;
+                    pid_init(SAMPLE_HEATER,sample_amp_control[data.state]);
+                    pid_init(VALVE_HEATER,valve_amp_control[data.state]);
+                    pwm_amp_ctrl.enabled = false;      
+                    pwm_valve_ctrl.enabled = false;      
+                }
+                if (data.minute_test_count  >= AMPLIFICATION_TIME_MIN + ACTUATION_TIME_MIN + DETECTION_TIME_MIN) {
+                    // final state -- END
+                    if (data.state != low_power) {
+                        // SHUT DOWN LOADS!!!!
+                        data.state = low_power;
                         pid_init(SAMPLE_HEATER,sample_amp_control[data.state]);
                         pid_init(VALVE_HEATER,valve_amp_control[data.state]);
-                        pwm_amp_ctrl.enabled = false;      
-                        pwm_valve_ctrl.enabled = false;      
+                        stop_naat_test();
+    
+                        send_max_temps();
+                        if (data.sample_max_temperature_c < AMPLIFICATION_MIN_VALID_TEMP_C) {
+                            // Set an alarm if the minimum sample temperature was not reached.
+                            APP_ErrorHandler(ERR_MIN_AMPLIFICATION_TEMP);
+                        } else if (data.valve_max_temperature_c < ACTUATION_MIN_VALID_TEMP_C) {
+                            // Set an alarm if the minimum valve temperature was not reached.
+                            APP_ErrorHandler(ERR_MIN_ACTUATION_TEMP);
+                        } 
                     }
-                    if (data.minute_test_count  >= AMPLIFICATION_TIME_MIN + ACTUATION_TIME_MIN + DETECTION_TIME_MIN) {
-                        // final state -- END
-                        if (data.state != low_power) {
-                            // SHUT DOWN LOADS!!!!
-                            data.state = low_power;
-                            pid_init(SAMPLE_HEATER,sample_amp_control[data.state]);
-                            pid_init(VALVE_HEATER,valve_amp_control[data.state]);
-                            stop_naat_test();
-        
-                            send_max_temps();
-                            if (data.sample_max_temperature_c < AMPLIFICATION_MIN_VALID_TEMP_C) {
-                                // Set an alarm if the minimum sample temperature was not reached.
-                                APP_ErrorHandler(ERR_MIN_AMPLIFICATION_TEMP);
-                            } else if (data.valve_max_temperature_c < ACTUATION_MIN_VALID_TEMP_C) {
-                                // Set an alarm if the minimum valve temperature was not reached.
-                                APP_ErrorHandler(ERR_MIN_ACTUATION_TEMP);
-                            } 
-                        }
-                    }
-                } else if (data.minute_test_count >= AMPLIFICATION_TIME_MIN) {
+                }
+            } else if (data.minute_test_count >= AMPLIFICATION_TIME_MIN) {
+                // select RAMP or Steady state
+                if ( (data.valve_temperature_c >= (VALVE_ZONE_ACT_RAMP_TARGET_C)) && !data.flag_reached_actuation_ramp_target) {
+                    data.flag_reached_actuation_ramp_target = true;
+                    Enable_timer(ActuationDelayTimerNumber); // start the actuation delay timer
+                }
+
+                if (data.state != actuation_ramp && flags.flagActuationDelay) {
+                    data.state = actuation_ramp;
+                    data.valve_ramp_start_time_msec = data.msec_test_count;
+                    // set valve heater high strength and 100%. (sample heater will be off)
+                    data.heater_control_not_simultaneous = false;
+                    pwm_valve_ctrl.heater_level_high = true;   
+                    
+                    pid_init(SAMPLE_HEATER,sample_amp_control[data.state]);
+                    pid_init(VALVE_HEATER,valve_amp_control[data.state]);
+                    //Update_TimerTickInterval(LEDTimerNumber, LED_TIMER_INTERVAL_ACTIVATION_RAMP);
+                }
+
+                if (flags.flagActuationDelay) {
                     if (data.state != actuation) {
+                        // set flags
                         data.state = actuation;
+                        // disable timer
+                        Disable_timer(ActuationDelayTimerNumber);
+
                         data.valve_ramp_start_time_msec = data.msec_test_count;
                         // set valve heater high strength and 100%. (sample heater will be off)
                         data.heater_control_not_simultaneous = false;
@@ -512,11 +541,13 @@ int main(void)
                         
                         pid_init(SAMPLE_HEATER,sample_amp_control[data.state]);
                         pid_init(VALVE_HEATER,valve_amp_control[data.state]);
-						Update_TimerTickInterval(LEDTimerNumber, LED_TIMER_INTERVAL_ACTIVATION);
+                        Update_TimerTickInterval(LEDTimerNumber, LED_TIMER_INTERVAL_ACTIVATION);
                     }
-                }
-            } 
+                } 
+
+            }
         }
+    
 
         /*UPDATE INPUT::TEMPERATURE SENSORS*/
         if (flags.flagDataCollection){
@@ -542,7 +573,7 @@ int main(void)
             }
             print_log_data();
         }
-    }    
+    }   
 }
 
 void start_naat_test(void) {
@@ -594,8 +625,12 @@ void start_naat_test(void) {
         pwm_valve_ctrl.heater_level_high = true;
         data.state = amplification_ramp;
 #endif
-        pid_init(SAMPLE_HEATER, sample_amp_control[amplification]);
-        pid_init(VALVE_HEATER,valve_amp_control[amplification]);
+        // NEED TO START IN AMPLIFICATION RAMP STATE, let that be controlled by data.state value
+        pid_init(SAMPLE_HEATER, sample_amp_control[data.state]);
+        pid_init(VALVE_HEATER,valve_amp_control[data.state]);
+
+        //pid_init(SAMPLE_HEATER, sample_amp_control[amplification]);
+        //pid_init(VALVE_HEATER,valve_amp_control[amplification]);
     } else {
         sprintf(outputStr, "Err: Invalid test starting state.\r\n");		   
         HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
@@ -627,9 +662,10 @@ void Data_init(void)
     flags.flagDataCollection = false;
     flags.flagUpdatePID = false;
     flags.flagUpdateLED = false;
-    flags.flagDelayedStart = false;
+    flags.flagDelayedStart = true;
     flags.flagPushbutton = false;
     flags.flag_1minute = false;
+    flags.flagActuationDelay = false;
     
     data.test_active = false;
     data.state = low_power;
@@ -745,9 +781,14 @@ void Update_PID(void)
             APP_ErrorHandler(ERR_HEATER_TIMEOUT);    
         }
     } else if (data.state == amplification_ramp) {
-        if (data.sample_temperature_c >= (SAMPLE_ZONE_AMP_SOAK_TARGET_C - HEATER_RAMP_SETPOINT_OFFSET) && data.valve_temperature_c >= (VALVE_ZONE_AMP_SOAK_TARGET_C - HEATER_RAMP_SETPOINT_OFFSET)) {
+        if ((data.sample_temperature_c >= (SAMPLE_ZONE_AMP_RAMP_TARGET_C - HEATER_RAMP_SETPOINT_OFFSET)) && (data.valve_temperature_c >= (VALVE_ZONE_AMP_RAMP_TARGET_C - HEATER_RAMP_SETPOINT_OFFSET))) {
             data.state = amplification;
             data.sample_ramp_time_sec = data.msec_test_count / 1000;
+
+            // initialize the sample and valve heaters to the amplification setpoints:
+            pid_init(SAMPLE_HEATER,sample_amp_control[data.state]);
+            pid_init(VALVE_HEATER,valve_amp_control[data.state]);
+
 #if (IGNORE_RAMP_TIME == 1)            
             Disable_timer(MinuteTimerNumber);    
             data.minute_test_count = 0;
@@ -1265,6 +1306,11 @@ void MinuteTimer_ISR(void)
 void DataCollection_ISR(void)
 {
     flags.flagDataCollection = true;
+}
+
+void ActuationDelay_ISR(void)
+{
+    flags.flagActuationDelay = true;
 }
 
 void DelayedStart_ISR(void)

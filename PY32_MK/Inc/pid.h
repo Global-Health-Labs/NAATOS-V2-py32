@@ -38,6 +38,20 @@
 #define PID_VH_P_TERM 45.0
 #define PID_VH_I_TERM 2
 #define PID_VH_D_TERM 10
+
+#define PID_P_RAMP_TERM 300
+
+//#define PID_SH_P_TERM 200
+//#define PID_SH_I_TERM 15
+//#define PID_SH_D_TERM 0
+//#define PID_VH_P_TERM 75
+//#define PID_VH_I_TERM 10
+//#define PID_VH_D_TERM .25
+
+#define PID_VH_P_TERM_ACT 75
+#define PID_VH_I_TERM_ACT 10
+#define PID_VH_D_TERM_ACT 6
+
 //#define PID_SH_P_TERM 45
 //#define PID_SH_I_TERM 0.5
 //#define PID_SH_D_TERM 0.333

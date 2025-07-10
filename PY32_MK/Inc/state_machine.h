@@ -14,9 +14,11 @@ enum state_machine
     amplification,
     actuation,
     detection,
+    actuation_ramp,
     self_test_1,
     self_test_2,
     preheat
+    
 };
 
 #endif /* STATE_MACHINE_H_*/
