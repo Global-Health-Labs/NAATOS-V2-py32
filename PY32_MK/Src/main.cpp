@@ -1,3 +1,4 @@
+
 /*
 *   File: main.cpp
 *   Project: NAATOS V2
@@ -11,6 +12,8 @@
 #include <string.h>
 
 #include "state_machine.h"
+// Ensure your state_machine.h defines an enum like:
+// typedef enum { low_power, self_test_1, self_test_2, preheat, amplification_ramp, amplification, actuation_ramp, actuation, detection } state_t;
 #include "alarm.h"
 #include "pid.h"
 #include "adc.h"
@@ -53,21 +56,21 @@ GPIO_PinState pushbutton_value, last_pushbutton_value;
 
 CONTROL sample_amp_control[NUMPROCESS] = 
 {
-  {HEATER_SHUTDOWN_C, 0, 0, 2, 1, .5},                                                      // shutdown
-  {SAMPLE_ZONE_AMP_RAMP_TARGET_C, 0,0, PID_P_RAMP_TERM, 0, 0},                              // AMP RAMP
-  {SAMPLE_ZONE_AMP_SOAK_TARGET_C, 0,0, PID_SH_P_TERM, PID_SH_I_TERM, PID_SH_D_TERM},        // AMP SOAK
-  {SAMPLE_ZONE_VALVE_SOAK_TARGET_C, 0, 0, PID_SH_P_TERM, PID_SH_I_TERM, PID_SH_D_TERM},     // ACT SOAK
-  {HEATER_SHUTDOWN_C, 0, 0, 2, 5, 1},                                                       // DETECTION
-  {HEATER_SHUTDOWN_C, 0, 0, 0, 0, 0}
+  {HEATER_SHUTDOWN_C, 0, 0, 2, 1, .5, false},                                                      // shutdown
+  {SAMPLE_ZONE_AMP_RAMP_TARGET_C, 0,0, PID_P_RAMP_TERM, 0, 0, true},                              // AMP RAMP
+  {SAMPLE_ZONE_AMP_SOAK_TARGET_C, 0,0, PID_SH_P_TERM, PID_SH_I_TERM, PID_SH_D_TERM, false},        // AMP SOAK
+  {SAMPLE_ZONE_VALVE_SOAK_TARGET_C, 0, 0, PID_SH_P_TERM, PID_SH_I_TERM, PID_SH_D_TERM, false},     // ACT SOAK
+  {HEATER_SHUTDOWN_C, 0, 0, 2, 5, 1, false},                                                       // DETECTION
+  {HEATER_SHUTDOWN_C, 0, 0, 0, 0, 0, false}
 };
 CONTROL valve_amp_control[NUMPROCESS] = 
 {
-  {HEATER_SHUTDOWN_C, 0, 0, 0, 0, 0},
-  {VALVE_ZONE_AMP_RAMP_TARGET_C, 0,0, PID_P_RAMP_TERM, 0, 0},
-  {VALVE_ZONE_AMP_SOAK_TARGET_C, 0,0, PID_VH_P_TERM, PID_VH_I_TERM, PID_VH_D_TERM},
-  {VALVE_ZONE_VALVE_SOAK_TARGET_C,0, 0, PID_VH_P_TERM, PID_VH_I_TERM, PID_VH_D_TERM},
-  {HEATER_SHUTDOWN_C, 0, 0, 0, 0, 0},
-  {VALVE_ZONE_ACT_RAMP_TARGET_C, 0, 0, PID_P_RAMP_TERM, 0, 0}
+  {HEATER_SHUTDOWN_C, 0, 0, 0, 0, 0, false},
+  {VALVE_ZONE_AMP_RAMP_TARGET_C, 0,0, PID_P_RAMP_TERM, 0, 0, true},
+  {VALVE_ZONE_AMP_SOAK_TARGET_C, 0,0, PID_VH_P_TERM, PID_VH_I_TERM, PID_VH_D_TERM, false},
+  {VALVE_ZONE_VALVE_SOAK_TARGET_C,0, 0, PID_VH_P_TERM, PID_VH_I_TERM, PID_VH_D_TERM, true},
+  {HEATER_SHUTDOWN_C, 0, 0, 0, 0, 0, false},
+  {VALVE_ZONE_ACT_RAMP_TARGET_C, 0, 0, PID_P_RAMP_TERM, 0, 0, false}
 };
 
 
@@ -193,7 +196,7 @@ void SetOptionBytes(void)
     OBInit.OptionType     = OPTIONBYTE_USER | OPTIONBYTE_RDP;
     OBInit.RDPLevel       = OB_RDP_LEVEL_0;       // 0xAA
     OBInit.USERType       =     OB_USER_BOR_EN | OB_USER_BOR_LEV | OB_USER_NRST_MODE | OB_USER_nBOOT1; //OB_USER_ALL;
-	OBInit.USERConfig 		=  
+    OBInit.USERConfig 		=  
         OB_BOR_ENABLE           |           // Enable BOR
         OB_BOR_LEVEL_1p7_1p8    |           // 1.7V - 1.8V
         OB_RESET_MODE_RESET     |           // GPIO usage for pin OB_RESET_MODE_RESET | OB_RESET_MODE_GPIO
@@ -234,9 +237,9 @@ void InitWatchdog(void)
 }
 */
 void PrintOptionBytes(void)
-		{
-				FLASH_OBProgramInitTypeDef OBInit;
-				HAL_FLASH_OBGetConfig(&OBInit);
+        {
+                FLASH_OBProgramInitTypeDef OBInit;
+                HAL_FLASH_OBGetConfig(&OBInit);
 
 
                 // print 0 pin is GPIO, 1 if it is RESET
@@ -246,31 +249,31 @@ void PrintOptionBytes(void)
                 //printf("    RESET pin mode: %s\r\n", (OBInit.USERConfig & OB_RESET_MODE_RESET) ? "RESET" : "GPIO");
                 HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
 
-				printf("Option Bytes:\r\n");
-				printf("  RDP Level   : 0x%02X\r\n", OBInit.RDPLevel);
-			
-				if (OBInit.USERConfig & OB_USER_BOR_EN) {
-					printf("  BOR Level   : ");
-					switch (OBInit.USERConfig & FLASH_OPTR_BOR_LEV) {
-							case OB_BOR_LEVEL_1p7_1p8:  printf("1.8V\r\n"); break;
-							case OB_BOR_LEVEL_1p9_2p0:  printf("1.9V\r\n"); break;
+                printf("Option Bytes:\r\n");
+                printf("  RDP Level   : 0x%02X\r\n", OBInit.RDPLevel);
+            
+                if (OBInit.USERConfig & OB_USER_BOR_EN) {
+                    printf("  BOR Level   : ");
+                    switch (OBInit.USERConfig & FLASH_OPTR_BOR_LEV) {
+                            case OB_BOR_LEVEL_1p7_1p8:  printf("1.8V\r\n"); break;
+                            case OB_BOR_LEVEL_1p9_2p0:  printf("1.9V\r\n"); break;
                             case OB_BOR_LEVEL_2p1_2p2:  printf("2.1V\r\n"); break;  // default
                             case OB_BOR_LEVEL_2p3_2p4:  printf("2.3V\r\n"); break;
                             case OB_BOR_LEVEL_2p5_2p6:  printf("2.5V\r\n"); break;
                             case OB_BOR_LEVEL_2p7_2p8:  printf("2.7V\r\n"); break;
                             case OB_BOR_LEVEL_2p9_3p0:  printf("2.9V\r\n"); break;
                             case OB_BOR_LEVEL_3p1_3p2:  printf("3.1V\r\n"); break;
-							default:             printf("Unknown\r\n"); break;
-					}
-				}else {
-					printf("BOR disabled\r\n");
-				}
+                            default:             printf("Unknown\r\n"); break;
+                    }
+                }else {
+                    printf("BOR disabled\r\n");
+                }
 
-				printf("  User Config : 0x%02X\r\n", OBInit.USERConfig);
-				printf("    WDG: %s\r\n", (OBInit.USERConfig & OB_IWDG_SW) ? "Software" : "Hardware");
-				printf("    STOP Reset: %s\r\n", (OBInit.USERConfig & OB_RESET_MODE_RESET) ? "Disabled" : "Enabled");
-				//printf("    STDBY Reset: %s\r\n", (OBInit.USERConfig & OB_STDBY_NO_RST) ? "Disabled" : "Enabled");
-		}
+                printf("  User Config : 0x%02X\r\n", OBInit.USERConfig);
+                printf("    WDG: %s\r\n", (OBInit.USERConfig & OB_IWDG_SW) ? "Software" : "Hardware");
+                printf("    STOP Reset: %s\r\n", (OBInit.USERConfig & OB_RESET_MODE_RESET) ? "Disabled" : "Enabled");
+                //printf("    STDBY Reset: %s\r\n", (OBInit.USERConfig & OB_STDBY_NO_RST) ? "Disabled" : "Enabled");
+        }
 
 
 
@@ -279,7 +282,7 @@ void PrintOptionBytes(void)
 void pid_init(heater_t heater, CONTROL pid_settings){
   float adjusted_setpoint;
   
-  if (data.cold_ambient_temp_mode) adjusted_setpoint = pid_settings.setpoint + COLD_TEMP_SETPOINT_OFFSET_C;
+  if (data.cold_ambient_temp_mode && pid_settings.cold_temp_adjusted) adjusted_setpoint = pid_settings.setpoint + COLD_TEMP_SETPOINT_OFFSET_C;
   else adjusted_setpoint = pid_settings.setpoint;
   pid_controller_init(
     heater, 
@@ -295,7 +298,7 @@ void system_setup() {
     HAL_Init();
   
     APP_SystemClockConfig(); 
-	
+    
     //Initialize periperhals
     GPIO_Init();
     TIMER_Init();
@@ -321,11 +324,12 @@ void system_setup() {
 
     ActuationDelayTimerNumber = Register_timer(ActuationDelay_ISR,  ACTUATION_DELAY_TIMER_INTERVAL);
 
-#ifdef PUSHBUTTON_UI_ENABLED    
-    PushbuttonTimerNumber = Register_timer(Pushbutton_ISR,  PUSHBUTTON_TIMER_INTERVAL);
-#else     
-    flags.flagPushbutton = true;    // start the test right away
-#endif
+    // Register the pushbutton timer if enabled, PCB dependent
+    #ifdef PUSHBUTTON_UI_ENABLED    
+        PushbuttonTimerNumber = Register_timer(Pushbutton_ISR,  PUSHBUTTON_TIMER_INTERVAL);
+    #else     
+        flags.flagPushbutton = true;    // start the test right away
+    #endif
 
     LogTimerNumber = Register_timer(LogData_ISR,  LOG_TIMER_INTERVAL);
     
@@ -345,10 +349,233 @@ void system_setup() {
     HAL_GPIO_WritePin(Pins.GPIOx_LED2, Pins.GPIO_Pin_LED2, GPIO_PIN_RESET); // Turn on LED2    
 }
 
+void power_on_tests(void){
+    #ifdef ENABLE_POWER_ON_TESTS
+        if (Validate_Power_Supply() == false) APP_ErrorHandler(ERR_POWER_SUPPLY);
+
+        #if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C)|| defined(BOARDCONFIG_MK6F)
+            // Verify that the USB power supply can supply at least 1.5A:
+            if (Validate_USB_Power_Source() == false) APP_ErrorHandler(ERR_INVALID_USB_POWER_SOURCE);    
+        #endif
+    #endif
+    
+    ADC_Set_USB_cc_read_state(false);       // disable reading of USB-C CC voltages in the ADC.
+}
+
+void init_adc_data(void){
+
+    ADC_Read();
+    //sprintf(outputStr, "ADCs: %d %d %d %d %d %d %d\r\n", data.adcReading[0], data.adcReading[1], data.adcReading[2], data.adcReading[3], data.adcReading[4], data.adcReading[5], data.adcReading[6]);
+    //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
+    sprintf(outputStr, "system_input_voltage: %1.2f vcc_mcu_voltage: %1.2f\r\n", data.system_input_voltage, data.vcc_mcu_voltage);
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
+    
+    // py32_temperature_c does not work correctly. The ADC value reads higher than HAL_ADC_TSCAL2 (85c)
+    //sprintf(outputStr, "py32_temperature_c: %1.2f ADC->CHSELR: %08X bits: %d vrefint:%d HAL_ADC_TSCAL1: %d HAL_ADC_TSCAL2: %d\r\n", data.py32_temperature_c, ADC1->CHSELR, data.adcReading[5], data.adcReading[6], HAL_ADC_TSCAL1, HAL_ADC_TSCAL2);
+    //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
+    
+    sprintf(outputStr, "rcc->csr: %08X usb_cc1_voltage: %1.2f usb_cc2_voltage: %1.2f\r\n", rcc_csr_bootstate, data.usb_cc1_voltage, data.usb_cc2_voltage);
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
+    sprintf(outputStr, "sample_temperature_c: %1.2f valve_temperature_c: %1.2f\r\n", data.sample_temperature_c, data.valve_temperature_c);
+    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);   
+
+    data.self_test_sh_start_temp_c = data.sample_temperature_c;
+    data.self_test_vh_start_temp_c = data.valve_temperature_c;
+    
+}
+
+void APP_UpdateState(void){
 /**
-  * @brief  
-  * @retval int
-  */
+ * @brief Updates the PID control and manages the main state machine transitions.
+ *
+ * This function combines the periodic PID update logic and the primary state machine
+ * for the NAATOS application. It should be called at regular intervals (e.g., from a timer interrupt
+ * or main loop) to:
+ *   - Update test timing and collect ADC data.
+ *   - Transition between amplification, actuation ramp, actuation, detection, and low power states
+ *     based on elapsed time and temperature conditions.
+ *   - Initialize or update PID controllers and PWM outputs as needed for each state.
+ *   - Handle actuation delay, ramp targets, and error conditions.
+ *   - Shut down loads and trigger alarms if minimum temperature requirements are not met.
+ *
+ * All state transitions and control actions are performed based on the current values in the
+ * global data and flags structures.
+*/
+
+/***
+ * SELF TEST SECTION
+ */
+    #ifdef ENABLE_POWER_ON_TESTS
+        if (data.state == self_test_1) {
+            if (data.sample_temperature_c >= (data.self_test_sh_start_temp_c + SELFTEST_MIN_TEMP_RISE_C)
+                && data.valve_temperature_c >= (data.self_test_vh_start_temp_c + SELFTEST_MIN_TEMP_RISE_C)) {
+                data.state = self_test_2;
+                data.self_test_sh_start_temp_c = data.sample_temperature_c;
+                data.self_test_vh_start_temp_c = data.valve_temperature_c;
+                pwm_amp_ctrl.heater_level_high = true;
+                pwm_valve_ctrl.heater_level_high = true;                        
+                //sprintf(outputStr, "Passed self_test_1\r\n");		   
+                //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
+            } else if (data.msec_test_count > SELFTEST_TIME_MSEC) {
+                APP_ErrorHandler(ERR_SELFTEST_FAILED);  
+            }
+        } else if (data.state == self_test_2) {
+            if (data.sample_temperature_c >= (data.self_test_sh_start_temp_c + SELFTEST_MIN_TEMP_RISE_C)
+                && data.valve_temperature_c >= (data.self_test_vh_start_temp_c + SELFTEST_MIN_TEMP_RISE_C)) {
+                data.state = preheat;
+                data.sample_temperature_c = data.self_test_sh_start_temp_c;
+                data.valve_temperature_c = data.self_test_vh_start_temp_c;
+                //sprintf(outputStr, "Passed self_test_2\r\n");		   
+                //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
+            } else if (data.msec_test_count > (2* SELFTEST_TIME_MSEC)) {
+                APP_ErrorHandler(ERR_SELFTEST_FAILED);                   
+            }
+        } else if (data.state == preheat) {
+            if (data.sample_temperature_c >= PREHEAT_TEMP_C && data.valve_temperature_c >= PREHEAT_TEMP_C) {
+                data.state = amplification_ramp;
+                #if defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA)
+                            data.heater_control_not_simultaneous = false;
+                            pwm_amp_ctrl.heater_level_high = false;
+                            pwm_valve_ctrl.heater_level_high = false;
+                #elif defined(BOARDCONFIG_MK6C)
+                            data.heater_control_not_simultaneous = false;
+                            pwm_amp_ctrl.heater_level_high = true;
+                            pwm_valve_ctrl.heater_level_high = true;
+                #else
+                            data.heater_control_not_simultaneous = false;
+                            pwm_amp_ctrl.heater_level_high = false;
+                            pwm_valve_ctrl.heater_level_high = false;
+                #endif    							
+                pid_init(SAMPLE_HEATER, sample_amp_control[data.state]);
+                pid_init(VALVE_HEATER, valve_amp_control[data.state]);                                
+                //sprintf(outputStr, "preheat mode ended.\r\n");		   
+                //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
+            } else if (data.msec_test_count > PREHEAT_MAX_TIME_MSEC) {
+                APP_ErrorHandler(ERR_HEATER_TIMEOUT);    
+            }
+        } 
+    #endif // ENABLE_POWER_ON_TESTS
+
+    /***
+     * PRIMARY APP STATE MACHINE
+     */
+    if (data.state == amplification_ramp) {
+        // AMPLIFICATION RAMP
+
+        if ((data.sample_temperature_c >= (SAMPLE_ZONE_AMP_RAMP_TARGET_C - HEATER_RAMP_SETPOINT_OFFSET)) && (data.valve_temperature_c >= (VALVE_ZONE_AMP_RAMP_TARGET_C - HEATER_RAMP_SETPOINT_OFFSET))) {
+            // EXCEEDED RAMP TARGET; switch to AMPLIFICATION state
+            data.state = amplification;
+            data.sample_ramp_time_sec = data.msec_test_count / 1000;
+            // initialize the sample and valve heaters to the amplification setpoints:
+            pid_init(SAMPLE_HEATER,sample_amp_control[data.state]);
+            pid_init(VALVE_HEATER,valve_amp_control[data.state]);
+
+            // RESET the minute test count, APP timer
+            #ifdef IGNORE_RAMP_TIME            
+                Disable_timer(MinuteTimerNumber);    
+                data.minute_test_count = 0;
+                Enable_timer(MinuteTimerNumber);        // start the test timer over
+            #endif            
+
+        } else if (data.msec_test_count > PREHEAT_MAX_TIME_MSEC) {
+            APP_ErrorHandler(ERR_HEATER_TIMEOUT);    
+        }
+    }
+
+    if (data.minute_test_count >= AMPLIFICATION_TIME_MIN) {
+        if (data.minute_test_count >= AMPLIFICATION_TIME_MIN + ACTUATION_TIME_MIN) {
+            // in detection
+            if (data.state != detection) { // Ensure 'detection' is a valid enum value from your state machine
+                data.state = detection;
+                pid_init(SAMPLE_HEATER,sample_amp_control[data.state]);
+                pid_init(VALVE_HEATER,valve_amp_control[data.state]);
+                pwm_amp_ctrl.enabled = false;      
+                pwm_valve_ctrl.enabled = false;      
+            }
+            if (data.minute_test_count  >= AMPLIFICATION_TIME_MIN + ACTUATION_TIME_MIN + DETECTION_TIME_MIN) {
+                // final state -- END
+                if (data.state != low_power) {
+                    // SHUT DOWN LOADS!!!!
+                    data.state = low_power;
+                    pid_init(SAMPLE_HEATER,sample_amp_control[data.state]);
+                    pid_init(VALVE_HEATER,valve_amp_control[data.state]);
+                    stop_naat_test();
+
+                    send_max_temps();
+                    if (data.sample_max_temperature_c < AMPLIFICATION_MIN_VALID_TEMP_C) {
+                        // Set an alarm if the minimum sample temperature was not reached.
+                        APP_ErrorHandler(ERR_MIN_AMPLIFICATION_TEMP);
+                    } else if (data.valve_max_temperature_c < ACTUATION_MIN_VALID_TEMP_C) {
+                        // Set an alarm if the minimum valve temperature was not reached.
+                        APP_ErrorHandler(ERR_MIN_ACTUATION_TEMP);
+                    } 
+                }
+            }
+        } else if (data.minute_test_count >= AMPLIFICATION_TIME_MIN) {
+            // select RAMP or Steady state
+            if ( (data.valve_temperature_c >= (VALVE_ZONE_ACT_RAMP_TARGET_C)) && !data.flag_reached_actuation_ramp_target) {
+                // Reach the actuation ramp target; start TIMER for actuation delay
+                data.flag_reached_actuation_ramp_target = true;
+                Enable_timer(ActuationDelayTimerNumber); // start the actuation delay timer
+            }
+
+            if (data.state != actuation_ramp && !data.flag_reached_actuation_ramp_target) {
+                // Set STATE to ACTUATION RAMP
+                data.state = actuation_ramp;
+                
+                data.valve_ramp_start_time_msec = data.msec_test_count;
+                // set valve heater high strength and 100%. (sample heater will be off)
+                data.heater_control_not_simultaneous = false;
+                pwm_valve_ctrl.heater_level_high = true;   
+                
+                // set PID values
+                pid_init(SAMPLE_HEATER,sample_amp_control[data.state]);
+                pid_init(VALVE_HEATER,valve_amp_control[data.state]);
+                //Update_TimerTickInterval(LEDTimerNumber, LED_TIMER_INTERVAL_ACTIVATION_RAMP);
+            }
+
+            if (flags.flagActuationDelay) {
+                if (data.state != actuation) {
+                    // Set STATE to ACTUATION
+                    data.state = actuation;
+                    // disable timer
+                    Disable_timer(ActuationDelayTimerNumber);
+
+                    data.valve_ramp_start_time_msec = data.msec_test_count;
+                    // set valve heater high strength and 100%. (sample heater will be off)
+                    data.heater_control_not_simultaneous = false;
+                    pwm_valve_ctrl.heater_level_high = true;   
+                    
+                    // set PID values
+                    pid_init(SAMPLE_HEATER,sample_amp_control[data.state]);
+                    pid_init(VALVE_HEATER,valve_amp_control[data.state]);
+
+                    //Update_TimerTickInterval(LEDTimerNumber, LED_TIMER_INTERVAL_ACTIVATION);
+                }
+            } 
+        }
+    }
+}
+
+/**
+ * @brief Main entry point for the application.
+ *
+ * This function performs the following steps:
+ * 1. Reads the boot state from the RCC CSR register.
+ * 2. Calls system setup routines.
+ * 3. Optionally sets or prints option bytes based on compile-time flags.
+ * 4. Initializes ADC data and performs power-on self-tests.
+ * 5. Checks for cold ambient temperature and sets mode accordingly.
+ * 6. Enters the main application loop, which:
+ *    - Updates application state.
+ *    - Handles pushbutton events to start/stop tests.
+ *    - Manages delayed start logic and self-test error handling.
+ *    - Updates minute counters for state transitions.
+ *    - Collects ADC data and updates PID control if required.
+ *    - Sends log data and performs temperature readings in low power mode.
+ *
+ * The main loop runs indefinitely, managing application state and responding to hardware events.
+ */
 int main(void)
 {
     //uint32_t start_tick;
@@ -360,10 +587,6 @@ int main(void)
 
     //InitWatchdog();
 
-    //sprintf(outputStr,"Startup Flag Check: 0x%08lX\r\n", ReadFlag());
-    //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
-
-    //#define SET_FLAG
     #ifdef SET_FLAG
     if (ReadFlag() != FLAG_VALUE) {
         //SetOptionBytes();
@@ -384,57 +607,21 @@ int main(void)
             sprintf(outputStr, "OPTION BYTES SET.  Please manually reset.\r\n");
             HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
             while (1); // Wait for reset
-    #endif
 
+    #else
+        //sprintf(outputStr, "printing OPTION BYTES\r\n");
+        //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
+        //PrintOptionBytes();
     
+    #endif // SET_OB_ONCE
 
 
-    //sprintf(outputStr, "printing OPTION BYTES\r\n");
-    //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
-	//PrintOptionBytes();
-	
-    // Application code
+    // Start setting up for APP
 
+    init_adc_data(); 
 
+    power_on_tests();
     
-  	//start_tick = TIM1_tick_count;    
-
-#ifdef DEBUG    
-    //Distribute_PWM_Bits((uint8_t) 3, (uint64_t *) pwm_amp_ctrl.pwm_bits);    
-    //Distribute_PWM_Bits((uint8_t) 7, (uint64_t *) pwm_amp_ctrl.pwm_bits);    
-    //Distribute_PWM_Bits((uint8_t) 254, (uint64_t *) pwm_amp_ctrl.pwm_bits);  
-
-		
-#endif
-
-    ADC_Read();
-    //sprintf(outputStr, "ADCs: %d %d %d %d %d %d %d\r\n", data.adcReading[0], data.adcReading[1], data.adcReading[2], data.adcReading[3], data.adcReading[4], data.adcReading[5], data.adcReading[6]);
-    //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
-    sprintf(outputStr, "system_input_voltage: %1.2f vcc_mcu_voltage: %1.2f\r\n", data.system_input_voltage, data.vcc_mcu_voltage);
-    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
-    
-    // py32_temperature_c does not work correctly. The ADC value reads higher than HAL_ADC_TSCAL2 (85c)
-    //sprintf(outputStr, "py32_temperature_c: %1.2f ADC->CHSELR: %08X bits: %d vrefint:%d HAL_ADC_TSCAL1: %d HAL_ADC_TSCAL2: %d\r\n", data.py32_temperature_c, ADC1->CHSELR, data.adcReading[5], data.adcReading[6], HAL_ADC_TSCAL1, HAL_ADC_TSCAL2);
-    //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
-    
-    sprintf(outputStr, "rcc->csr: %08X usb_cc1_voltage: %1.2f usb_cc2_voltage: %1.2f\r\n", rcc_csr_bootstate, data.usb_cc1_voltage, data.usb_cc2_voltage);
-    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
-    sprintf(outputStr, "sample_temperature_c: %1.2f valve_temperature_c: %1.2f\r\n", data.sample_temperature_c, data.valve_temperature_c);
-    HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);   
-
-    data.self_test_sh_start_temp_c = data.sample_temperature_c;
-    data.self_test_vh_start_temp_c = data.valve_temperature_c;
-
-#if (ENABLE_POWER_ON_TESTS == 1)
-    if (Validate_Power_Supply() == false) APP_ErrorHandler(ERR_POWER_SUPPLY);
-
-#if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C)|| defined(BOARDCONFIG_MK6F)
-    // Verify that the USB power supply can supply at least 1.5A:
-    if (Validate_USB_Power_Source() == false) APP_ErrorHandler(ERR_INVALID_USB_POWER_SOURCE);    
-#endif
-#endif
-    
-    ADC_Set_USB_cc_read_state(false);       // disable reading of USB-C CC voltages in the ADC.
     
     if (data.sample_temperature_c <= COLD_TEMP_OFFSET_THRESHOLD_C) {
         data.cold_ambient_temp_mode = true;
@@ -442,6 +629,10 @@ int main(void)
 
     while (1) 
     {
+    
+        // RUN primary application code state LOGIC
+        APP_UpdateState();
+
         //HAL_IWDG_Refresh(&hiwdg);
 
         if (flags.flagPushbutton) {
@@ -461,101 +652,24 @@ int main(void)
             flags.flagDelayedStart = false;
             Disable_timer(DelayedStartTimerNumber);
 
-#if (ENABLE_POWER_ON_TESTS == 1)            
+            #ifdef ENABLE_POWER_ON_TESTS           
             // Self-test: The heaters are off. 
             // Throw an error if either heater temperature has risen during the delayed start period.
             if ((data.sample_temperature_c > data.self_test_sh_start_temp_c + SELFTEST_MIN_TEMP_RISE_C/2.0) || (data.valve_temperature_c > data.self_test_vh_start_temp_c + SELFTEST_MIN_TEMP_RISE_C/2.0)) {
                 APP_ErrorHandler(ERR_SELFTEST_FAILED); 
             }
-#endif            
+            #endif            
             
             // Start the test:
             start_naat_test();                        
             Enable_timer(PWMTimerNumber);            
         }                
 
+        // UPDATE MINUTE COUNTER; USED fror state transitions
         if (flags.flag_1minute) {
             flags.flag_1minute = false;
             data.minute_test_count++;
         }
-            
-        if (data.minute_test_count >= AMPLIFICATION_TIME_MIN) {
-            if (data.minute_test_count >= AMPLIFICATION_TIME_MIN + ACTUATION_TIME_MIN) {
-                // in detection
-                if (data.state != detection) {
-                    data.state = detection;
-                    pid_init(SAMPLE_HEATER,sample_amp_control[data.state]);
-                    pid_init(VALVE_HEATER,valve_amp_control[data.state]);
-                    pwm_amp_ctrl.enabled = false;      
-                    pwm_valve_ctrl.enabled = false;      
-                }
-                if (data.minute_test_count  >= AMPLIFICATION_TIME_MIN + ACTUATION_TIME_MIN + DETECTION_TIME_MIN) {
-                    // final state -- END
-                    if (data.state != low_power) {
-                        // SHUT DOWN LOADS!!!!
-                        data.state = low_power;
-                        pid_init(SAMPLE_HEATER,sample_amp_control[data.state]);
-                        pid_init(VALVE_HEATER,valve_amp_control[data.state]);
-                        stop_naat_test();
-    
-                        send_max_temps();
-                        if (data.sample_max_temperature_c < AMPLIFICATION_MIN_VALID_TEMP_C) {
-                            // Set an alarm if the minimum sample temperature was not reached.
-                            APP_ErrorHandler(ERR_MIN_AMPLIFICATION_TEMP);
-                        } else if (data.valve_max_temperature_c < ACTUATION_MIN_VALID_TEMP_C) {
-                            // Set an alarm if the minimum valve temperature was not reached.
-                            APP_ErrorHandler(ERR_MIN_ACTUATION_TEMP);
-                        } 
-                    }
-                }
-            } else if (data.minute_test_count >= AMPLIFICATION_TIME_MIN) {
-                // select RAMP or Steady state
-                if ( (data.valve_temperature_c >= (VALVE_ZONE_ACT_RAMP_TARGET_C)) && !data.flag_reached_actuation_ramp_target) {
-                    data.flag_reached_actuation_ramp_target = true;
-                    Enable_timer(ActuationDelayTimerNumber); // start the actuation delay timer
-                    //sprintf(outputStr, "reach act target");
-                    //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);  
-                }
-
-                if (data.state != actuation_ramp && !data.flag_reached_actuation_ramp_target) {
-                    data.state = actuation_ramp;
-
-                    //sprintf(outputStr, "start actutation ramp");
-                    //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);  
-                    data.valve_ramp_start_time_msec = data.msec_test_count;
-                    // set valve heater high strength and 100%. (sample heater will be off)
-                    data.heater_control_not_simultaneous = false;
-                    pwm_valve_ctrl.heater_level_high = true;   
-                    
-                    pid_init(SAMPLE_HEATER,sample_amp_control[data.state]);
-                    pid_init(VALVE_HEATER,valve_amp_control[data.state]);
-                    //Update_TimerTickInterval(LEDTimerNumber, LED_TIMER_INTERVAL_ACTIVATION_RAMP);
-                }
-
-                if (flags.flagActuationDelay) {
-                    if (data.state != actuation) {
-
-                        //sprintf(outputStr, "start actutation");
-                        //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
-                        // set flags
-                        data.state = actuation;
-                        // disable timer
-                        Disable_timer(ActuationDelayTimerNumber);
-
-                        data.valve_ramp_start_time_msec = data.msec_test_count;
-                        // set valve heater high strength and 100%. (sample heater will be off)
-                        data.heater_control_not_simultaneous = false;
-                        pwm_valve_ctrl.heater_level_high = true;   
-                        
-                        pid_init(SAMPLE_HEATER,sample_amp_control[data.state]);
-                        pid_init(VALVE_HEATER,valve_amp_control[data.state]);
-                        Update_TimerTickInterval(LEDTimerNumber, LED_TIMER_INTERVAL_ACTIVATION);
-                    }
-                } 
-
-            }
-        }
-    
 
         /*UPDATE INPUT::TEMPERATURE SENSORS*/
         if (flags.flagDataCollection){
@@ -597,9 +711,9 @@ void start_naat_test(void) {
     data.sample_heater_pwm_value = 0;
     data.valve_heater_pwm_value = 0;
     
-#if (IGNORE_RAMP_TIME == 0)            
-    Enable_timer(MinuteTimerNumber);    
-#endif	
+    #ifndef IGNORE_RAMP_TIME        
+        Enable_timer(MinuteTimerNumber);    
+    #endif	
     // Upon system start, a self-test is performed:
     // self_test_1: heaters are turned on in low power mode for up to 10 seconds.
     //      If either heater does not rise in temperature by at least SELFTEST_MIN_TEMP_RISE_C, go to the error state.
@@ -615,35 +729,37 @@ void start_naat_test(void) {
     HAL_GPIO_WritePin(Pins.GPIOx_LED2, Pins.GPIO_Pin_LED2, GPIO_PIN_SET); // Turn off LED2    
     
     data.test_active = true;
-    if (data.state == low_power) {
-#if defined(DEBUG_HEATERS)
-        data.state = amplification;     // skip the self test if we are debugging 
-        data.heater_control_not_simultaneous = true;
-        pwm_amp_ctrl.heater_level_high = false;
-        pwm_valve_ctrl.heater_level_high = false;
 
-#elif (ENABLE_POWER_ON_TESTS == 1)
-        data.heater_control_not_simultaneous = true;
-        pwm_amp_ctrl.heater_level_high = false;
-        pwm_valve_ctrl.heater_level_high = false;
-        data.state = self_test_1;
-#else         
-        data.heater_control_not_simultaneous = false;
-        pwm_amp_ctrl.heater_level_high = true;
-        pwm_valve_ctrl.heater_level_high = true;
-        data.state = amplification_ramp;
-#endif
-        // NEED TO START IN AMPLIFICATION RAMP STATE, let that be controlled by data.state value
+    if (data.state == low_power) {
+        // INITIALIZE STATE
+        #if defined(DEBUG_HEATERS)
+                data.state = amplification;     // skip the self test if we are debugging 
+                data.heater_control_not_simultaneous = true;
+                pwm_amp_ctrl.heater_level_high = false;
+                pwm_valve_ctrl.heater_level_high = false;
+
+        #elif ENABLE_POWER_ON_TESTS
+                data.heater_control_not_simultaneous = true;
+                pwm_amp_ctrl.heater_level_high = false;
+                pwm_valve_ctrl.heater_level_high = false;
+                data.state = self_test_1;
+        #else         
+                data.heater_control_not_simultaneous = false;
+                pwm_amp_ctrl.heater_level_high = true;
+                pwm_valve_ctrl.heater_level_high = true;
+                data.state = amplification_ramp;
+        #endif
+
+        // PID init
         pid_init(SAMPLE_HEATER, sample_amp_control[data.state]);
         pid_init(VALVE_HEATER,valve_amp_control[data.state]);
 
-        //pid_init(SAMPLE_HEATER, sample_amp_control[amplification]);
-        //pid_init(VALVE_HEATER,valve_amp_control[amplification]);
     } else {
         sprintf(outputStr, "Err: Invalid test starting state.\r\n");		   
         HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
     }
-      
+    
+    // start PID timer
     Enable_timer(PIDTimerNumber);
     
 }
@@ -660,7 +776,7 @@ void stop_naat_test(void) {
     Disable_timer(LogTimerNumber);                
     Disable_timer(MinuteTimerNumber);
     
-	Update_TimerTickInterval(LEDTimerNumber, LED_TIMER_INTERVAL_DONE);
+    Update_TimerTickInterval(LEDTimerNumber, LED_TIMER_INTERVAL_DONE);
     sprintf(outputStr, "Test stopped.\r\n");		
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
 }
@@ -741,73 +857,6 @@ void ADC_data_collect(void)
 
 void Update_PID(void)
 {    
-    if (data.state == self_test_1) {
-        if (data.sample_temperature_c >= (data.self_test_sh_start_temp_c + SELFTEST_MIN_TEMP_RISE_C)
-            && data.valve_temperature_c >= (data.self_test_vh_start_temp_c + SELFTEST_MIN_TEMP_RISE_C)) {
-            data.state = self_test_2;
-            data.self_test_sh_start_temp_c = data.sample_temperature_c;
-            data.self_test_vh_start_temp_c = data.valve_temperature_c;
-            pwm_amp_ctrl.heater_level_high = true;
-            pwm_valve_ctrl.heater_level_high = true;                        
-            //sprintf(outputStr, "Passed self_test_1\r\n");		   
-            //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
-        } else if (data.msec_test_count > SELFTEST_TIME_MSEC) {
-            APP_ErrorHandler(ERR_SELFTEST_FAILED);  
-        }
-    } else if (data.state == self_test_2) {
-        if (data.sample_temperature_c >= (data.self_test_sh_start_temp_c + SELFTEST_MIN_TEMP_RISE_C)
-            && data.valve_temperature_c >= (data.self_test_vh_start_temp_c + SELFTEST_MIN_TEMP_RISE_C)) {
-            data.state = preheat;
-            data.sample_temperature_c = data.self_test_sh_start_temp_c;
-            data.valve_temperature_c = data.self_test_vh_start_temp_c;
-            //sprintf(outputStr, "Passed self_test_2\r\n");		   
-            //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
-        } else if (data.msec_test_count > (2* SELFTEST_TIME_MSEC)) {
-            APP_ErrorHandler(ERR_SELFTEST_FAILED);                   
-        }
-    } else if (data.state == preheat) {
-        if (data.sample_temperature_c >= PREHEAT_TEMP_C && data.valve_temperature_c >= PREHEAT_TEMP_C) {
-            data.state = amplification_ramp;
-#if defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA)
-            data.heater_control_not_simultaneous = false;
-            pwm_amp_ctrl.heater_level_high = false;
-            pwm_valve_ctrl.heater_level_high = false;
-#elif defined(BOARDCONFIG_MK6C)
-            data.heater_control_not_simultaneous = false;
-            pwm_amp_ctrl.heater_level_high = true;
-            pwm_valve_ctrl.heater_level_high = true;
-#else
-            data.heater_control_not_simultaneous = false;
-            pwm_amp_ctrl.heater_level_high = false;
-            pwm_valve_ctrl.heater_level_high = false;
-#endif    							
-            pid_init(SAMPLE_HEATER, sample_amp_control[data.state]);
-            pid_init(VALVE_HEATER, valve_amp_control[data.state]);                                
-            //sprintf(outputStr, "preheat mode ended.\r\n");		   
-            //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
-        } else if (data.msec_test_count > PREHEAT_MAX_TIME_MSEC) {
-            APP_ErrorHandler(ERR_HEATER_TIMEOUT);    
-        }
-    } else if (data.state == amplification_ramp) {
-        if ((data.sample_temperature_c >= (SAMPLE_ZONE_AMP_RAMP_TARGET_C - HEATER_RAMP_SETPOINT_OFFSET)) && (data.valve_temperature_c >= (VALVE_ZONE_AMP_RAMP_TARGET_C - HEATER_RAMP_SETPOINT_OFFSET))) {
-            data.state = amplification;
-            data.sample_ramp_time_sec = data.msec_test_count / 1000;
-
-            // initialize the sample and valve heaters to the amplification setpoints:
-            pid_init(SAMPLE_HEATER,sample_amp_control[data.state]);
-            pid_init(VALVE_HEATER,valve_amp_control[data.state]);
-
-#if (IGNORE_RAMP_TIME == 1)            
-            Disable_timer(MinuteTimerNumber);    
-            data.minute_test_count = 0;
-            Enable_timer(MinuteTimerNumber);        // start the test timer over
-#endif            
-            //sprintf(outputStr, "amplification_ramp ended.\r\n");		   
-            //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
-        } else if (data.msec_test_count > PREHEAT_MAX_TIME_MSEC) {
-            APP_ErrorHandler(ERR_HEATER_TIMEOUT);    
-        }
-    }
     
     pid_controller_compute(SAMPLE_HEATER, data.sample_temperature_c);
     pid_controller_compute(VALVE_HEATER, data.valve_temperature_c);
@@ -817,27 +866,27 @@ void Update_PID(void)
     // Since the 2 heater controls are aligned with opposite sides of the PWM period, they will not be
     // turned on simultaniously when in this mode. 
     if (data.heater_control_not_simultaneous) {
-#ifdef DEBUG_HEATERS
-        // turn on the heaters at full power (no PWM). This should not be done unattended!
-        //data.sample_heater_pwm_value = SH_FIXED_PWM_TEST /2;
-        data.sample_heater_pwm_value = 0;       // disable SH
-        data.valve_heater_pwm_value = VH_FIXED_PWM_TEST /2;
-        //data.valve_heater_pwm_value = 0;       // disable SH
-#else        
+        #ifdef DEBUG_HEATERS
+                // turn on the heaters at full power (no PWM). This should not be done unattended!
+                //data.sample_heater_pwm_value = SH_FIXED_PWM_TEST /2;
+                data.sample_heater_pwm_value = 0;       // disable SH
+                data.valve_heater_pwm_value = VH_FIXED_PWM_TEST /2;
+                //data.valve_heater_pwm_value = 0;       // disable SH
+        #else        
         // Distribute maximum power such that heaters are not on simultaneously:
         data.sample_heater_pwm_value = (PWM_MAX * (100-HEATER_ELEMENT_POWER_RATIO)) /100;
         data.valve_heater_pwm_value = (PWM_MAX * HEATER_ELEMENT_POWER_RATIO) /100;
-#endif
+        #endif
     } else {
-#ifdef DEBUG_HEATERS
-        //data.sample_heater_pwm_value = SH_FIXED_PWM_TEST;
-        data.sample_heater_pwm_value = 0;       // disable SH
-        data.valve_heater_pwm_value = VH_FIXED_PWM_TEST;
-        //data.valve_heater_pwm_value = 0;       // disable SH
-#else        
-        data.sample_heater_pwm_value = pid_data[SAMPLE_HEATER].out;
-        data.valve_heater_pwm_value = pid_data[VALVE_HEATER].out;
-#endif
+        #ifdef DEBUG_HEATERS
+                //data.sample_heater_pwm_value = SH_FIXED_PWM_TEST;
+                data.sample_heater_pwm_value = 0;       // disable SH
+                data.valve_heater_pwm_value = VH_FIXED_PWM_TEST;
+                //data.valve_heater_pwm_value = 0;       // disable SH
+        #else        
+                data.sample_heater_pwm_value = pid_data[SAMPLE_HEATER].out;
+                data.valve_heater_pwm_value = pid_data[VALVE_HEATER].out;
+        #endif
     }
     
     // Start the PWM controller at a new cycle after updating the PWM values:
@@ -976,11 +1025,11 @@ void GPIO_Init(void)
 {
     GPIO_InitTypeDef GPIO_InitStruct;
 
-	//Configure GPIO for ADC, UART, PWM outputs
+    //Configure GPIO for ADC, UART, PWM outputs
 
     // Devkit (benchtop prototype) pins:
-	//  PIN 19, PA0 is TX
-	//  PIN 20, PA1 is RX
+    //  PIN 19, PA0 is TX
+    //  PIN 20, PA1 is RX
     //  PIN 1, PA2 is ADC in: AMP_TEMP_V
     //  PIN 2, PA3 is ADC in: VALVE_TEMP_V
     //  PIN 3, PA4 is ADC_SPARE 
@@ -995,8 +1044,8 @@ void GPIO_Init(void)
     
     
     // MK5 and MK6 pins:
-	//  PIN 19, PA0 is TX
-	//  PIN 20, PA1 is RX
+    //  PIN 19, PA0 is TX
+    //  PIN 20, PA1 is RX
     //  PIN 1, PA2 is ADC in: VALVE_TEMP_V
     //  PIN 2, PA3 is ADC in: AMP_TEMP_V
     //  PIN 8, PA4 is ADC in: USB_CC2
@@ -1011,23 +1060,23 @@ void GPIO_Init(void)
     //  PIN 18, PF2 is NRESET pushbutton (not used, pulled up)
     //  PIN 15, PF4 is BOOT0 (not used, pulled down)
     
-	
-	// Enable peripheral clocks
-	__HAL_RCC_GPIOA_CLK_ENABLE();
-	__HAL_RCC_USART2_CLK_ENABLE();
+    
+    // Enable peripheral clocks
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_USART2_CLK_ENABLE();
     __HAL_RCC_GPIOB_CLK_ENABLE();
     __HAL_RCC_GPIOF_CLK_ENABLE();
-	
-	// Initialize UART pins
-	GpioInitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_1;
-	GpioInitStruct.Mode = GPIO_MODE_AF_PP;
-	GpioInitStruct.Pull = GPIO_PULLUP;
-	GpioInitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-	GpioInitStruct.Alternate = GPIO_AF9_USART2;
-	HAL_GPIO_Init(GPIOA, &GpioInitStruct);
-	
-	//Pin settings for ADC inputs
-	__HAL_RCC_ADC_CLK_ENABLE();
+    
+    // Initialize UART pins
+    GpioInitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_1;
+    GpioInitStruct.Mode = GPIO_MODE_AF_PP;
+    GpioInitStruct.Pull = GPIO_PULLUP;
+    GpioInitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    GpioInitStruct.Alternate = GPIO_AF9_USART2;
+    HAL_GPIO_Init(GPIOA, &GpioInitStruct);
+    
+    //Pin settings for ADC inputs
+    __HAL_RCC_ADC_CLK_ENABLE();
     
     // Device pin assignments:
 #if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C) || defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA) || defined(BOARDCONFIG_MK6F)
@@ -1091,26 +1140,26 @@ void GPIO_Init(void)
     Pins.GPIOx_PUSHBUTTON = GPIOA;
     Pins.GPIO_Pin_PUSHBUTTON = GPIO_PIN_12;
 #endif
-	
-	//AdcPinStruct.Pin = GPIO_PIN_1;              // PA1 / UART_RX alternative function
-	//AdcPinStruct.Mode = GPIO_MODE_ANALOG;
-	//AdcPinStruct.Pull = GPIO_NOPULL;
-	//HAL_GPIO_Init(GPIOA, &AdcPinStruct);    
-
-	AdcPinStruct.Pin = Pins.GPIO_Pin_AMP_TEMP_V;            // AMP_TEMP_V
-	AdcPinStruct.Mode = GPIO_MODE_ANALOG;
-	AdcPinStruct.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(Pins.GPIOx_AMP_TEMP_V, &AdcPinStruct);    
-
-	AdcPinStruct.Pin = Pins.GPIO_Pin_AMP_VALVE_TEMP_V;      // VALVE_TEMP_V
-	AdcPinStruct.Mode = GPIO_MODE_ANALOG;
-	AdcPinStruct.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(Pins.GPIOx_AMP_VALVE_TEMP_V, &AdcPinStruct);    
     
-	AdcPinStruct.Pin = Pins.GPIO_Pin_V_BATT_SENSE;          // V_BATT_SENSE
-	AdcPinStruct.Mode = GPIO_MODE_ANALOG;
-	AdcPinStruct.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(Pins.GPIOx_AMP_V_BATT_SENSE, &AdcPinStruct);    
+    //AdcPinStruct.Pin = GPIO_PIN_1;              // PA1 / UART_RX alternative function
+    //AdcPinStruct.Mode = GPIO_MODE_ANALOG;
+    //AdcPinStruct.Pull = GPIO_NOPULL;
+    //HAL_GPIO_Init(GPIOA, &AdcPinStruct);    
+
+    AdcPinStruct.Pin = Pins.GPIO_Pin_AMP_TEMP_V;            // AMP_TEMP_V
+    AdcPinStruct.Mode = GPIO_MODE_ANALOG;
+    AdcPinStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(Pins.GPIOx_AMP_TEMP_V, &AdcPinStruct);    
+
+    AdcPinStruct.Pin = Pins.GPIO_Pin_AMP_VALVE_TEMP_V;      // VALVE_TEMP_V
+    AdcPinStruct.Mode = GPIO_MODE_ANALOG;
+    AdcPinStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(Pins.GPIOx_AMP_VALVE_TEMP_V, &AdcPinStruct);    
+    
+    AdcPinStruct.Pin = Pins.GPIO_Pin_V_BATT_SENSE;          // V_BATT_SENSE
+    AdcPinStruct.Mode = GPIO_MODE_ANALOG;
+    AdcPinStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(Pins.GPIOx_AMP_V_BATT_SENSE, &AdcPinStruct);    
 
     GPIO_InitStruct.Pin = Pins.GPIO_Pin_LED1;               // LED1_N
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -1120,14 +1169,14 @@ void GPIO_Init(void)
 
 #if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C) || defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA) || defined(BOARDCONFIG_MK6F)
     AdcPinStruct.Pin = Pins.GPIO_Pin_USB_CC1;               // USB_CC1
-	AdcPinStruct.Mode = GPIO_MODE_ANALOG;
-	AdcPinStruct.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(Pins.GPIOx_USB_CC1, &AdcPinStruct);    
+    AdcPinStruct.Mode = GPIO_MODE_ANALOG;
+    AdcPinStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(Pins.GPIOx_USB_CC1, &AdcPinStruct);    
     
-	AdcPinStruct.Pin = Pins.GPIO_Pin_USB_CC2;               // USB_CC2
-	AdcPinStruct.Mode = GPIO_MODE_ANALOG;
-	AdcPinStruct.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(Pins.GPIOx_USB_CC2, &AdcPinStruct);    
+    AdcPinStruct.Pin = Pins.GPIO_Pin_USB_CC2;               // USB_CC2
+    AdcPinStruct.Mode = GPIO_MODE_ANALOG;
+    AdcPinStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(Pins.GPIOx_USB_CC2, &AdcPinStruct);    
     
     GPIO_InitStruct.Pin = Pins.GPIO_Pin_LED2;               // LED2_N
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -1196,10 +1245,10 @@ void GPIO_Init(void)
 
 void UART_Init(void)
 {
-	//Configure UART1
-	//PA0 is TX
-	//PA1 is RX
-	
+    //Configure UART1
+    //PA0 is TX
+    //PA1 is RX
+    
   UartHandle.Instance          = USART2;
   UartHandle.Init.BaudRate     = 115200;
   UartHandle.Init.WordLength   = UART_WORDLENGTH_8B;
@@ -1207,7 +1256,7 @@ void UART_Init(void)
   UartHandle.Init.Parity       = UART_PARITY_NONE;
   UartHandle.Init.HwFlowCtl    = UART_HWCONTROL_NONE;
   UartHandle.Init.Mode         = UART_MODE_TX_RX;
-	
+    
   if (HAL_UART_Init(&UartHandle) != HAL_OK)
   {
     APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
@@ -1285,22 +1334,22 @@ void PWMTimer_ISR(void)
 void LEDTimer_ISR(void)
 {
     if (data.state == self_test_1 || data.state == self_test_2 || data.state == preheat) {
-        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_SET);   // turn LED off during self-test and preheat
+        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_SET);       // turn LED off during self-test and preheat
     } else if (data.state == amplification_ramp) {
-        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_SET);   // turn LED off during amplification_ramp
+        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_RESET);     // turn LED on during amplification_ramp
     } else if (data.state == amplification) {
-        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_RESET); // turn LED on during amplification
-    } else if (data.state == actuation) {
-        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_SET);   // turn LED off during actuation
+        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_SET);       // turn LED off during amplification
+    } else if (data.state == actuation || data.state == actuation_ramp) {
+        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_RESET);     // turn LED on during actuation
     } else if (data.state == detection) {
-        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_RESET); // turn LED on during detection
+        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_SET);       // turn LED off during detection
     } else if (data.minute_test_count == 0) {
-        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_RESET);   // turn LED on after system setup completes
+        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_RESET);     // turn LED on after system setup completes
     } else {
-        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_SET);   // turn LED off at the end of the test
+        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_RESET);     // turn LED on at the end of the test
     }
-        
 }
+
 void PIDTimer_ISR(void)
 {
     flags.flagUpdatePID = true;

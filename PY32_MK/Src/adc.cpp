@@ -158,10 +158,22 @@ float ADC_to_Volts(uint32_t adc_val, float Vcc)
     return Vcc * f;        
 }
 
-
-// ADC values must be read in logical pin order (PA0, then PA1, etc)
 void ADC_Read(void)
 {
+/**
+ * @brief Reads all configured ADC channels and updates application data.
+ *
+ * This function performs sequential ADC conversions for each relevant channel,
+ * including sample temperature, valve temperature, battery sense, USB CC1/CC2 (if enabled),
+ * MCU internal temperature sensor, and reference voltage. The results are stored in the
+ * global data structure, and derived voltages and temperatures are calculated.
+ * It also updates maximum temperature records and checks for overtemperature conditions,
+ * triggering error handling if necessary.
+ *
+ * The function should be called periodically to keep sensor and system data up to date.
+ * 
+ * ADC values must be read in logical pin order (PA0, then PA1, etc)
+ */
     float mcu_vcc;
             
     //Sample with ADC in polling mode
@@ -242,8 +254,6 @@ void ADC_Read(void)
 		
     data.sh_pwm_during_adc_meas = data.sample_heater_pwm_value;    
     data.vh_pwm_during_adc_meas = data.valve_heater_pwm_value;    
-
-
     
 }
 

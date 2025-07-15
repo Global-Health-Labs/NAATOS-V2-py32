@@ -14,8 +14,8 @@
 // CONFIGURATION of OPTION BYTES - NOTE: Only used for Development. For production, flash once and set to 0 so firmware does not reset
 //#define SET_OB_ONCE                     0
 
-#define ENABLE_POWER_ON_TESTS           0
-#define IGNORE_RAMP_TIME                1   // Start the test timer after the heater has ramped to near the setpoint temperature
+//#define ENABLE_POWER_ON_TESTS                 // Enable the power on tests, which will run at startup
+#define IGNORE_RAMP_TIME                        // Start the test timer after the heater has ramped to near the setpoint temperature
 
 #define AMPLIFICATION_TIME_MIN          17.5
 #define ACTUATION_TIME_MIN              5
@@ -28,7 +28,7 @@
 
 #define BOARDCONFIG_MK6C
 
-#define FW_VERSION_STR                  "FW:v1.1"
+#define FW_VERSION_STR                  "FW:v1.2"
 
 
 #if defined(BOARDCONFIG_MK5AA) 
@@ -78,7 +78,7 @@
 #define HEATER_RAMP_SETPOINT_OFFSET     1
 #define HEATER_SHUTDOWN_C               0
 #define HEATER_ELEMENT_POWER_RATIO      35
-#define OVERTEMP_ERR_C                  115
+#define OVERTEMP_ERR_C                  120
 #define SLEW_RATE_LIMIT                 250
 
 #else
@@ -110,12 +110,13 @@
 // Data Structures
 struct CONTROL 
 {
-    float setpoint;
-    float input;
-    float output;
-    float kp;
-    float ki;
-    float kd;
+    float setpoint;                 // Target temperature setpoint in C 
+    float input;                    // Current temperature input in C
+    float output;                   // Output value to the heater in PWM units
+    float kp;                       // Proportional gain
+    float ki;                       // Integral gain
+    float kd;                       // Derivative gain
+    bool cold_temp_adjusted;        // If true, the setpoint is adjusted for cold ambient temperature
 };
 
 typedef struct app_data_t {
