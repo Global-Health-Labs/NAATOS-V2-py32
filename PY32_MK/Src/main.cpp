@@ -513,10 +513,15 @@ int main(void)
                 if ( (data.valve_temperature_c >= (VALVE_ZONE_ACT_RAMP_TARGET_C)) && !data.flag_reached_actuation_ramp_target) {
                     data.flag_reached_actuation_ramp_target = true;
                     Enable_timer(ActuationDelayTimerNumber); // start the actuation delay timer
+                    //sprintf(outputStr, "reach act target");
+                    //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);  
                 }
 
-                if (data.state != actuation_ramp && flags.flagActuationDelay) {
+                if (data.state != actuation_ramp && !data.flag_reached_actuation_ramp_target) {
                     data.state = actuation_ramp;
+
+                    //sprintf(outputStr, "start actutation ramp");
+                    //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);  
                     data.valve_ramp_start_time_msec = data.msec_test_count;
                     // set valve heater high strength and 100%. (sample heater will be off)
                     data.heater_control_not_simultaneous = false;
@@ -529,6 +534,9 @@ int main(void)
 
                 if (flags.flagActuationDelay) {
                     if (data.state != actuation) {
+
+                        //sprintf(outputStr, "start actutation");
+                        //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
                         // set flags
                         data.state = actuation;
                         // disable timer

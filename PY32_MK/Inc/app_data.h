@@ -62,14 +62,15 @@
 #endif
 
 #if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C) || defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA) || defined(BOARDCONFIG_MK6F)
-#define SAMPLE_ZONE_AMP_RAMP_TARGET_C   84
-#define VALVE_ZONE_AMP_RAMP_TARGET_C    75
+#define SAMPLE_ZONE_AMP_RAMP_TARGET_C   85  //84
+#define VALVE_ZONE_AMP_RAMP_TARGET_C    74  //75
 
 #define SAMPLE_ZONE_AMP_SOAK_TARGET_C   71
 #define VALVE_ZONE_AMP_SOAK_TARGET_C    71
+
 #define SAMPLE_ZONE_VALVE_SOAK_TARGET_C 0
-#define VALVE_ZONE_VALVE_SOAK_TARGET_C  102
-#define VALVE_ZONE_ACT_RAMP_TARGET_C    108
+#define VALVE_ZONE_VALVE_SOAK_TARGET_C  101
+#define VALVE_ZONE_ACT_RAMP_TARGET_C    109
 #define COLD_TEMP_SETPOINT_OFFSET_C     2           //cold temp values are dependent on the outer device packaging (convective shielding and insulation)
 #define COLD_TEMP_OFFSET_THRESHOLD_C    14
 #define AMPLIFICATION_MIN_VALID_TEMP_C  65
