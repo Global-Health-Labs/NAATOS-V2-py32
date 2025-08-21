@@ -1,5 +1,36 @@
 {
     "files.associations": {
         "py32f0xx_hal_conf.h": "c"
+    },
+
+    
+    "makefile.configurations": [
+     {
+         "name": "Default",
+         "makeArgs": []
+     },
+     {
+         "name": "Print make version",
+         "makeArgs": ["--version"]
+     }
+],
+
+  "terminal.integrated.defaultProfile.windows": "MSYS2",
+  "terminal.integrated.profiles.windows": {
+    "MSYS2": {
+      "path": "C:/msys64/usr/bin/bash.exe",
+      "args": ["-l"],
+      "icon": "terminal-bash",
+      "evn": {
+        "MSYSTEM": "MINGW64",
+        "CHERE_INVOKING": "1"
+      }
     }
+  },
+  "C_Cpp.default.configurationProvider": "ms-vscode.makefile-tools",
+  "makefile.makePath": "C:/msys64/msys2.exe",
+  "makefile.makefilePath": "Makefile_windows"
 }
+
+
+

@@ -109,7 +109,7 @@ C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/
 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(_arm_cmpdf2.o)
                               C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-nano-vfprintf_float.o) (__aeabi_dcmpeq)
 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(_arm_cmpsf2.o)
-                              ./Build/Src/main.o (__aeabi_fcmplt)
+                              ./Build/Src/pid.o (__aeabi_fcmplt)
 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(_fixunssfsi.o)
                               ./Build/Src/adc.o (__aeabi_f2uiz)
 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(addsf3.o)
@@ -747,20 +747,13 @@ Discarded input sections
  .text          0x00000000        0x0 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_iwdg.o
  .data          0x00000000        0x0 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_iwdg.o
  .bss           0x00000000        0x0 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_iwdg.o
- .text.HAL_IWDG_Init
-                0x00000000       0x4c ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_iwdg.o
- .text.HAL_IWDG_Refresh
-                0x00000000       0x10 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_iwdg.o
- .debug_info    0x00000000      0x230 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_iwdg.o
- .debug_abbrev  0x00000000      0x141 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_iwdg.o
- .debug_loc     0x00000000       0x9f ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_iwdg.o
+ .debug_info    0x00000000       0x6b ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_iwdg.o
+ .debug_abbrev  0x00000000       0x26 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_iwdg.o
  .debug_aranges
-                0x00000000       0x28 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_iwdg.o
- .debug_ranges  0x00000000       0x18 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_iwdg.o
- .debug_line    0x00000000      0x279 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_iwdg.o
- .debug_str     0x00000000      0x290 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_iwdg.o
+                0x00000000       0x18 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_iwdg.o
+ .debug_line    0x00000000       0x56 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_iwdg.o
+ .debug_str     0x00000000      0x1b3 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_iwdg.o
  .comment       0x00000000       0x46 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_iwdg.o
- .debug_frame   0x00000000       0x3c ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_iwdg.o
  .ARM.attributes
                 0x00000000       0x2c ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_iwdg.o
  .text          0x00000000        0x0 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_led.o
@@ -1416,6 +1409,13 @@ Discarded input sections
                 0x00000000        0x0 ./Build/Src/main.o
  .ARM.extab.text._Z18DataCollection_ISRv
                 0x00000000        0x0 ./Build/Src/main.o
+<<<<<<< Updated upstream
+=======
+ .ARM.extab.text._Z18ActuationDelay_ISRv
+                0x00000000        0x0 ./Build/Src/main.o
+ .ARM.extab.text._Z22AmplificationDelay_ISRv
+                0x00000000        0x0 ./Build/Src/main.o
+>>>>>>> Stashed changes
  .ARM.extab.text._Z16DelayedStart_ISRv
                 0x00000000        0x0 ./Build/Src/main.o
  .ARM.extab.text._Z11LogData_ISRv
@@ -1466,6 +1466,10 @@ Discarded input sections
                 0x00000000        0x0 ./Build/Src/main.o
  .ARM.extab.text._Z8pid_init8heater_t7CONTROL
                 0x00000000        0x0 ./Build/Src/main.o
+ .ARM.extab.text._Z14power_on_testsv
+                0x00000000        0x0 ./Build/Src/main.o
+ .ARM.extab.text._Z13init_adc_datav
+                0x00000000        0x0 ./Build/Src/main.o
  .ARM.extab.text._Z15start_naat_testv
                 0x00000000        0x0 ./Build/Src/main.o
  .ARM.extab.text._Z14stop_naat_testv
@@ -1474,9 +1478,13 @@ Discarded input sections
                 0x00000000        0x0 ./Build/Src/main.o
  .ARM.extab.text._Z16ADC_data_collectv
                 0x00000000        0x0 ./Build/Src/main.o
+ .ARM.extab.text._Z10Update_PIDv
+                0x00000000        0x0 ./Build/Src/main.o
  .ARM.extab.text._Z14print_log_datav
                 0x00000000        0x0 ./Build/Src/main.o
  .ARM.extab.text._Z14send_max_tempsv
+                0x00000000        0x0 ./Build/Src/main.o
+ .ARM.extab.text._Z15APP_UpdateStatev
                 0x00000000        0x0 ./Build/Src/main.o
  .ARM.extab.text._Z9GPIO_Initv
                 0x00000000        0x0 ./Build/Src/main.o
@@ -1501,8 +1509,6 @@ Discarded input sections
  .ARM.exidx.text._Z16sw_delay_100msecm
                 0x00000000        0x8 ./Build/Src/main.o
  .ARM.extab.text._Z16APP_ErrorHandlerh
-                0x00000000        0x0 ./Build/Src/main.o
- .ARM.extab.text._Z10Update_PIDv
                 0x00000000        0x0 ./Build/Src/main.o
  .ARM.extab.text._Z9UART_Initv
                 0x00000000        0x0 ./Build/Src/main.o
@@ -1902,7 +1908,11 @@ LOAD C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib
                 0x08000000                g_pfnVectors
                 0x080000c0                        . = ALIGN (0x4)
 
+<<<<<<< Updated upstream
 .text           0x080000c0     0xa53c
+=======
+.text           0x080000c0     0xa24c
+>>>>>>> Stashed changes
                 0x080000c0                        . = ALIGN (0x4)
  *(.text)
  .text          0x080000c0        0xe C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-strlen.o)
@@ -2256,6 +2266,7 @@ LOAD C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib
                 0x080037c8      0x138 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_gpio.o
                 0x080037c8                HAL_GPIO_Init
  .text.HAL_GPIO_WritePin
+<<<<<<< Updated upstream
                 0x08003900        0xc ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_gpio.o
                 0x08003900                HAL_GPIO_WritePin
  .text.HAL_GPIO_TogglePin
@@ -2953,6 +2964,713 @@ LOAD C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib
                 0x0800af94                        _sidata = LOADADDR (.data)
 
 .data           0x200000c0      0x2c4 load address 0x0800af94
+=======
+                0x080038c4        0xc ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_gpio.o
+                0x080038c4                HAL_GPIO_WritePin
+ .text.HAL_GPIO_TogglePin
+                0x080038d0        0xe ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_gpio.o
+                0x080038d0                HAL_GPIO_TogglePin
+ *fill*         0x080038de        0x2 
+ .text.HAL_RCC_GetSysClockFreq
+                0x080038e0       0x64 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_rcc.o
+                0x080038e0                HAL_RCC_GetSysClockFreq
+ .text.HAL_RCC_OscConfig
+                0x08003944      0x234 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_rcc.o
+                0x08003944                HAL_RCC_OscConfig
+ .text.HAL_RCC_ClockConfig
+                0x08003b78      0x140 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_rcc.o
+                0x08003b78                HAL_RCC_ClockConfig
+ .text.HAL_RCC_GetPCLK1Freq
+                0x08003cb8       0x28 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_rcc.o
+                0x08003cb8                HAL_RCC_GetPCLK1Freq
+ .text.HAL_TIM_Base_Start_IT
+                0x08003ce0       0x1e ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_tim.o
+                0x08003ce0                HAL_TIM_Base_Start_IT
+ .text.HAL_TIM_OC_DelayElapsedCallback
+                0x08003cfe        0x2 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_tim.o
+                0x08003cfe                HAL_TIM_OC_DelayElapsedCallback
+ .text.HAL_TIM_IC_CaptureCallback
+                0x08003d00        0x2 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_tim.o
+                0x08003d00                HAL_TIM_IC_CaptureCallback
+ .text.HAL_TIM_PWM_PulseFinishedCallback
+                0x08003d02        0x2 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_tim.o
+                0x08003d02                HAL_TIM_PWM_PulseFinishedCallback
+ .text.HAL_TIM_TriggerCallback
+                0x08003d04        0x2 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_tim.o
+                0x08003d04                HAL_TIM_TriggerCallback
+ .text.HAL_TIM_IRQHandler
+                0x08003d06      0x148 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_tim.o
+                0x08003d06                HAL_TIM_IRQHandler
+ *fill*         0x08003e4e        0x2 
+ .text.TIM_Base_SetConfig
+                0x08003e50       0x7c ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_tim.o
+                0x08003e50                TIM_Base_SetConfig
+ .text.HAL_TIM_Base_Init
+                0x08003ecc       0x36 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_tim.o
+                0x08003ecc                HAL_TIM_Base_Init
+ .text.HAL_TIMEx_CommutCallback
+                0x08003f02        0x2 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_tim_ex.o
+                0x08003f02                HAL_TIMEx_CommutCallback
+ .text.HAL_TIMEx_BreakCallback
+                0x08003f04        0x2 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_tim_ex.o
+                0x08003f04                HAL_TIMEx_BreakCallback
+ *fill*         0x08003f06        0x2 
+ .text.UART_SetConfig
+                0x08003f08       0xd0 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_uart.o
+ .text.UART_WaitOnFlagUntilTimeout.constprop.0
+                0x08003fd8       0x58 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_uart.o
+ .text.HAL_UART_MspInit
+                0x08004030        0x2 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_uart.o
+                0x08004030                HAL_UART_MspInit
+ *fill*         0x08004032        0x2 
+ .text.HAL_UART_Init
+                0x08004034       0x9c ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_uart.o
+                0x08004034                HAL_UART_Init
+ .text.HAL_UART_Transmit
+                0x080040d0       0xca ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_uart.o
+                0x080040d0                HAL_UART_Transmit
+ .text.HAL_UART_Receive
+                0x0800419a       0xba ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_uart.o
+                0x0800419a                HAL_UART_Receive
+ .text.__io_putchar
+                0x08004254       0x1c ./Build/Libraries/PY32F0xx_HAL_BSP/Src/py32f0xx_bsp_printf.o
+                0x08004254                __io_putchar
+ .text.__io_getchar
+                0x08004270       0x18 ./Build/Libraries/PY32F0xx_HAL_BSP/Src/py32f0xx_bsp_printf.o
+                0x08004270                __io_getchar
+ .text._write   0x08004288       0x1a ./Build/Libraries/PY32F0xx_HAL_BSP/Src/py32f0xx_bsp_printf.o
+                0x08004288                _write
+ .text._read    0x080042a2       0x1a ./Build/Libraries/PY32F0xx_HAL_BSP/Src/py32f0xx_bsp_printf.o
+                0x080042a2                _read
+ .text._isatty  0x080042bc       0x16 ./Build/Libraries/PY32F0xx_HAL_BSP/Src/py32f0xx_bsp_printf.o
+                0x080042bc                _isatty
+ .text._close   0x080042d2       0x16 ./Build/Libraries/PY32F0xx_HAL_BSP/Src/py32f0xx_bsp_printf.o
+                0x080042d2                _close
+ .text._lseek   0x080042e8       0x10 ./Build/Libraries/PY32F0xx_HAL_BSP/Src/py32f0xx_bsp_printf.o
+                0x080042e8                _lseek
+ .text._fstat   0x080042f8       0x1a ./Build/Libraries/PY32F0xx_HAL_BSP/Src/py32f0xx_bsp_printf.o
+                0x080042f8                _fstat
+ .text._getpid  0x08004312       0x10 ./Build/Libraries/PY32F0xx_HAL_BSP/Src/py32f0xx_bsp_printf.o
+                0x08004312                _getpid
+ .text._kill    0x08004322       0x10 ./Build/Libraries/PY32F0xx_HAL_BSP/Src/py32f0xx_bsp_printf.o
+                0x08004322                _kill
+ *fill*         0x08004332        0x2 
+ .text.SystemInit
+                0x08004334       0x48 ./Build/Libraries/CMSIS/Device/PY32F0xx/Source/system_py32f0xx.o
+                0x08004334                SystemInit
+ .text._Z25ADC_Set_USB_cc_read_stateb
+                0x0800437c       0x78 ./Build/Src/adc.o
+                0x0800437c                ADC_Set_USB_cc_read_state(bool)
+ .text._Z8ADC_Initv
+                0x080043f4      0x13c ./Build/Src/adc.o
+                0x080043f4                ADC_Init()
+ .text._Z21PY32_ADC_Temp_to_degCm
+                0x08004530       0x34 ./Build/Src/adc.o
+                0x08004530                PY32_ADC_Temp_to_degC(unsigned long)
+ .text._Z28ADC_to_thermistor_resistancem
+                0x08004564       0x30 ./Build/Src/adc.o
+                0x08004564                ADC_to_thermistor_resistance(unsigned long)
+ .text._Z27thermistor_r_to_temperaturem
+                0x08004594       0x70 ./Build/Src/adc.o
+                0x08004594                thermistor_r_to_temperature(unsigned long)
+ .text._Z8ADC_Readv
+                0x08004604      0x22c ./Build/Src/adc.o
+                0x08004604                ADC_Read()
+ .text._Z12PIDTimer_ISRv
+                0x08004830        0xc ./Build/Src/main.o
+                0x08004830                PIDTimer_ISR()
+ .text._Z15MinuteTimer_ISRv
+                0x0800483c        0xc ./Build/Src/main.o
+                0x0800483c                MinuteTimer_ISR()
+ .text._Z18DataCollection_ISRv
+                0x08004848        0xc ./Build/Src/main.o
+                0x08004848                DataCollection_ISR()
+ .text._Z18ActuationDelay_ISRv
+                0x08004854        0xc ./Build/Src/main.o
+                0x08004854                ActuationDelay_ISR()
+ .text._Z22AmplificationDelay_ISRv
+                0x08004860        0xc ./Build/Src/main.o
+                0x08004860                AmplificationDelay_ISR()
+ .text._Z16DelayedStart_ISRv
+                0x0800486c        0xc ./Build/Src/main.o
+                0x0800486c                DelayedStart_ISR()
+ .text._Z11LogData_ISRv
+                0x08004878        0xc ./Build/Src/main.o
+                0x08004878                LogData_ISR()
+ .text._Z12PWMTimer_ISRv
+                0x08004884      0x12c ./Build/Src/main.o
+                0x08004884                PWMTimer_ISR()
+ .text._Z12LEDTimer_ISRv
+                0x080049b0       0x40 ./Build/Src/main.o
+                0x080049b0                LEDTimer_ISR()
+ .text._Z9print_UIDv
+                0x080049f0       0x48 ./Build/Src/main.o
+                0x080049f0                print_UID()
+ .text._Z8pid_init8heater_t7CONTROL
+                0x08004a38       0x50 ./Build/Src/main.o
+                0x08004a38                pid_init(heater_t, CONTROL)
+ .text._Z14power_on_testsv
+                0x08004a88        0xa ./Build/Src/main.o
+                0x08004a88                power_on_tests()
+ *fill*         0x08004a92        0x2 
+ .text._Z13init_adc_datav
+                0x08004a94       0xe4 ./Build/Src/main.o
+                0x08004a94                init_adc_data()
+ .text._Z15start_naat_testv
+                0x08004b78      0x10c ./Build/Src/main.o
+                0x08004b78                start_naat_test()
+ .text._Z14stop_naat_testv
+                0x08004c84       0x70 ./Build/Src/main.o
+                0x08004c84                stop_naat_test()
+ .text._Z9Data_initv
+                0x08004cf4       0x60 ./Build/Src/main.o
+                0x08004cf4                Data_init()
+ .text._Z16ADC_data_collectv
+                0x08004d54       0xc4 ./Build/Src/main.o
+                0x08004d54                ADC_data_collect()
+ .text._Z10Update_PIDv
+                0x08004e18       0x54 ./Build/Src/main.o
+                0x08004e18                Update_PID()
+ .text._Z14print_log_datav
+                0x08004e6c       0x90 ./Build/Src/main.o
+                0x08004e6c                print_log_data()
+ .text._Z14send_max_tempsv
+                0x08004efc       0x64 ./Build/Src/main.o
+                0x08004efc                send_max_temps()
+ .text._Z15APP_UpdateStatev
+                0x08004f60      0x338 ./Build/Src/main.o
+                0x08004f60                APP_UpdateState()
+ .text._Z9GPIO_Initv
+                0x08005298      0x254 ./Build/Src/main.o
+                0x08005298                GPIO_Init()
+ .text._Z16APP_ErrorHandlerh
+                0x080054ec       0xc4 ./Build/Src/main.o
+                0x080054ec                APP_ErrorHandler(unsigned char)
+ .text._Z9UART_Initv
+                0x080055b0       0x34 ./Build/Src/main.o
+                0x080055b0                UART_Init()
+ .text._Z12system_setupv
+                0x080055e4      0x1c0 ./Build/Src/main.o
+                0x080055e4                system_setup()
+ .text.startup.main
+                0x080057a4       0xf4 ./Build/Src/main.o
+                0x080057a4                main
+ .text._Z19pid_controller_init8heater_tffffif
+                0x08005898       0x6c ./Build/Src/pid.o
+                0x08005898                pid_controller_init(heater_t, float, float, float, float, int, float)
+ .text._Z22pid_controller_compute8heater_tf
+                0x08005904      0x12c ./Build/Src/pid.o
+                0x08005904                pid_controller_compute(heater_t, float)
+ .text._Z10TIMER_Initv
+                0x08005a30       0x74 ./Build/Src/timers.o
+                0x08005a30                TIMER_Init()
+ .text._Z14Register_timerPFvvEm
+                0x08005aa4       0x30 ./Build/Src/timers.o
+                0x08005aa4                Register_timer(void (*)(), unsigned long)
+ .text._Z12Enable_timera
+                0x08005ad4       0x50 ./Build/Src/timers.o
+                0x08005ad4                Enable_timer(signed char)
+ .text._Z13Disable_timera
+                0x08005b24       0x24 ./Build/Src/timers.o
+                0x08005b24                Disable_timer(signed char)
+ .text._Z24Update_TimerTickIntervalam
+                0x08005b48       0x28 ./Build/Src/timers.o
+                0x08005b48                Update_TimerTickInterval(signed char, unsigned long)
+ .text.HAL_TIM_PeriodElapsedCallback
+                0x08005b70       0x64 ./Build/Src/timers.o
+                0x08005b70                HAL_TIM_PeriodElapsedCallback
+ .text._Z21APP_SystemClockConfigv
+                0x08005bd4       0x58 ./Build/Src/timers.o
+                0x08005bd4                APP_SystemClockConfig()
+ .text.Reset_Handler
+                0x08005c2c       0x50 ./Build/Libraries/CMSIS/Device/PY32F0xx/Source/gcc/startup_py32f003.o
+                0x08005c2c                Reset_Handler
+ .text.Default_Handler
+                0x08005c7c        0x2 ./Build/Libraries/CMSIS/Device/PY32F0xx/Source/gcc/startup_py32f003.o
+                0x08005c7c                TIM1_CC_IRQHandler
+                0x08005c7c                PVD_IRQHandler
+                0x08005c7c                I2C1_IRQHandler
+                0x08005c7c                SPI1_IRQHandler
+                0x08005c7c                EXTI2_3_IRQHandler
+                0x08005c7c                TIM17_IRQHandler
+                0x08005c7c                RTC_IRQHandler
+                0x08005c7c                TIM16_IRQHandler
+                0x08005c7c                TIM3_IRQHandler
+                0x08005c7c                EXTI4_15_IRQHandler
+                0x08005c7c                RCC_IRQHandler
+                0x08005c7c                DMA1_Channel1_IRQHandler
+                0x08005c7c                Default_Handler
+                0x08005c7c                TIM14_IRQHandler
+                0x08005c7c                EXTI0_1_IRQHandler
+                0x08005c7c                WWDG_IRQHandler
+                0x08005c7c                DMA1_Channel2_3_IRQHandler
+                0x08005c7c                ADC_COMP_IRQHandler
+                0x08005c7c                USART2_IRQHandler
+                0x08005c7c                FLASH_IRQHandler
+                0x08005c7c                USART1_IRQHandler
+                0x08005c7c                LPTIM1_IRQHandler
+ *fill*         0x08005c7e        0x2 
+ .text.__fixunssfsi
+                0x08005c80       0x30 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(_fixunssfsi.o)
+                0x08005c80                __fixunssfsi
+                0x08005c80                __aeabi_f2uiz
+ .text.__aeabi_fadd
+                0x08005cb0      0x41c C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(addsf3.o)
+                0x08005cb0                __aeabi_fadd
+ .text.__aeabi_fdiv
+                0x080060cc      0x22c C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(divsf3.o)
+                0x080060cc                __aeabi_fdiv
+ .text.__eqsf2  0x080062f8       0x50 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(eqsf2.o)
+                0x080062f8                __eqsf2
+                0x080062f8                __nesf2
+ .text.__gesf2  0x08006348       0x90 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(gesf2.o)
+                0x08006348                __gesf2
+                0x08006348                __gtsf2
+ .text.__lesf2  0x080063d8       0x90 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(lesf2.o)
+                0x080063d8                __ltsf2
+                0x080063d8                __lesf2
+ .text.__aeabi_fmul
+                0x08006468      0x2a4 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(mulsf3.o)
+                0x08006468                __aeabi_fmul
+ .text.__aeabi_fsub
+                0x0800670c      0x484 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(subsf3.o)
+                0x0800670c                __aeabi_fsub
+ .text.__aeabi_f2iz
+                0x08006b90       0x40 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(fixsfsi.o)
+                0x08006b90                __aeabi_f2iz
+ .text.__aeabi_i2f
+                0x08006bd0       0xa0 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(floatsisf.o)
+                0x08006bd0                __aeabi_i2f
+ .text.__aeabi_ui2f
+                0x08006c70       0x8c C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(floatunsisf.o)
+                0x08006c70                __aeabi_ui2f
+ .text.__aeabi_dadd
+                0x08006cfc      0x834 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(adddf3.o)
+                0x08006cfc                __aeabi_dadd
+ .text.__aeabi_ddiv
+                0x08007530      0x63c C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(divdf3.o)
+                0x08007530                __aeabi_ddiv
+ .text.__eqdf2  0x08007b6c       0x8c C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(eqdf2.o)
+                0x08007b6c                __nedf2
+                0x08007b6c                __eqdf2
+ .text.__gedf2  0x08007bf8       0xe0 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(gedf2.o)
+                0x08007bf8                __gedf2
+                0x08007bf8                __gtdf2
+ .text.__ledf2  0x08007cd8       0xdc C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(ledf2.o)
+                0x08007cd8                __ledf2
+                0x08007cd8                __ltdf2
+ .text.__aeabi_dmul
+                0x08007db4      0x590 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(muldf3.o)
+                0x08007db4                __aeabi_dmul
+ .text.__aeabi_dsub
+                0x08008344      0x870 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(subdf3.o)
+                0x08008344                __aeabi_dsub
+ .text.__aeabi_dcmpun
+                0x08008bb4       0x44 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unorddf2.o)
+                0x08008bb4                __aeabi_dcmpun
+ .text.__aeabi_d2iz
+                0x08008bf8       0x78 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(fixdfsi.o)
+                0x08008bf8                __aeabi_d2iz
+ .text.__aeabi_i2d
+                0x08008c70       0x5c C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(floatsidf.o)
+                0x08008c70                __aeabi_i2d
+ .text.__aeabi_ui2d
+                0x08008ccc       0x48 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(floatunsidf.o)
+                0x08008ccc                __aeabi_ui2d
+ .text.__aeabi_f2d
+                0x08008d14       0x90 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(extendsfdf2.o)
+                0x08008d14                __aeabi_f2d
+ .text.__aeabi_d2f
+                0x08008da4      0x110 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(truncdfsf2.o)
+                0x08008da4                __aeabi_d2f
+ .text.selfrel_offset31
+                0x08008eb4       0x18 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+ .text.search_EIT_table
+                0x08008ecc       0x70 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+ .text.__gnu_unwind_get_pr_addr
+                0x08008f3c       0x28 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+ .text.get_eit_entry
+                0x08008f64       0x94 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+ .text.restore_non_core_regs
+                0x08008ff8       0x5c C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+ .text._Unwind_decode_typeinfo_ptr.constprop.0
+                0x08009054        0xc C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+ .text._Unwind_DebugHook
+                0x08009060        0x4 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+ .text.unwind_phase2
+                0x08009064       0x3c C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+ .text.unwind_phase2_forced
+                0x080090a0       0xd8 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+ .text.__gnu_Unwind_RaiseException
+                0x08009178       0x54 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+                0x08009178                __gnu_Unwind_RaiseException
+ .text.__gnu_Unwind_ForcedUnwind
+                0x080091cc       0x14 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+                0x080091cc                __gnu_Unwind_ForcedUnwind
+ .text.__gnu_Unwind_Resume
+                0x080091e0       0x48 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+                0x080091e0                __gnu_Unwind_Resume
+ .text.__gnu_Unwind_Resume_or_Rethrow
+                0x08009228       0x1c C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+                0x08009228                __gnu_Unwind_Resume_or_Rethrow
+ .text._Unwind_VRS_Get
+                0x08009244       0x44 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+                0x08009244                _Unwind_VRS_Get
+ .text._Unwind_GetGR
+                0x08009288       0x18 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+ .text._Unwind_VRS_Set
+                0x080092a0       0x44 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+                0x080092a0                _Unwind_VRS_Set
+ .text._Unwind_SetGR
+                0x080092e4       0x18 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+ .text.__gnu_Unwind_Backtrace
+                0x080092fc       0x78 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+                0x080092fc                __gnu_Unwind_Backtrace
+ .text.__gnu_unwind_pr_common
+                0x08009374      0x2d8 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+ .text.__aeabi_unwind_cpp_pr0
+                0x0800964c        0xc C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+                0x0800964c                __aeabi_unwind_cpp_pr0
+ .text.__aeabi_unwind_cpp_pr1
+                0x08009658        0xc C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+                0x08009658                __aeabi_unwind_cpp_pr1
+ .text.__aeabi_unwind_cpp_pr2
+                0x08009664        0xc C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+                0x08009664                __aeabi_unwind_cpp_pr2
+ .text._Unwind_VRS_Pop
+                0x08009670      0x2ac C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+                0x08009670                _Unwind_VRS_Pop
+ .text.next_unwind_byte
+                0x0800991c       0x34 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(pr-support.o)
+ .text.__gnu_unwind_execute
+                0x08009950      0x2f4 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(pr-support.o)
+                0x08009950                __gnu_unwind_execute
+ .text.sprintf  0x08009c44       0x44 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-sprintf.o)
+                0x08009c44                siprintf
+                0x08009c44                sprintf
+ .text.__errno  0x08009c88        0xc C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-errno.o)
+                0x08009c88                __errno
+ .text.strcpy   0x08009c94       0x10 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-strcpy.o)
+                0x08009c94                strcpy
+ .text.__ssputs_r
+                0x08009ca4       0xc8 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-nano-svfprintf.o)
+                0x08009ca4                __ssputs_r
+ .text._svfprintf_r
+                0x08009d6c      0x208 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-nano-svfprintf.o)
+                0x08009d6c                _svfiprintf_r
+                0x08009d6c                _svfprintf_r
+ .text._sbrk    0x08009f74       0x1c C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libnosys.a(sbrk.o)
+                0x08009f74                _sbrk
+ .text._exit    0x08009f90        0x4 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libnosys.a(_exit.o)
+                0x08009f90                _exit
+ .text.logf     0x08009f94       0x58 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libm.a(libm_a-wf_log.o)
+                0x08009f94                logf
+ .text.nanf     0x08009fec        0x8 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libm.a(libm_a-sf_nan.o)
+                0x08009fec                nanf
+ .text.roundf   0x08009ff4       0x48 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libm.a(libm_a-sf_round.o)
+                0x08009ff4                roundf
+ .text.__ieee754_logf
+                0x0800a03c      0x28c C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libm.a(libm_a-ef_log.o)
+                0x0800a03c                __ieee754_logf
+ .text.__aeabi_fcmpun
+                0x0800a2c8       0x2c C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unordsf2.o)
+                0x0800a2c8                __aeabi_fcmpun
+ *(.glue_7)
+ .glue_7        0x0800a2f4        0x0 linker stubs
+ *(.glue_7t)
+ .glue_7t       0x0800a2f4        0x0 linker stubs
+ *(.eh_frame)
+ .eh_frame      0x0800a2f4        0x0 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp/crtbegin.o
+ *(.init)
+ .init          0x0800a2f4        0x4 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp/crti.o
+                0x0800a2f4                _init
+ .init          0x0800a2f8        0x8 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp/crtn.o
+ *(.fini)
+ .fini          0x0800a300        0x4 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp/crti.o
+                0x0800a300                _fini
+ .fini          0x0800a304        0x8 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp/crtn.o
+                0x0800a30c                        . = ALIGN (0x4)
+                0x0800a30c                        _etext = .
+
+.vfp11_veneer   0x0800a30c        0x0
+ .vfp11_veneer  0x0800a30c        0x0 linker stubs
+
+.v4_bx          0x0800a30c        0x0
+ .v4_bx         0x0800a30c        0x0 linker stubs
+
+.iplt           0x0800a30c        0x0
+ .iplt          0x0800a30c        0x0 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp/crtbegin.o
+
+.rodata         0x0800a310      0x698
+                0x0800a310                        . = ALIGN (0x4)
+ *(.rodata)
+ .rodata        0x0800a310       0x14 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_rcc.o
+ *(.rodata*)
+ .rodata._printf_float.str1.1
+                0x0800a324      0x338 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-nano-vfprintf_float.o)
+                                 0x12 (size before relaxing)
+ .rodata._printf_i.str1.1
+                0x0800a65c       0x22 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-nano-vfprintf_i.o)
+ .rodata._dtoa_r.str1.1
+                0x0800a65c       0x90 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-dtoa.o)
+ .rodata._Balloc.str1.1
+                0x0800a65c       0x71 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-mprec.o)
+ .rodata.__multadd.str1.1
+                0x0800a65c       0x11 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-mprec.o)
+ .rodata.p05.0  0x0800a65c        0xc C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-mprec.o)
+ .rodata.__mprec_bigtens
+                0x0800a668       0x28 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-mprec.o)
+                0x0800a668                __mprec_bigtens
+ .rodata.__mprec_tens
+                0x0800a690       0xc8 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-mprec.o)
+                0x0800a690                __mprec_tens
+ .rodata._setlocale_r.str1.1
+                0x0800a758        0x9 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-locale.o)
+ .rodata.str1.1
+                0x0800a758        0x2 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-locale.o)
+ .rodata.__assert_func.str1.1
+                0x0800a758       0x3d C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-assert.o)
+ .rodata._ctype_
+                0x0800a758      0x101 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-ctype_.o)
+                0x0800a758                _ctype_
+ .rodata._vfprintf_r.str1.1
+                0x0800a859       0x11 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-nano-vfprintf.o)
+ *fill*         0x0800a859        0x3 
+ .rodata.APBPrescTable
+                0x0800a85c       0x20 ./Build/Libraries/CMSIS/Device/PY32F0xx/Source/system_py32f0xx.o
+                0x0800a85c                APBPrescTable
+ .rodata.AHBPrescTable
+                0x0800a87c       0x40 ./Build/Libraries/CMSIS/Device/PY32F0xx/Source/system_py32f0xx.o
+                0x0800a87c                AHBPrescTable
+ .rodata._Z9print_UIDv.str1.1
+                0x0800a8bc       0x13 ./Build/Src/main.o
+ .rodata._Z13init_adc_datav.str1.1
+                0x0800a8bc       0xad ./Build/Src/main.o
+ .rodata._Z15start_naat_testv.str1.1
+                0x0800a8bc       0x24 ./Build/Src/main.o
+ .rodata._Z14stop_naat_testv.str1.1
+                0x0800a8bc       0x10 ./Build/Src/main.o
+ .rodata._Z14print_log_datav.str1.1
+                0x0800a8bc       0x35 ./Build/Src/main.o
+ .rodata._Z14send_max_tempsv.str1.1
+                0x0800a8bc       0x47 ./Build/Src/main.o
+ .rodata._Z16APP_ErrorHandlerh.str1.1
+                0x0800a8bc       0x28 ./Build/Src/main.o
+ .rodata._Z12system_setupv.str1.1
+                0x0800a8bc       0x2f ./Build/Src/main.o
+ .rodata.__aeabi_fdiv
+                0x0800a8bc       0x7c C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(divsf3.o)
+ .rodata.__aeabi_ddiv
+                0x0800a938       0x40 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(divdf3.o)
+ .rodata._Unwind_VRS_Pop
+                0x0800a978       0x18 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+ .rodata.__gnu_unwind_execute
+                0x0800a990       0x14 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(pr-support.o)
+ .rodata._svfprintf_r.str1.1
+                0x0800a9a4       0x11 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-nano-svfprintf.o)
+ .rodata.logf.str1.4
+                0x0800a9a4        0x1 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libm.a(libm_a-wf_log.o)
+                0x0800a9b8                        . = ALIGN (0x4)
+ *fill*         0x0800a9a5        0x3 
+
+.ARM.extab      0x0800a9a8       0x3c
+ *(.ARM.extab* .gnu.linkonce.armextab.*)
+ .ARM.extab.text.unwind_phase2_forced
+                0x0800a9a8        0xc C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+ .ARM.extab.text.__gnu_Unwind_Backtrace
+                0x0800a9b4        0xc C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+ .ARM.extab.text.__gnu_unwind_pr_common
+                0x0800a9c0        0xc C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+ .ARM.extab.text._Unwind_VRS_Pop
+                0x0800a9cc        0xc C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+ .ARM.extab.text.__gnu_unwind_execute
+                0x0800a9d8        0xc C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(pr-support.o)
+
+.ARM            0x0800a9e4      0x178
+                0x0800a9e4                        __exidx_start = .
+ *(.ARM.exidx*)
+ .ARM.exidx.text._Z25ADC_Set_USB_cc_read_stateb
+                0x0800a9e4        0x8 ./Build/Src/adc.o
+ .ARM.exidx.text._Z8ADC_Initv
+                0x0800a9ec        0x8 ./Build/Src/adc.o
+ .ARM.exidx.text._Z21PY32_ADC_Temp_to_degCm
+                0x0800a9f4        0x8 ./Build/Src/adc.o
+ .ARM.exidx.text._Z28ADC_to_thermistor_resistancem
+                0x0800a9fc        0x0 ./Build/Src/adc.o
+                                  0x8 (size before relaxing)
+ .ARM.exidx.text._Z27thermistor_r_to_temperaturem
+                0x0800a9fc        0x0 ./Build/Src/adc.o
+                                  0x8 (size before relaxing)
+ .ARM.exidx.text._Z8ADC_Readv
+                0x0800a9fc        0x8 ./Build/Src/adc.o
+ .ARM.exidx.text._Z12PIDTimer_ISRv
+                0x0800aa04        0x8 ./Build/Src/main.o
+ .ARM.exidx.text._Z15MinuteTimer_ISRv
+                0x0800aa0c        0x0 ./Build/Src/main.o
+                                  0x8 (size before relaxing)
+ .ARM.exidx.text._Z18DataCollection_ISRv
+                0x0800aa0c        0x0 ./Build/Src/main.o
+                                  0x8 (size before relaxing)
+ .ARM.exidx.text._Z18ActuationDelay_ISRv
+                0x0800aa0c        0x0 ./Build/Src/main.o
+                                  0x8 (size before relaxing)
+ .ARM.exidx.text._Z22AmplificationDelay_ISRv
+                0x0800aa0c        0x0 ./Build/Src/main.o
+                                  0x8 (size before relaxing)
+ .ARM.exidx.text._Z16DelayedStart_ISRv
+                0x0800aa0c        0x0 ./Build/Src/main.o
+                                  0x8 (size before relaxing)
+ .ARM.exidx.text._Z11LogData_ISRv
+                0x0800aa0c        0x0 ./Build/Src/main.o
+                                  0x8 (size before relaxing)
+ .ARM.exidx.text._Z12PWMTimer_ISRv
+                0x0800aa0c        0x8 ./Build/Src/main.o
+ .ARM.exidx.text._Z12LEDTimer_ISRv
+                0x0800aa14        0x8 ./Build/Src/main.o
+ .ARM.exidx.text._Z9print_UIDv
+                0x0800aa1c        0x8 ./Build/Src/main.o
+ .ARM.exidx.text._Z8pid_init8heater_t7CONTROL
+                0x0800aa24        0x8 ./Build/Src/main.o
+ .ARM.exidx.text._Z14power_on_testsv
+                0x0800aa2c        0x8 ./Build/Src/main.o
+ .ARM.exidx.text._Z13init_adc_datav
+                0x0800aa34        0x8 ./Build/Src/main.o
+ .ARM.exidx.text._Z15start_naat_testv
+                0x0800aa3c        0x0 ./Build/Src/main.o
+                                  0x8 (size before relaxing)
+ .ARM.exidx.text._Z14stop_naat_testv
+                0x0800aa3c        0x8 ./Build/Src/main.o
+ .ARM.exidx.text._Z9Data_initv
+                0x0800aa44        0x8 ./Build/Src/main.o
+ .ARM.exidx.text._Z16ADC_data_collectv
+                0x0800aa4c        0x8 ./Build/Src/main.o
+ .ARM.exidx.text._Z10Update_PIDv
+                0x0800aa54        0x8 ./Build/Src/main.o
+ .ARM.exidx.text._Z14print_log_datav
+                0x0800aa5c        0x8 ./Build/Src/main.o
+ .ARM.exidx.text._Z14send_max_tempsv
+                0x0800aa64        0x8 ./Build/Src/main.o
+ .ARM.exidx.text._Z15APP_UpdateStatev
+                0x0800aa6c        0x8 ./Build/Src/main.o
+ .ARM.exidx.text._Z9GPIO_Initv
+                0x0800aa74        0x8 ./Build/Src/main.o
+ .ARM.exidx.text._Z16APP_ErrorHandlerh
+                0x0800aa7c        0x8 ./Build/Src/main.o
+ .ARM.exidx.text._Z9UART_Initv
+                0x0800aa84        0x8 ./Build/Src/main.o
+ .ARM.exidx.text._Z12system_setupv
+                0x0800aa8c        0x8 ./Build/Src/main.o
+ .ARM.exidx.text.startup.main
+                0x0800aa94        0x8 ./Build/Src/main.o
+ .ARM.exidx.text._Z19pid_controller_init8heater_tffffif
+                0x0800aa9c        0x8 ./Build/Src/pid.o
+ .ARM.exidx.text._Z22pid_controller_compute8heater_tf
+                0x0800aaa4        0x8 ./Build/Src/pid.o
+ .ARM.exidx.text._Z10TIMER_Initv
+                0x0800aaac        0x8 ./Build/Src/timers.o
+ .ARM.exidx.text._Z14Register_timerPFvvEm
+                0x0800aab4        0x8 ./Build/Src/timers.o
+ .ARM.exidx.text._Z12Enable_timera
+                0x0800aabc        0x0 ./Build/Src/timers.o
+                                  0x8 (size before relaxing)
+ .ARM.exidx.text._Z13Disable_timera
+                0x0800aabc        0x0 ./Build/Src/timers.o
+                                  0x8 (size before relaxing)
+ .ARM.exidx.text._Z24Update_TimerTickIntervalam
+                0x0800aabc        0x0 ./Build/Src/timers.o
+                                  0x8 (size before relaxing)
+ .ARM.exidx.text.HAL_TIM_PeriodElapsedCallback
+                0x0800aabc        0x8 ./Build/Src/timers.o
+ .ARM.exidx.text._Z21APP_SystemClockConfigv
+                0x0800aac4       0x10 ./Build/Src/timers.o
+                                  0x8 (size before relaxing)
+ .ARM.exidx.text.selfrel_offset31
+                0x0800aad4        0x0 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+                                  0x8 (size before relaxing)
+ .ARM.exidx.text.search_EIT_table
+                0x0800aad4        0x0 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+                                  0x8 (size before relaxing)
+ .ARM.exidx.text.__gnu_unwind_get_pr_addr
+                0x0800aad4        0x0 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+                                  0x8 (size before relaxing)
+ .ARM.exidx.text.get_eit_entry
+                0x0800aad4        0x8 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+ .ARM.exidx.text.restore_non_core_regs
+                0x0800aadc        0x8 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+ .ARM.exidx.text._Unwind_decode_typeinfo_ptr.constprop.0
+                0x0800aae4        0x8 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+ .ARM.exidx.text._Unwind_DebugHook
+                0x0800aaec        0x0 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+                                  0x8 (size before relaxing)
+ .ARM.exidx.text.unwind_phase2
+                0x0800aaec        0x8 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+ .ARM.exidx.text.unwind_phase2_forced
+                0x0800aaf4        0x8 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+ .ARM.exidx.text.__gnu_Unwind_RaiseException
+                0x0800aafc        0x8 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+ .ARM.exidx.text.__gnu_Unwind_ForcedUnwind
+                0x0800ab04        0x8 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+ .ARM.exidx.text.__gnu_Unwind_Resume
+                0x0800ab0c        0x8 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+ .ARM.exidx.text.__gnu_Unwind_Resume_or_Rethrow
+                0x0800ab14        0x8 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+ .ARM.exidx.text._Unwind_VRS_Get
+                0x0800ab1c        0x8 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+ .ARM.exidx.text._Unwind_GetGR
+                0x0800ab24        0x0 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+                                  0x8 (size before relaxing)
+ .ARM.exidx.text._Unwind_VRS_Set
+                0x0800ab24        0x0 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+                                  0x8 (size before relaxing)
+ .ARM.exidx.text._Unwind_SetGR
+                0x0800ab24        0x0 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+                                  0x8 (size before relaxing)
+ .ARM.exidx.text.__gnu_Unwind_Backtrace
+                0x0800ab24        0x8 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+ .ARM.exidx.text.__gnu_unwind_pr_common
+                0x0800ab2c        0x8 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+ .ARM.exidx.text.__aeabi_unwind_cpp_pr0
+                0x0800ab34        0x8 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+ .ARM.exidx.text.__aeabi_unwind_cpp_pr1
+                0x0800ab3c        0x0 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+                                  0x8 (size before relaxing)
+ .ARM.exidx.text.__aeabi_unwind_cpp_pr2
+                0x0800ab3c        0x0 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+                                  0x8 (size before relaxing)
+ .ARM.exidx.text._Unwind_VRS_Pop
+                0x0800ab3c        0x8 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+ .ARM.exidx.text.next_unwind_byte
+                0x0800ab44        0x8 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(pr-support.o)
+ .ARM.exidx.text.__gnu_unwind_execute
+                0x0800ab4c       0x10 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(pr-support.o)
+                                  0x8 (size before relaxing)
+                0x0800ab5c                        __exidx_end = .
+
+.rel.dyn        0x0800ab5c        0x0
+ .rel.iplt      0x0800ab5c        0x0 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp/crtbegin.o
+
+.preinit_array  0x0800ab5c        0x0
+                0x0800ab5c                        PROVIDE (__preinit_array_start = .)
+ *(.preinit_array*)
+                0x0800ab5c                        PROVIDE (__preinit_array_end = .)
+
+.init_array     0x0800ab5c        0x4
+                0x0800ab5c                        PROVIDE (__init_array_start = .)
+ *(SORT_BY_NAME(.init_array.*))
+ *(.init_array*)
+ .init_array    0x0800ab5c        0x4 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp/crtbegin.o
+                0x0800ab60                        PROVIDE (__init_array_end = .)
+
+.fini_array     0x0800ab60        0x4
+                [!provide]                        PROVIDE (__fini_array_start = .)
+ *(SORT_BY_NAME(.fini_array.*))
+ *(.fini_array*)
+ .fini_array    0x0800ab60        0x4 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp/crtbegin.o
+                [!provide]                        PROVIDE (__fini_array_end = .)
+                0x0800ab64                        _sidata = LOADADDR (.data)
+
+.data           0x200000c0      0x324 load address 0x0800ab64
+>>>>>>> Stashed changes
                 0x200000c0                        . = ALIGN (0x4)
                 0x200000c0                        _sdata = .
  *(.data)
@@ -2978,6 +3696,7 @@ LOAD C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib
                 0x20000290        0x4 ./Build/Libraries/CMSIS/Device/PY32F0xx/Source/system_py32f0xx.o
                 0x20000290                SystemCoreClock
  .data.valve_amp_control
+<<<<<<< Updated upstream
                 0x20000294       0x78 ./Build/Src/main.o
                 0x20000294                valve_amp_control
  .data.sample_amp_control
@@ -3127,6 +3846,163 @@ LOAD C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib
                 0x20001068                        . = (. + _Min_Stack_Size)
  *fill*         0x20000c68      0x400 
                 0x20001068                        . = ALIGN (0x8)
+=======
+                0x20000294       0xa8 ./Build/Src/main.o
+                0x20000294                valve_amp_control
+ .data.sample_amp_control
+                0x2000033c       0xa8 ./Build/Src/main.o
+                0x2000033c                sample_amp_control
+                0x200003e4                        . = ALIGN (0x4)
+                0x200003e4                        _edata = .
+
+.tm_clone_table
+                0x200003e4        0x0 load address 0x0800ae88
+ .tm_clone_table
+                0x200003e4        0x0 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp/crtbegin.o
+ .tm_clone_table
+                0x200003e4        0x0 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp/crtend.o
+
+.igot.plt       0x200003e4        0x0 load address 0x0800ae88
+ .igot.plt      0x200003e4        0x0 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp/crtbegin.o
+                0x200003e4                        . = ALIGN (0x4)
+
+.bss            0x200003e8      0x6ec load address 0x0800ae88
+                0x200003e8                        _sbss = .
+                0x200003e8                        __bss_start__ = _sbss
+ *(.bss)
+ *(.bss*)
+ .bss.completed.1
+                0x200003e8        0x1 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp/crtbegin.o
+ *fill*         0x200003e9        0x3 
+ .bss.object.0  0x200003ec       0x18 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp/crtbegin.o
+ .bss.__sf      0x20000404      0x138 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-findfp.o)
+                0x20000404                __sf
+ .bss.__stdio_exit_handler
+                0x2000053c        0x4 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-findfp.o)
+                0x2000053c                __stdio_exit_handler
+ .bss.errno     0x20000540        0x4 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-reent.o)
+                0x20000540                errno
+ .bss.__lock___malloc_recursive_mutex
+                0x20000544        0x1 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-lock.o)
+                0x20000544                __lock___malloc_recursive_mutex
+ .bss.__lock___sfp_recursive_mutex
+                0x20000545        0x1 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-lock.o)
+                0x20000545                __lock___sfp_recursive_mutex
+ *fill*         0x20000546        0x2 
+ .bss.__malloc_sbrk_start
+                0x20000548        0x4 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-mallocr.o)
+                0x20000548                __malloc_sbrk_start
+ .bss.__malloc_free_list
+                0x2000054c        0x4 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-mallocr.o)
+                0x2000054c                __malloc_free_list
+ .bss.uwTick    0x20000550        0x4 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal.o
+                0x20000550                uwTick
+ .bss.DebugUartHandle
+                0x20000554       0x4c ./Build/Libraries/PY32F0xx_HAL_BSP/Src/py32f0xx_bsp_printf.o
+                0x20000554                DebugUartHandle
+ .bss.temperature_cal
+                0x200005a0        0x4 ./Build/Src/adc.o
+                0x200005a0                temperature_cal
+ .bss.AdcChanConf
+                0x200005a4        0xc ./Build/Src/adc.o
+                0x200005a4                AdcChanConf
+ .bss.AdcHandle
+                0x200005b0       0x40 ./Build/Src/adc.o
+                0x200005b0                AdcHandle
+ .bss.pwm_valve_ctrl
+                0x200005f0       0x30 ./Build/Src/main.o
+                0x200005f0                pwm_valve_ctrl
+ .bss.pwm_amp_ctrl
+                0x20000620       0x30 ./Build/Src/main.o
+                0x20000620                pwm_amp_ctrl
+ .bss.outputStr
+                0x20000650      0x100 ./Build/Src/main.o
+                0x20000650                outputStr
+ .bss.last_pushbutton_value
+                0x20000750        0x1 ./Build/Src/main.o
+                0x20000750                last_pushbutton_value
+ .bss.pushbutton_value
+                0x20000751        0x1 ./Build/Src/main.o
+                0x20000751                pushbutton_value
+ .bss.AmplificationDelayTimerNumber
+                0x20000752        0x1 ./Build/Src/main.o
+                0x20000752                AmplificationDelayTimerNumber
+ .bss.ActuationDelayTimerNumber
+                0x20000753        0x1 ./Build/Src/main.o
+                0x20000753                ActuationDelayTimerNumber
+ .bss.LogTimerNumber
+                0x20000754        0x1 ./Build/Src/main.o
+                0x20000754                LogTimerNumber
+ .bss.DelayedStartTimerNumber
+                0x20000755        0x1 ./Build/Src/main.o
+                0x20000755                DelayedStartTimerNumber
+ .bss.DataCollectionTimerNumber
+                0x20000756        0x1 ./Build/Src/main.o
+                0x20000756                DataCollectionTimerNumber
+ .bss.MinuteTimerNumber
+                0x20000757        0x1 ./Build/Src/main.o
+                0x20000757                MinuteTimerNumber
+ .bss.PIDTimerNumber
+                0x20000758        0x1 ./Build/Src/main.o
+                0x20000758                PIDTimerNumber
+ .bss.LEDTimerNumber
+                0x20000759        0x1 ./Build/Src/main.o
+                0x20000759                LEDTimerNumber
+ .bss.PWMTimerNumber
+                0x2000075a        0x1 ./Build/Src/main.o
+                0x2000075a                PWMTimerNumber
+ .bss.flags     0x2000075b        0x9 ./Build/Src/main.o
+                0x2000075b                flags
+ .bss.data      0x20000764       0xa8 ./Build/Src/main.o
+                0x20000764                data
+ .bss.Pins      0x2000080c       0x7c ./Build/Src/main.o
+                0x2000080c                Pins
+ .bss.AdcPinStruct
+                0x20000888       0x14 ./Build/Src/main.o
+                0x20000888                AdcPinStruct
+ .bss.GpioInitStruct
+                0x2000089c       0x14 ./Build/Src/main.o
+                0x2000089c                GpioInitStruct
+ .bss.UartHandle
+                0x200008b0       0x4c ./Build/Src/main.o
+                0x200008b0                UartHandle
+ .bss.pid_data  0x200008fc       0x98 ./Build/Src/pid.o
+                0x200008fc                pid_data
+ .bss._ZZ29HAL_TIM_PeriodElapsedCallbackE15msec_subcounter
+                0x20000994        0x1 ./Build/Src/timers.o
+ *fill*         0x20000995        0x3 
+ .bss.ISRTimers
+                0x20000998       0xf0 ./Build/Src/timers.o
+                0x20000998                ISRTimers
+ .bss.Registered_ISRTimers
+                0x20000a88        0x1 ./Build/Src/timers.o
+                0x20000a88                Registered_ISRTimers
+ *fill*         0x20000a89        0x3 
+ .bss.TIM1_tick_count
+                0x20000a8c        0x4 ./Build/Src/timers.o
+                0x20000a8c                TIM1_tick_count
+ .bss.tim1Handle
+                0x20000a90       0x40 ./Build/Src/timers.o
+                0x20000a90                tim1Handle
+ .bss.heap_end.0
+                0x20000ad0        0x4 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libnosys.a(sbrk.o)
+ *(COMMON)
+                0x20000ad4                        . = ALIGN (0x4)
+                0x20000ad4                        _ebss = .
+                0x20000ad4                        __bss_end__ = _ebss
+
+._user_heap_stack
+                0x20000ad4      0x604 load address 0x0800ae88
+                0x20000ad8                        . = ALIGN (0x8)
+ *fill*         0x20000ad4        0x4 
+                0x20000ad8                        PROVIDE (end = .)
+                [!provide]                        PROVIDE (_end = .)
+                0x20000cd8                        . = (. + _Min_Heap_Size)
+ *fill*         0x20000ad8      0x200 
+                0x200010d8                        . = (. + _Min_Stack_Size)
+ *fill*         0x20000cd8      0x400 
+                0x200010d8                        . = ALIGN (0x8)
+>>>>>>> Stashed changes
 
 /DISCARD/
  libc.a(*)
@@ -3362,7 +4238,11 @@ LOAD C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib
 LOAD C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libm.a
 LOAD C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a
 
+<<<<<<< Updated upstream
 .debug_frame    0x00000000     0x3c7c
+=======
+.debug_frame    0x00000000     0x3a30
+>>>>>>> Stashed changes
  .debug_frame   0x00000000       0x70 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-nano-vfprintf_float.o)
  .debug_frame   0x00000070       0x54 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-nano-vfprintf_i.o)
  .debug_frame   0x000000c4      0x138 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-findfp.o)
@@ -3410,6 +4290,7 @@ LOAD C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib
  .debug_frame   0x00000f14      0x1a4 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal.o
  .debug_frame   0x000010b8      0x318 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_adc.o
  .debug_frame   0x000013d0       0xe0 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_cortex.o
+<<<<<<< Updated upstream
  .debug_frame   0x000014b0      0x1fc ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_flash.o
  .debug_frame   0x000016ac       0xbc ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_gpio.o
  .debug_frame   0x00001768      0x12c ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_rcc.o
@@ -3458,6 +4339,53 @@ LOAD C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib
  .debug_frame   0x00003bc8       0x74 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-nano-svfprintf.o)
  .debug_frame   0x00003c3c       0x20 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libnosys.a(sbrk.o)
  .debug_frame   0x00003c5c       0x20 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libnosys.a(_exit.o)
+=======
+ .debug_frame   0x000014b0       0xbc ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_gpio.o
+ .debug_frame   0x0000156c      0x12c ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_rcc.o
+ .debug_frame   0x00001698      0xa04 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_tim.o
+ .debug_frame   0x0000209c      0x3b0 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_tim_ex.o
+ .debug_frame   0x0000244c      0x4d4 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_uart.o
+ .debug_frame   0x00002920      0x130 ./Build/Libraries/PY32F0xx_HAL_BSP/Src/py32f0xx_bsp_printf.o
+ .debug_frame   0x00002a50       0x40 ./Build/Libraries/CMSIS/Device/PY32F0xx/Source/system_py32f0xx.o
+ .debug_frame   0x00002a90      0x108 ./Build/Src/adc.o
+ .debug_frame   0x00002b98      0x374 ./Build/Src/main.o
+ .debug_frame   0x00002f0c       0x70 ./Build/Src/pid.o
+ .debug_frame   0x00002f7c       0xcc ./Build/Src/timers.o
+ .debug_frame   0x00003048       0x20 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(_udivsi3.o)
+ .debug_frame   0x00003068       0x20 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(_divsi3.o)
+ .debug_frame   0x00003088       0x28 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(_fixunssfsi.o)
+ .debug_frame   0x000030b0       0x38 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(addsf3.o)
+ .debug_frame   0x000030e8       0x38 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(divsf3.o)
+ .debug_frame   0x00003120       0x2c C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(eqsf2.o)
+ .debug_frame   0x0000314c       0x2c C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(gesf2.o)
+ .debug_frame   0x00003178       0x2c C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(lesf2.o)
+ .debug_frame   0x000031a4       0x38 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(mulsf3.o)
+ .debug_frame   0x000031dc       0x38 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(subsf3.o)
+ .debug_frame   0x00003214       0x20 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(fixsfsi.o)
+ .debug_frame   0x00003234       0x2c C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(floatsisf.o)
+ .debug_frame   0x00003260       0x28 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(floatunsisf.o)
+ .debug_frame   0x00003288       0x3c C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(adddf3.o)
+ .debug_frame   0x000032c4       0x3c C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(divdf3.o)
+ .debug_frame   0x00003300       0x38 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(eqdf2.o)
+ .debug_frame   0x00003338       0x3c C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(gedf2.o)
+ .debug_frame   0x00003374       0x3c C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(ledf2.o)
+ .debug_frame   0x000033b0       0x3c C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(muldf3.o)
+ .debug_frame   0x000033ec       0x3c C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(subdf3.o)
+ .debug_frame   0x00003428       0x34 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unorddf2.o)
+ .debug_frame   0x0000345c       0x30 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(fixdfsi.o)
+ .debug_frame   0x0000348c       0x2c C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(floatsidf.o)
+ .debug_frame   0x000034b8       0x28 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(floatunsidf.o)
+ .debug_frame   0x000034e0       0x2c C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(extendsfdf2.o)
+ .debug_frame   0x0000350c       0x30 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(truncdfsf2.o)
+ .debug_frame   0x0000353c      0x2b8 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(unwind-arm.o)
+ .debug_frame   0x000037f4       0xf8 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(pr-support.o)
+ .debug_frame   0x000038ec       0x50 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-sprintf.o)
+ .debug_frame   0x0000393c       0x20 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-errno.o)
+ .debug_frame   0x0000395c       0x20 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-strcpy.o)
+ .debug_frame   0x0000397c       0x74 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libc_nano.a(libc_a-nano-svfprintf.o)
+ .debug_frame   0x000039f0       0x20 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libnosys.a(sbrk.o)
+ .debug_frame   0x00003a10       0x20 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libnosys.a(_exit.o)
+>>>>>>> Stashed changes
 
 .debug_line_str
                 0x00000000      0x1c8
@@ -3483,12 +4411,17 @@ LOAD C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib
  .debug_line_str
                 0x000001c8       0xc9 C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib/gcc/arm-none-eabi/14.2.1/thumb/v6-m/nofp\libgcc.a(_clzsi2.o)
 
+<<<<<<< Updated upstream
 .debug_info     0x00000000    0x14939
+=======
+.debug_info     0x00000000    0x1359a
+>>>>>>> Stashed changes
  .debug_info    0x00000000      0x874 ./Build/Src/py32f0xx_hal_msp.o
  .debug_info    0x00000874      0x62a ./Build/Src/py32f0xx_it.o
  .debug_info    0x00000e9e      0x840 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal.o
  .debug_info    0x000016de     0x128f ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_adc.o
  .debug_info    0x0000296d      0x8c2 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_cortex.o
+<<<<<<< Updated upstream
  .debug_info    0x0000322f     0x10e4 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_flash.o
  .debug_info    0x00004313      0x59e ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_gpio.o
  .debug_info    0x000048b1      0xb26 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_rcc.o
@@ -3504,11 +4437,28 @@ LOAD C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib
  .debug_info    0x00014907       0x32 ./Build/Libraries/CMSIS/Device/PY32F0xx/Source/gcc/startup_py32f003.o
 
 .debug_abbrev   0x00000000     0x3005
+=======
+ .debug_info    0x0000322f      0x59e ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_gpio.o
+ .debug_info    0x000037cd      0xb26 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_rcc.o
+ .debug_info    0x000042f3     0x3e7d ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_tim.o
+ .debug_info    0x00008170     0x158f ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_tim_ex.o
+ .debug_info    0x000096ff     0x19e0 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_uart.o
+ .debug_info    0x0000b0df      0xfe2 ./Build/Libraries/PY32F0xx_HAL_BSP/Src/py32f0xx_bsp_printf.o
+ .debug_info    0x0000c0c1      0x408 ./Build/Libraries/CMSIS/Device/PY32F0xx/Source/system_py32f0xx.o
+ .debug_info    0x0000c4c9     0x30c0 ./Build/Src/adc.o
+ .debug_info    0x0000f589     0x2b87 ./Build/Src/main.o
+ .debug_info    0x00012110      0x5fa ./Build/Src/pid.o
+ .debug_info    0x0001270a      0xe5e ./Build/Src/timers.o
+ .debug_info    0x00013568       0x32 ./Build/Libraries/CMSIS/Device/PY32F0xx/Source/gcc/startup_py32f003.o
+
+.debug_abbrev   0x00000000     0x2bdc
+>>>>>>> Stashed changes
  .debug_abbrev  0x00000000      0x1d2 ./Build/Src/py32f0xx_hal_msp.o
  .debug_abbrev  0x000001d2      0x1d5 ./Build/Src/py32f0xx_it.o
  .debug_abbrev  0x000003a7      0x31c ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal.o
  .debug_abbrev  0x000006c3      0x32b ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_adc.o
  .debug_abbrev  0x000009ee      0x266 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_cortex.o
+<<<<<<< Updated upstream
  .debug_abbrev  0x00000c54      0x3e8 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_flash.o
  .debug_abbrev  0x0000103c      0x1ee ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_gpio.o
  .debug_abbrev  0x0000122a      0x2a5 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_rcc.o
@@ -3522,6 +4472,20 @@ LOAD C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib
  .debug_abbrev  0x00002b24      0x1e4 ./Build/Src/pid.o
  .debug_abbrev  0x00002d08      0x2d9 ./Build/Src/timers.o
  .debug_abbrev  0x00002fe1       0x24 ./Build/Libraries/CMSIS/Device/PY32F0xx/Source/gcc/startup_py32f003.o
+=======
+ .debug_abbrev  0x00000c54      0x1ee ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_gpio.o
+ .debug_abbrev  0x00000e42      0x2a5 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_rcc.o
+ .debug_abbrev  0x000010e7      0x38b ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_tim.o
+ .debug_abbrev  0x00001472      0x2e1 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_tim_ex.o
+ .debug_abbrev  0x00001753      0x35e ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_uart.o
+ .debug_abbrev  0x00001ab1      0x261 ./Build/Libraries/PY32F0xx_HAL_BSP/Src/py32f0xx_bsp_printf.o
+ .debug_abbrev  0x00001d12      0x133 ./Build/Libraries/CMSIS/Device/PY32F0xx/Source/system_py32f0xx.o
+ .debug_abbrev  0x00001e45      0x42f ./Build/Src/adc.o
+ .debug_abbrev  0x00002274      0x487 ./Build/Src/main.o
+ .debug_abbrev  0x000026fb      0x1e4 ./Build/Src/pid.o
+ .debug_abbrev  0x000028df      0x2d9 ./Build/Src/timers.o
+ .debug_abbrev  0x00002bb8       0x24 ./Build/Libraries/CMSIS/Device/PY32F0xx/Source/gcc/startup_py32f003.o
+>>>>>>> Stashed changes
 
 .debug_loc      0x00000000     0xa799
  .debug_loc     0x00000000       0x2b ./Build/Src/py32f0xx_hal_msp.o
@@ -3541,7 +4505,11 @@ LOAD C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib
  .debug_loc     0x0000a370      0x23c ./Build/Src/pid.o
  .debug_loc     0x0000a5ac      0x1ed ./Build/Src/timers.o
 
+<<<<<<< Updated upstream
 .debug_aranges  0x00000000      0xd90
+=======
+.debug_aranges  0x00000000      0xce8
+>>>>>>> Stashed changes
  .debug_aranges
                 0x00000000       0x28 ./Build/Src/py32f0xx_hal_msp.o
  .debug_aranges
@@ -3569,6 +4537,7 @@ LOAD C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib
  .debug_aranges
                 0x00000b48       0x28 ./Build/Libraries/CMSIS/Device/PY32F0xx/Source/system_py32f0xx.o
  .debug_aranges
+<<<<<<< Updated upstream
                 0x00000b70       0x60 ./Build/Src/adc.o
  .debug_aranges
                 0x00000bd0      0x110 ./Build/Src/main.o
@@ -3580,11 +4549,23 @@ LOAD C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib
                 0x00000d68       0x28 ./Build/Libraries/CMSIS/Device/PY32F0xx/Source/gcc/startup_py32f003.o
 
 .debug_ranges   0x00000000     0x1428
+=======
+                0x00000b10      0x128 ./Build/Src/main.o
+ .debug_aranges
+                0x00000c38       0x30 ./Build/Src/pid.o
+ .debug_aranges
+                0x00000c68       0x58 ./Build/Src/timers.o
+ .debug_aranges
+                0x00000cc0       0x28 ./Build/Libraries/CMSIS/Device/PY32F0xx/Source/gcc/startup_py32f003.o
+
+.debug_ranges   0x00000000     0x1278
+>>>>>>> Stashed changes
  .debug_ranges  0x00000000       0x88 ./Build/Src/py32f0xx_hal_msp.o
  .debug_ranges  0x00000088       0x38 ./Build/Src/py32f0xx_it.o
  .debug_ranges  0x000000c0       0xb8 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal.o
  .debug_ranges  0x00000178      0x100 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_adc.o
  .debug_ranges  0x00000278       0xd0 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_cortex.o
+<<<<<<< Updated upstream
  .debug_ranges  0x00000348      0x1a8 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_flash.o
  .debug_ranges  0x000004f0       0x48 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_gpio.o
  .debug_ranges  0x00000538       0xb0 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_rcc.o
@@ -3600,11 +4581,28 @@ LOAD C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib
  .debug_ranges  0x00001408       0x20 ./Build/Libraries/CMSIS/Device/PY32F0xx/Source/gcc/startup_py32f003.o
 
 .debug_line     0x00000000     0xda42
+=======
+ .debug_ranges  0x00000348       0x48 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_gpio.o
+ .debug_ranges  0x00000390       0xb0 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_rcc.o
+ .debug_ranges  0x00000440      0x658 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_tim.o
+ .debug_ranges  0x00000a98      0x140 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_tim_ex.o
+ .debug_ranges  0x00000bd8      0x208 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_uart.o
+ .debug_ranges  0x00000de0       0xd0 ./Build/Libraries/PY32F0xx_HAL_BSP/Src/py32f0xx_bsp_printf.o
+ .debug_ranges  0x00000eb0       0x30 ./Build/Libraries/CMSIS/Device/PY32F0xx/Source/system_py32f0xx.o
+ .debug_ranges  0x00000ee0       0xd8 ./Build/Src/adc.o
+ .debug_ranges  0x00000fb8      0x208 ./Build/Src/main.o
+ .debug_ranges  0x000011c0       0x20 ./Build/Src/pid.o
+ .debug_ranges  0x000011e0       0x78 ./Build/Src/timers.o
+ .debug_ranges  0x00001258       0x20 ./Build/Libraries/CMSIS/Device/PY32F0xx/Source/gcc/startup_py32f003.o
+
+.debug_line     0x00000000     0xcacc
+>>>>>>> Stashed changes
  .debug_line    0x00000000      0x232 ./Build/Src/py32f0xx_hal_msp.o
  .debug_line    0x00000232      0x25c ./Build/Src/py32f0xx_it.o
  .debug_line    0x0000048e      0x5b3 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal.o
  .debug_line    0x00000a41     0x110a ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_adc.o
  .debug_line    0x00001b4b      0x572 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_cortex.o
+<<<<<<< Updated upstream
  .debug_line    0x000020bd      0xeec ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_flash.o
  .debug_line    0x00002fa9      0x6be ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_gpio.o
  .debug_line    0x00003667      0xb79 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_rcc.o
@@ -3639,6 +4637,40 @@ LOAD C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/../lib
  .debug_str     0x00005709      0x5ad ./Build/Src/pid.o
  .debug_str     0x00005709      0xec2 ./Build/Src/timers.o
  .debug_str     0x00005709       0xbe ./Build/Libraries/CMSIS/Device/PY32F0xx/Source/gcc/startup_py32f003.o
+=======
+ .debug_line    0x000020bd      0x6be ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_gpio.o
+ .debug_line    0x0000277b      0xb79 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_rcc.o
+ .debug_line    0x000032f4     0x378d ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_tim.o
+ .debug_line    0x00006a81      0xeb5 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_tim_ex.o
+ .debug_line    0x00007936     0x1a27 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_uart.o
+ .debug_line    0x0000935d      0x59a ./Build/Libraries/PY32F0xx_HAL_BSP/Src/py32f0xx_bsp_printf.o
+ .debug_line    0x000098f7      0x2b0 ./Build/Libraries/CMSIS/Device/PY32F0xx/Source/system_py32f0xx.o
+ .debug_line    0x00009ba7      0xae0 ./Build/Src/adc.o
+ .debug_line    0x0000a687     0x1a57 ./Build/Src/main.o
+ .debug_line    0x0000c0de      0x38c ./Build/Src/pid.o
+ .debug_line    0x0000c46a      0x5c3 ./Build/Src/timers.o
+ .debug_line    0x0000ca2d       0x9f ./Build/Libraries/CMSIS/Device/PY32F0xx/Source/gcc/startup_py32f003.o
+
+.debug_str      0x00000000     0x5519
+ .debug_str     0x00000000     0x5519 ./Build/Src/py32f0xx_hal_msp.o
+                                0x7c0 (size before relaxing)
+ .debug_str     0x00005519      0x5f3 ./Build/Src/py32f0xx_it.o
+ .debug_str     0x00005519      0x69d ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal.o
+ .debug_str     0x00005519      0xa04 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_adc.o
+ .debug_str     0x00005519      0x5d7 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_cortex.o
+ .debug_str     0x00005519      0x3bf ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_gpio.o
+ .debug_str     0x00005519      0x636 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_rcc.o
+ .debug_str     0x00005519     0x14c2 ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_tim.o
+ .debug_str     0x00005519      0xcbf ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_tim_ex.o
+ .debug_str     0x00005519      0xc1f ./Build/Libraries/PY32F0xx_HAL_Driver/Src/py32f0xx_hal_uart.o
+ .debug_str     0x00005519      0xab8 ./Build/Libraries/PY32F0xx_HAL_BSP/Src/py32f0xx_bsp_printf.o
+ .debug_str     0x00005519      0x317 ./Build/Libraries/CMSIS/Device/PY32F0xx/Source/system_py32f0xx.o
+ .debug_str     0x00005519     0x1b9c ./Build/Src/adc.o
+ .debug_str     0x00005519     0x1d1b ./Build/Src/main.o
+ .debug_str     0x00005519      0x5ac ./Build/Src/pid.o
+ .debug_str     0x00005519      0xf56 ./Build/Src/timers.o
+ .debug_str     0x00005519       0xbe ./Build/Libraries/CMSIS/Device/PY32F0xx/Source/gcc/startup_py32f003.o
+>>>>>>> Stashed changes
 
 .comment        0x00000000       0x45
  .comment       0x00000000       0x45 ./Build/Src/py32f0xx_hal_msp.o

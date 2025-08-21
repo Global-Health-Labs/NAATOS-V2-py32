@@ -14,6 +14,11 @@ enum state_machine
     actuation_prep,
     actuation,
     detection,
+<<<<<<< Updated upstream
+=======
+    actuation_ramp,
+    complete,
+>>>>>>> Stashed changes
     self_test_1,
     self_test_2,
     preheat

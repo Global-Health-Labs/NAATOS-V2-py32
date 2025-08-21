@@ -16,6 +16,7 @@
                 "load",
                 "tbreak main"
             ],
+            "preLaunchTask": "build",  // Set this to run a task from tasks.json before starting a debug session
             "target": {
                 "server": "JLinkGDBServer",
                 "serverParameters": [
@@ -38,6 +39,29 @@
                 "cbuildRunFile": "${command:cmsis-csolution.getCbuildRunFile}"
             }
         },
+
+
+        {
+        "name": "Debug (J-Link)",
+        "type": "cppdbg",
+        "request": "launch",
+        "program": "${workspaceFolder:PY32_MK}/Build/app.elf",
+        "cwd": "${workspaceFolder:PY32_MK}",
+        "stopAtEntry": true,
+        "externalConsole": false,
+        "MIMode": "gdb",
+        "miDebuggerPath": "C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin/arm-none-eabi-gdb.exe",
+        "miDebuggerServerAddress": "localhost:2331",
+        "setupCommands": [
+            { "text": "monitor reset halt" },
+            { "text": "load" },
+            { "text": "monitor reset halt" }
+        ],
+        "preLaunchTask": "jlink-gdbserver"
+        },
+  
+
+
 
         {
             "armToolchainPath": "C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin",

@@ -28,7 +28,11 @@
 
 #define BOARDCONFIG_MK6C
 
+<<<<<<< Updated upstream
 #define FW_VERSION_STR                  "FW:v0.9"
+=======
+#define FW_VERSION_STR                  "FW:v1.3"
+>>>>>>> Stashed changes
 
 
 #if defined(BOARDCONFIG_MK5AA) 
@@ -62,6 +66,7 @@
 #endif
 
 #if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C) || defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA) || defined(BOARDCONFIG_MK6F)
+<<<<<<< Updated upstream
 #define SAMPLE_ZONE_AMP_SOAK_TARGET_C   72
 #define VALVE_ZONE_AMP_SOAK_TARGET_C    72
 #define SAMPLE_ZONE_VALVE_SOAK_TARGET_C 0
@@ -75,6 +80,26 @@
 #define HEATER_ELEMENT_POWER_RATIO      35
 #define OVERTEMP_ERR_C                  110
 #define SLEW_RATE_LIMIT                 250
+=======
+#define SAMPLE_ZONE_AMP_RAMP_TARGET_C           85  
+#define VALVE_ZONE_AMP_RAMP_TARGET_C            74 
+
+#define SAMPLE_ZONE_AMP_SOAK_TARGET_C           71
+#define VALVE_ZONE_AMP_SOAK_TARGET_C            70
+
+#define SAMPLE_ZONE_VALVE_SOAK_TARGET_C         0
+#define VALVE_ZONE_VALVE_SOAK_TARGET_C          101
+#define VALVE_ZONE_ACT_RAMP_TARGET_C            109
+#define COLD_TEMP_SETPOINT_OFFSET_C             2           //cold temp values are dependent on the outer device packaging (convective shielding and insulation)
+#define COLD_TEMP_OFFSET_THRESHOLD_C            14
+#define AMPLIFICATION_MIN_VALID_TEMP_C          65
+#define ACTUATION_MIN_VALID_TEMP_C              95
+#define HEATER_RAMP_SETPOINT_OFFSET             1
+#define HEATER_SHUTDOWN_C                       0
+#define HEATER_ELEMENT_POWER_RATIO              35
+#define OVERTEMP_ERR_C                          120
+#define SLEW_RATE_LIMIT                         250
+>>>>>>> Stashed changes
 
 #else
     FAIL -- invalid board type
@@ -83,22 +108,32 @@
 
 
 // Timer related
-#define PWM_TIMER_INTERVAL              1L
-#define MINUTE_TIMER_INTERVAL           (60000L * TICKS_PER_MSEC)
-#define LOG_TIMER_INTERVAL              (500L * TICKS_PER_MSEC)
+#define PWM_TIMER_INTERVAL                      1L
+#define MINUTE_TIMER_INTERVAL                   (60000L * TICKS_PER_MSEC)
+#define LOG_TIMER_INTERVAL                      (500L * TICKS_PER_MSEC)
 
-#define PID_TIMER_INTERVAL              (500L * TICKS_PER_MSEC)
-#define DATA_COLLECTION_TIMER_INTERVAL  (500L * TICKS_PER_MSEC)
-#define LED_TIMER_INTERVAL_AMPLIFICATION (500L * TICKS_PER_MSEC)
-#define LED_TIMER_INTERVAL_ACTIVATION   (250L * TICKS_PER_MSEC)
-#define LED_TIMER_INTERVAL_DONE         (1000L * TICKS_PER_MSEC)
-#define PUSHBUTTON_TIMER_INTERVAL       (10L * TICKS_PER_MSEC)
+#define PID_TIMER_INTERVAL                      (500L * TICKS_PER_MSEC)
+#define DATA_COLLECTION_TIMER_INTERVAL          (500L * TICKS_PER_MSEC)
+#define LED_TIMER_INTERVAL_AMPLIFICATION        (500L * TICKS_PER_MSEC)
+#define LED_TIMER_INTERVAL_ACTIVATION           (250L * TICKS_PER_MSEC)
+#define LED_TIMER_INTERVAL_DONE                 (1000L * TICKS_PER_MSEC)
+#define PUSHBUTTON_TIMER_INTERVAL               (10L * TICKS_PER_MSEC)
                                         
-#define STARTUP_DELAY_MS                (5000L * TICKS_PER_MSEC)
+#define STARTUP_DELAY_MS                        (5000L * TICKS_PER_MSEC)
 
+<<<<<<< Updated upstream
 #define PWM_MAX                         250
 
 #define NUMPROCESS                      5  
+=======
+#define ACTUATION_DELAY_TIMER_INTERVAL          (20000L * TICKS_PER_MSEC)
+
+#define AMPLIFICATION_DELAY_TIMER_INTERVAL      (5000L * TICKS_PER_MSEC)
+
+#define PWM_MAX                                 250
+
+#define NUMPROCESS                              6  
+>>>>>>> Stashed changes
 
 // Data Structures
 struct CONTROL 
@@ -147,6 +182,12 @@ typedef struct app_data_t {
     uint32_t test_interval;
 	uint8_t sh_pwm_during_adc_meas;
 	uint8_t vh_pwm_during_adc_meas;
+<<<<<<< Updated upstream
+=======
+
+    bool flag_reached_actuation_ramp_target;
+    bool flag_reached_amplification_target;
+>>>>>>> Stashed changes
 } app_data_t;
 
 typedef struct flags_t {
@@ -157,6 +198,11 @@ typedef struct flags_t {
     volatile bool flagSendLogData;
     volatile bool flagDelayedStart;
     volatile bool flagPushbutton;
+<<<<<<< Updated upstream
+=======
+    volatile bool flagActuationDelay;
+    volatile bool flagAmplificationDelay;
+>>>>>>> Stashed changes
 } flags_t;
 
 

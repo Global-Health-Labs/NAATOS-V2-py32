@@ -58,6 +58,11 @@ void DataCollection_ISR(void);
 void DelayedStart_ISR(void);
 void Pushbutton_ISR(void);
 void LogData_ISR(void);
+<<<<<<< Updated upstream
+=======
+void ActuationDelay_ISR(void);
+void AmplificationDelay_ISR(void);
+>>>>>>> Stashed changes
 
 void print_log_data(void);
 void send_max_temps(void);
