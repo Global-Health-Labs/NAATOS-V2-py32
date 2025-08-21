@@ -28,7 +28,7 @@
 
 #define BOARDCONFIG_MK6C
 
-#define FW_VERSION_STR                  "FW:v1.2"
+#define FW_VERSION_STR                  "FW:v1.3"
 
 
 #if defined(BOARDCONFIG_MK5AA) 

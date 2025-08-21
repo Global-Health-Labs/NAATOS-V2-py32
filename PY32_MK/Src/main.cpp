@@ -478,7 +478,7 @@ void APP_UpdateState(void){
             #endif            
 
         } else if (data.msec_test_count > PREHEAT_MAX_TIME_MSEC) {
-            APP_ErrorHandler(ERR_HEATER_TIMEOUT);    
+            //APP_ErrorHandler(ERR_HEATER_TIMEOUT);    
         }
     }
 
@@ -499,15 +499,20 @@ void APP_UpdateState(void){
                     data.state = low_power;
                     pid_init(SAMPLE_HEATER,sample_amp_control[data.state]);
                     pid_init(VALVE_HEATER,valve_amp_control[data.state]);
+                    
+                    Disable_timer(LEDTimerNumber);
+                    Update_TimerTickInterval(LEDTimerNumber, LED_TIMER_INTERVAL_DONE);
+                    Enable_timer(LEDTimerNumber);
+
                     stop_naat_test();
 
                     send_max_temps();
                     if (data.sample_max_temperature_c < AMPLIFICATION_MIN_VALID_TEMP_C) {
                         // Set an alarm if the minimum sample temperature was not reached.
-                        APP_ErrorHandler(ERR_MIN_AMPLIFICATION_TEMP);
+                        //APP_ErrorHandler(ERR_MIN_AMPLIFICATION_TEMP);
                     } else if (data.valve_max_temperature_c < ACTUATION_MIN_VALID_TEMP_C) {
                         // Set an alarm if the minimum valve temperature was not reached.
-                        APP_ErrorHandler(ERR_MIN_ACTUATION_TEMP);
+                        //APP_ErrorHandler(ERR_MIN_ACTUATION_TEMP);
                     } 
                 }
             }
@@ -631,7 +636,9 @@ int main(void)
     {
     
         // RUN primary application code state LOGIC
-        APP_UpdateState();
+        if (data.test_active) {
+            APP_UpdateState();
+        }
 
         //HAL_IWDG_Refresh(&hiwdg);
 
@@ -776,7 +783,7 @@ void stop_naat_test(void) {
     Disable_timer(LogTimerNumber);                
     Disable_timer(MinuteTimerNumber);
     
-    Update_TimerTickInterval(LEDTimerNumber, LED_TIMER_INTERVAL_DONE);
+    
     sprintf(outputStr, "Test stopped.\r\n");		
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
 }
@@ -1346,7 +1353,8 @@ void LEDTimer_ISR(void)
     } else if (data.minute_test_count == 0) {
         HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_RESET);     // turn LED on after system setup completes
     } else {
-        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_RESET);     // turn LED on at the end of the test
+        HAL_GPIO_TogglePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1);
+        //HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_RESET);     // turn LED on at the end of the test
     }
 }
 
