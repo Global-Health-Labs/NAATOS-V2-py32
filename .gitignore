@@ -17,3 +17,8 @@ python/logs/
 *.scvd
 *.d
 *.o
+PY32_MK/Build/app.bin
+PY32_MK/Build/app.elf
+PY32_MK/Build/app.hex
+PY32_MK/Build/app.lst
+PY32_MK/Build/app.map

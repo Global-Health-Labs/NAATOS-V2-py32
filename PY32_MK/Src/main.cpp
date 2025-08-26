@@ -364,6 +364,11 @@ void power_on_tests(void){
 
 void init_adc_data(void){
 
+    //uint32_t start_tick;
+    uint32_t rcc_csr_bootstate;
+    
+    rcc_csr_bootstate = RCC->CSR;
+
     ADC_Read();
     //sprintf(outputStr, "ADCs: %d %d %d %d %d %d %d\r\n", data.adcReading[0], data.adcReading[1], data.adcReading[2], data.adcReading[3], data.adcReading[4], data.adcReading[5], data.adcReading[6]);
     //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
@@ -583,10 +588,6 @@ void APP_UpdateState(void){
  */
 int main(void)
 {
-    //uint32_t start_tick;
-    uint32_t rcc_csr_bootstate;
-    
-    rcc_csr_bootstate = RCC->CSR;
     
     system_setup();
 
@@ -606,6 +607,7 @@ int main(void)
 
     // Set OPTION BYTES; for development
     #if SET_OB_ONCE
+
             sprintf(outputStr, "made it to SetOptionBytes\r\n");
             HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
             SetOptionBytes();
@@ -620,13 +622,10 @@ int main(void)
     
     #endif // SET_OB_ONCE
 
-
-    // Start setting up for APP
-
     init_adc_data(); 
 
     power_on_tests();
-    
+
     
     if (data.sample_temperature_c <= COLD_TEMP_OFFSET_THRESHOLD_C) {
         data.cold_ambient_temp_mode = true;
