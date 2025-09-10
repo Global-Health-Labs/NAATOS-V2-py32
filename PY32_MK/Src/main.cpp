@@ -471,9 +471,14 @@ void APP_UpdateState(void){
             // EXCEEDED RAMP TARGET; switch to AMPLIFICATION state
             data.state = amplification;
             data.sample_ramp_time_sec = data.msec_test_count / 1000;
+
             // initialize the sample and valve heaters to the amplification setpoints:
             pid_init(SAMPLE_HEATER,sample_amp_control[data.state]);
             pid_init(VALVE_HEATER,valve_amp_control[data.state]);
+            
+            // control heater levels
+            pwm_amp_ctrl.heater_level_high = false;
+            pwm_valve_ctrl.heater_level_high = false;   // mk8
 
             // RESET the minute test count, APP timer
             #ifdef IGNORE_RAMP_TIME            
@@ -536,7 +541,9 @@ void APP_UpdateState(void){
                 data.valve_ramp_start_time_msec = data.msec_test_count;
                 // set valve heater high strength and 100%. (sample heater will be off)
                 data.heater_control_not_simultaneous = false;
-                pwm_valve_ctrl.heater_level_high = true;   
+                pwm_amp_ctrl.heater_level_high = false;
+                pwm_valve_ctrl.heater_level_high = true;   // mk8
+                //pwm_valve_ctrl.heater_level_high = true;   
                 
                 // set PID values
                 pid_init(SAMPLE_HEATER,sample_amp_control[data.state]);
@@ -751,8 +758,8 @@ void start_naat_test(void) {
                 data.state = self_test_1;
         #else         
                 data.heater_control_not_simultaneous = false;
-                pwm_amp_ctrl.heater_level_high = true;
-                pwm_valve_ctrl.heater_level_high = true;
+                pwm_amp_ctrl.heater_level_high = false;
+                pwm_valve_ctrl.heater_level_high = false;
                 data.state = amplification_ramp;
         #endif
 
@@ -1115,6 +1122,38 @@ void GPIO_Init(void)
     Pins.GPIO_Pin_VALVE_CTRL2 = GPIO_PIN_1;
     Pins.GPIOx_PUSHBUTTON = GPIOF;
     Pins.GPIO_Pin_PUSHBUTTON = GPIO_PIN_2;
+#elif defined(BOARDCONFIG_MK8)
+    Pins.GPIOx_AMP_VALVE_TEMP_V = GPIOA;
+    Pins.GPIO_Pin_AMP_VALVE_TEMP_V = GPIO_PIN_2;
+    Pins.ADC_CHANNEL_VALVE_TEMP_V = ADC_CHANNEL_2; 
+
+    Pins.GPIOx_AMP_TEMP_V = GPIOA;
+    Pins.GPIO_Pin_AMP_TEMP_V = GPIO_PIN_3;
+    Pins.ADC_CHANNEL_AMP_TEMP_V = ADC_CHANNEL_3;    
+       
+    Pins.GPIOx_AMP_V_BATT_SENSE = GPIOA;
+    Pins.GPIO_Pin_V_BATT_SENSE = GPIO_PIN_6;
+    Pins.ADC_CHANNEL_V_BATT_SENSE = ADC_CHANNEL_6;    
+    Pins.GPIOx_USB_CC1 = GPIOA;
+    Pins.GPIO_Pin_USB_CC1 = GPIO_PIN_7;
+    Pins.ADC_CHANNEL_USB_CC1 = ADC_CHANNEL_7;    
+    Pins.GPIOx_USB_CC2 = GPIOA;
+    Pins.GPIO_Pin_USB_CC2 = GPIO_PIN_4;
+    Pins.ADC_CHANNEL_USB_CC2 = ADC_CHANNEL_4;    
+    Pins.GPIOx_LED1 = GPIOA;
+    Pins.GPIO_Pin_LED1 = GPIO_PIN_5;
+    Pins.GPIOx_LED2 = GPIOB;
+    Pins.GPIO_Pin_LED2 = GPIO_PIN_5;
+    Pins.GPIOx_AMP_CTRL1 = GPIOB;
+    Pins.GPIO_Pin_AMP_CTRL1 = GPIO_PIN_6;
+    Pins.GPIOx_AMP_CTRL2 = GPIOB;
+    Pins.GPIO_Pin_AMP_CTRL2 = GPIO_PIN_7;
+    Pins.GPIOx_VALVE_CTRL1 = GPIOF;
+    Pins.GPIO_Pin_VALVE_CTRL1 = GPIO_PIN_0;
+    Pins.GPIOx_VALVE_CTRL2 = GPIOF;
+    Pins.GPIO_Pin_VALVE_CTRL2 = GPIO_PIN_1;
+    Pins.GPIOx_PUSHBUTTON = GPIOF;
+    Pins.GPIO_Pin_PUSHBUTTON = GPIO_PIN_2;
 #else    
     Pins.GPIOx_AMP_TEMP_V = GPIOA;
     Pins.GPIO_Pin_AMP_TEMP_V = GPIO_PIN_2;
@@ -1173,7 +1212,7 @@ void GPIO_Init(void)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
     HAL_GPIO_Init(Pins.GPIOx_LED1, &GPIO_InitStruct);    
 
-#if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C) || defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA) || defined(BOARDCONFIG_MK6F)
+#if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C) || defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA) || defined(BOARDCONFIG_MK6F) || defined(BOARDCONFIG_MK8)
     AdcPinStruct.Pin = Pins.GPIO_Pin_USB_CC1;               // USB_CC1
     AdcPinStruct.Mode = GPIO_MODE_ANALOG;
     AdcPinStruct.Pull = GPIO_NOPULL;
@@ -1204,7 +1243,7 @@ void GPIO_Init(void)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(Pins.GPIOx_AMP_CTRL2, &GPIO_InitStruct);    
 
-#if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C) || defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA) || defined(BOARDCONFIG_MK6F)
+#if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C) || defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA) || defined(BOARDCONFIG_MK6F) || defined(BOARDCONFIG_MK8)
     GPIO_InitStruct.Pin = Pins.GPIO_Pin_VALVE_CTRL1;        // VALVE_CTRL1
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_PULLDOWN;
@@ -1314,7 +1353,7 @@ void PWMTimer_ISR(void)
     // This is aligned with the end of the PWM period
     if (pwm_valve_ctrl.enabled && data.valve_heater_pwm_value > 0) {
         if (pwm_valve_ctrl.pwm_tick_count  > (PWM_MAX - data.valve_heater_pwm_value)) {
-            if (pwm_amp_ctrl.heater_level_high) {
+            if (pwm_valve_ctrl.heater_level_high) {
                 HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL1, Pins.GPIO_Pin_VALVE_CTRL1, GPIO_PIN_SET);
                 HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL2, Pins.GPIO_Pin_VALVE_CTRL2, GPIO_PIN_RESET);
             } else {

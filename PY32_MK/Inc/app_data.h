@@ -17,7 +17,7 @@
 //#define ENABLE_POWER_ON_TESTS                 // Enable the power on tests, which will run at startup
 #define IGNORE_RAMP_TIME                        // Start the test timer after the heater has ramped to near the setpoint temperature
 
-#define AMPLIFICATION_TIME_MIN          17.5
+#define AMPLIFICATION_TIME_MIN          2
 #define ACTUATION_TIME_MIN              5
 #define DETECTION_TIME_MIN              7
 
@@ -26,7 +26,7 @@
 #define PREHEAT_TEMP_C    	            30	    // Start the heaters in non simultaneous mode until they hit this temperature
 #define PREHEAT_MAX_TIME_MSEC           150000  // Go to a failure state if the board cannot preheat within this amount of time.
 
-#define BOARDCONFIG_MK6C
+#define BOARDCONFIG_MK8
 
 #define FW_VERSION_STR                  "FW:v1.3"
 
@@ -41,6 +41,8 @@
     #define BUILD_HW_STR                    "HW:MK6C"
 #elif defined(BOARDCONFIG_MK6F)
     #define BUILD_HW_STR                    "HW:MK6F"
+#elif defined(BOARDCONFIG_MK8)
+    #define BUILD_HW_STR                    "HW:MK8"    
 #else
     FAIL -- invalid board
 #endif
@@ -54,14 +56,14 @@
 #elif defined(BOARDCONFIG_MK6F)
     #define VCC_MCU_MIN_VOLTAGE     4.5         // The flex board runs directly from 5v USB
     #define VCC_MCU_MAX_VOLTAGE     5.5
-#elif defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C)
+#elif defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C) || defined(BOARDCONFIG_MK8)
     #define VCC_MCU_MIN_VOLTAGE     2.4
     #define VCC_MCU_MAX_VOLTAGE     2.6
 #else
     FAIL -- invalid board type
 #endif
 
-#if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C) || defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA) || defined(BOARDCONFIG_MK6F)
+#if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C) || defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA) || defined(BOARDCONFIG_MK6F) || defined(BOARDCONFIG_MK8)
 #define SAMPLE_ZONE_AMP_RAMP_TARGET_C   85  //84
 #define VALVE_ZONE_AMP_RAMP_TARGET_C    74  //75
 

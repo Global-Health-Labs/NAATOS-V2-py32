@@ -3,7 +3,7 @@ This NAATOS V2 firmware project is designed for the Puya PY32F003 series ARM Cor
 MK series (MK5 / MK6) development is in the PY32_MK subdirectory. The other subdirectories were for initial devkit based prototyping and are not currently maintained.
 
 ## Building the project
-IDE / Build environment: Keil uVision v5
+IDE / Build environment: Visual Studio - WindowsOS
 
 ## Device programming
 Segger J-Link BASE Compact (or equivalent). Low cost ARM JTAG programmers will likely also work.  
