@@ -21,7 +21,11 @@
 #include "timers.h"
 
 
-
+#define USB_MIN_VALID_SOURCE_V      4.5         // Minimum USB power supply voltage for NAATOS operation
+#define USB_CC_MIN_V                0.25        // Readings below this indicate that the cable has tied this line to ground
+#define USB_CC_MIN_VALID_SOURCE_V   0.75        // Readings between 0.25v and 0.75v are low power supplies (invalid for NAATOS)
+#define USB_CC_MAX_VALID_SOURCE_V   2.00        // Readings between 0.75 and 2v are valid USB power supplies
+                                                // Readings above 2v are not from a valid USB CC voltage divider 
 
 
 /* Private define ------------------------------------------------------------*/
@@ -56,21 +60,21 @@ GPIO_PinState pushbutton_value, last_pushbutton_value;
 
 CONTROL sample_amp_control[NUMPROCESS] = 
 {
-  {HEATER_SHUTDOWN_C, 0, 0, 2, 1, .5, false},                                                      // shutdown
-  {SAMPLE_ZONE_AMP_RAMP_TARGET_C, 0,0, PID_P_RAMP_TERM, 0, 0, true},                              // AMP RAMP
-  {SAMPLE_ZONE_AMP_SOAK_TARGET_C, 0,0, PID_SH_P_TERM, PID_SH_I_TERM, PID_SH_D_TERM, false},        // AMP SOAK
-  {SAMPLE_ZONE_VALVE_SOAK_TARGET_C, 0, 0, PID_SH_P_TERM, PID_SH_I_TERM, PID_SH_D_TERM, false},     // ACT SOAK
-  {HEATER_SHUTDOWN_C, 0, 0, 2, 5, 1, false},                                                       // DETECTION
-  {HEATER_SHUTDOWN_C, 0, 0, 0, 0, 0, false}
+  {HEATER_SHUTDOWN_C, 0, 0, 2, 1, .5, false,0},                                                      // shutdown
+  {SAMPLE_ZONE_AMP_RAMP_TARGET_C, 0,0, PID_P_RAMP_TERM, 0, 0, true,-12},                             // AMP RAMP
+  {SAMPLE_ZONE_AMP_SOAK_TARGET_C, 0,0, PID_SH_P_TERM, PID_SH_I_TERM, PID_SH_D_TERM, false,0},        // AMP SOAK
+  {SAMPLE_ZONE_VALVE_SOAK_TARGET_C, 0, 0, PID_SH_P_TERM, PID_SH_I_TERM, PID_SH_D_TERM, false,0},     // ACT SOAK
+  {HEATER_SHUTDOWN_C, 0, 0, 2, 5, 1, false,0},                                                       // DETECTION
+  {HEATER_SHUTDOWN_C, 0, 0, 0, 0, 0, false,0}                                                        // ACT RAMP 
 };
 CONTROL valve_amp_control[NUMPROCESS] = 
 {
-  {HEATER_SHUTDOWN_C, 0, 0, 0, 0, 0, false},
-  {VALVE_ZONE_AMP_RAMP_TARGET_C, 0,0, PID_P_RAMP_TERM, 0, 0, true},
-  {VALVE_ZONE_AMP_SOAK_TARGET_C, 0,0, PID_VH_P_TERM, PID_VH_I_TERM, PID_VH_D_TERM, false},
-  {VALVE_ZONE_VALVE_SOAK_TARGET_C,0, 0, PID_VH_P_TERM, PID_VH_I_TERM, PID_VH_D_TERM, true},
-  {HEATER_SHUTDOWN_C, 0, 0, 0, 0, 0, false},
-  {VALVE_ZONE_ACT_RAMP_TARGET_C, 0, 0, PID_P_RAMP_TERM, 0, 0, false}
+  {HEATER_SHUTDOWN_C, 0, 0, 0, 0, 0, false,0},                                                       // shutdown
+  {VALVE_ZONE_AMP_RAMP_TARGET_C, 0,0, PID_P_RAMP_TERM, 0, 0, false,0},                               // AMP RAMP
+  {VALVE_ZONE_AMP_SOAK_TARGET_C, 0,0, PID_VH_P_TERM, PID_VH_I_TERM, PID_VH_D_TERM, false,0},         // AMP SOAK
+  {VALVE_ZONE_VALVE_SOAK_TARGET_C,0, 0, PID_VH_P_TERM, PID_VH_I_TERM, PID_VH_D_TERM, false,0},       // ACT SOAK
+  {HEATER_SHUTDOWN_C, 0, 0, 0, 0, 0, false,0},                                                       // DETECTION
+  {VALVE_ZONE_ACT_RAMP_TARGET_C, 0, 0, PID_P_RAMP_TERM, 0, 0, false,0}                               // ACT RAMP
 };
 
 
@@ -281,9 +285,12 @@ void PrintOptionBytes(void)
 // Init PID Controller based on the STATE MACHINE state
 void pid_init(heater_t heater, CONTROL pid_settings){
   float adjusted_setpoint;
-  
-  if (data.cold_ambient_temp_mode && pid_settings.cold_temp_adjusted) adjusted_setpoint = pid_settings.setpoint + COLD_TEMP_SETPOINT_OFFSET_C;
-  else adjusted_setpoint = pid_settings.setpoint;
+  if (data.cold_ambient_temp_mode && pid_settings.cold_temp_adjusted) {
+    adjusted_setpoint = pid_settings.setpoint + pid_settings.cold_temp_offset_c;
+  } else {
+    adjusted_setpoint = pid_settings.setpoint;
+  }
+
   pid_controller_init(
     heater, 
     adjusted_setpoint,
@@ -370,6 +377,10 @@ void init_adc_data(void){
     rcc_csr_bootstate = RCC->CSR;
 
     ADC_Read();
+    if (data.system_input_voltage > USB_MIN_VALID_SOURCE_V) {
+        data.system_on_usb_power = true;
+    }
+
     //sprintf(outputStr, "ADCs: %d %d %d %d %d %d %d\r\n", data.adcReading[0], data.adcReading[1], data.adcReading[2], data.adcReading[3], data.adcReading[4], data.adcReading[5], data.adcReading[6]);
     //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
     sprintf(outputStr, "system_input_voltage: %1.2f vcc_mcu_voltage: %1.2f\r\n", data.system_input_voltage, data.vcc_mcu_voltage);
@@ -467,7 +478,11 @@ void APP_UpdateState(void){
     if (data.state == amplification_ramp) {
         // AMPLIFICATION RAMP
 
-        if ((data.sample_temperature_c >= (SAMPLE_ZONE_AMP_RAMP_TARGET_C - HEATER_RAMP_SETPOINT_OFFSET)) && (data.valve_temperature_c >= (VALVE_ZONE_AMP_RAMP_TARGET_C - HEATER_RAMP_SETPOINT_OFFSET))) {
+        if ((data.sample_max_temperature_c >= (pid_data[SAMPLE_HEATER].setpoint - HEATER_RAMP_SETPOINT_OFFSET)) && (data.valve_max_temperature_c >= (pid_data[VALVE_HEATER].setpoint - HEATER_RAMP_SETPOINT_OFFSET))) {
+            // reached the ramp target at least once; set the flag
+        //    data.flag_reached_amp_ramp_target = true;
+        //}
+        //if ((data.sample_temperature_c >= (SAMPLE_ZONE_AMP_RAMP_TARGET_C - HEATER_RAMP_SETPOINT_OFFSET)) && (data.valve_temperature_c >= (VALVE_ZONE_AMP_RAMP_TARGET_C - HEATER_RAMP_SETPOINT_OFFSET))) {
             // EXCEEDED RAMP TARGET; switch to AMPLIFICATION state
             data.state = amplification;
             data.sample_ramp_time_sec = data.msec_test_count / 1000;
@@ -528,12 +543,6 @@ void APP_UpdateState(void){
             }
         } else if (data.minute_test_count >= AMPLIFICATION_TIME_MIN) {
             // select RAMP or Steady state
-            if ( (data.valve_temperature_c >= (VALVE_ZONE_ACT_RAMP_TARGET_C)) && !data.flag_reached_actuation_ramp_target) {
-                // Reach the actuation ramp target; start TIMER for actuation delay
-                data.flag_reached_actuation_ramp_target = true;
-                Enable_timer(ActuationDelayTimerNumber); // start the actuation delay timer
-            }
-
             if (data.state != actuation_ramp && !data.flag_reached_actuation_ramp_target) {
                 // Set STATE to ACTUATION RAMP
                 data.state = actuation_ramp;
@@ -550,6 +559,13 @@ void APP_UpdateState(void){
                 pid_init(VALVE_HEATER,valve_amp_control[data.state]);
                 //Update_TimerTickInterval(LEDTimerNumber, LED_TIMER_INTERVAL_ACTIVATION_RAMP);
             }
+
+            if ( (data.valve_temperature_c >= (pid_data[VALVE_HEATER].setpoint)) && !data.flag_reached_actuation_ramp_target) {
+                // Reach the actuation ramp target; start TIMER for actuation delay
+                data.flag_reached_actuation_ramp_target = true;
+                Enable_timer(ActuationDelayTimerNumber); // start the actuation delay timer
+            }
+
 
             if (flags.flagActuationDelay) {
                 if (data.state != actuation) {
@@ -757,9 +773,18 @@ void start_naat_test(void) {
                 pwm_valve_ctrl.heater_level_high = false;
                 data.state = self_test_1;
         #else         
-                data.heater_control_not_simultaneous = false;
+                if (data.system_on_usb_power) {
+                    // limit instintaneous power from USB source, it's overpowered for heater design so can reach current limit
+                    data.heater_control_not_simultaneous = true;
+                } else {data.heater_control_not_simultaneous = false;}
+                
                 pwm_amp_ctrl.heater_level_high = false;
                 pwm_valve_ctrl.heater_level_high = false;
+
+                if (data.cold_ambient_temp_mode) {
+                    pwm_amp_ctrl.heater_level_high = true;
+                    pwm_valve_ctrl.heater_level_high = true;
+                }
                 data.state = amplification_ramp;
         #endif
 
@@ -821,6 +846,7 @@ void Data_init(void)
     data.msec_test_count = 0;
     data.vcc_mcu_voltage = 0;
     data.system_input_voltage = 0;
+    data.system_on_usb_power = false;
     data.valve_max_temperature_c = 0;
     data.sample_max_temperature_c = 0;    
     data.sample_ramp_start_time_msec = 0;    
@@ -886,9 +912,9 @@ void Update_PID(void)
                 data.valve_heater_pwm_value = VH_FIXED_PWM_TEST /2;
                 //data.valve_heater_pwm_value = 0;       // disable SH
         #else        
-        // Distribute maximum power such that heaters are not on simultaneously:
-        data.sample_heater_pwm_value = (PWM_MAX * (100-HEATER_ELEMENT_POWER_RATIO)) /100;
-        data.valve_heater_pwm_value = (PWM_MAX * HEATER_ELEMENT_POWER_RATIO) /100;
+            // Distribute maximum power such that heaters are not on simultaneously:
+            data.sample_heater_pwm_value = (pid_data[SAMPLE_HEATER].out / PWM_MAX) * ((PWM_MAX * (100-HEATER_ELEMENT_POWER_RATIO)) /100);
+            data.valve_heater_pwm_value = (pid_data[VALVE_HEATER].out / PWM_MAX) * ((PWM_MAX * HEATER_ELEMENT_POWER_RATIO) /100);
         #endif
     } else {
         #ifdef DEBUG_HEATERS
@@ -1391,7 +1417,7 @@ void LEDTimer_ISR(void)
     } else if (data.minute_test_count == 0) {
         HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_RESET);     // turn LED on after system setup completes
     } else {
-        HAL_GPIO_TogglePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1);
+        HAL_GPIO_TogglePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1);                    // flashing LED
         //HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_RESET);     // turn LED on at the end of the test
     }
 }
@@ -1437,10 +1463,8 @@ void Pushbutton_ISR(void)
 // USB CC1 and CC2 readings: Per the USB standard only one will be valid. (USB cables typically tie either CC1 or CC2 to ground)
 // An error will be thrown if neither CC1 nor CC2 reads below 0.75v and 1.75v
 
-#define USB_CC_MIN_V                0.25        // Readings below this indicate that the cable has tied this line to ground
-#define USB_CC_MIN_VALID_SOURCE_V   0.75        // Readings between 0.25v and 0.75v are low power supplies (invalid for NAATOS)
-#define USB_CC_MAX_VALID_SOURCE_V   2.00        // Readings between 0.75 and 2v are valid USB power supplies
-                                                // Readings above 2v are not from a valid USB CC voltage divider 
+
+                                            
 
 bool Validate_USB_Power_Source(void)
 {

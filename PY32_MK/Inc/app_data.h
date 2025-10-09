@@ -17,7 +17,7 @@
 //#define ENABLE_POWER_ON_TESTS                 // Enable the power on tests, which will run at startup
 #define IGNORE_RAMP_TIME                        // Start the test timer after the heater has ramped to near the setpoint temperature
 
-#define AMPLIFICATION_TIME_MIN          2
+#define AMPLIFICATION_TIME_MIN          17
 #define ACTUATION_TIME_MIN              5
 #define DETECTION_TIME_MIN              7
 
@@ -28,7 +28,7 @@
 
 #define BOARDCONFIG_MK8
 
-#define FW_VERSION_STR                  "FW:v1.3"
+#define FW_VERSION_STR                  "FW:v1.5"
 
 
 #if defined(BOARDCONFIG_MK5AA) 
@@ -64,22 +64,22 @@
 #endif
 
 #if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C) || defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA) || defined(BOARDCONFIG_MK6F) || defined(BOARDCONFIG_MK8)
-#define SAMPLE_ZONE_AMP_RAMP_TARGET_C   85  //84
+#define SAMPLE_ZONE_AMP_RAMP_TARGET_C   83  //84
 #define VALVE_ZONE_AMP_RAMP_TARGET_C    74  //75
 
-#define SAMPLE_ZONE_AMP_SOAK_TARGET_C   71
-#define VALVE_ZONE_AMP_SOAK_TARGET_C    71
+#define SAMPLE_ZONE_AMP_SOAK_TARGET_C   63//67
+#define VALVE_ZONE_AMP_SOAK_TARGET_C    63//67  
 
 #define SAMPLE_ZONE_VALVE_SOAK_TARGET_C 0
-#define VALVE_ZONE_VALVE_SOAK_TARGET_C  101
-#define VALVE_ZONE_ACT_RAMP_TARGET_C    109
+#define VALVE_ZONE_VALVE_SOAK_TARGET_C  89//92
+#define VALVE_ZONE_ACT_RAMP_TARGET_C    91//101
 #define COLD_TEMP_SETPOINT_OFFSET_C     2           //cold temp values are dependent on the outer device packaging (convective shielding and insulation)
 #define COLD_TEMP_OFFSET_THRESHOLD_C    14
 #define AMPLIFICATION_MIN_VALID_TEMP_C  65
 #define ACTUATION_MIN_VALID_TEMP_C      95
 #define HEATER_RAMP_SETPOINT_OFFSET     1
 #define HEATER_SHUTDOWN_C               0
-#define HEATER_ELEMENT_POWER_RATIO      35
+#define HEATER_ELEMENT_POWER_RATIO      45//35
 #define OVERTEMP_ERR_C                  120
 #define SLEW_RATE_LIMIT                 250
 
@@ -119,6 +119,7 @@ struct CONTROL
     float ki;                       // Integral gain
     float kd;                       // Derivative gain
     bool cold_temp_adjusted;        // If true, the setpoint is adjusted for cold ambient temperature
+    float cold_temp_offset_c;        // The offset to apply to the setpoint if cold_temp_adjusted is true
 };
 
 typedef struct app_data_t {
@@ -146,6 +147,7 @@ typedef struct app_data_t {
     uint32_t adcReading[7];
     float adcVoltage[7];         
 
+    bool system_on_usb_power;
     float vcc_mcu_voltage;       
     float system_input_voltage;
     float sample_max_temperature_c;
