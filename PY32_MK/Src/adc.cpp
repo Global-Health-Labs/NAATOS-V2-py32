@@ -8,6 +8,7 @@
 #include "adc.h"
 #include "app_data.h"
 #include "alarm.h"
+#include "io/adc_init.h"
 
 #define VREFINT_V 1.20
 
@@ -51,6 +52,7 @@ void ADC_Set_USB_cc_read_state(bool enable_usb_cc_adc_read) {
     }
 }
 
+/*
 void ADC_Init(void)
 {
 	
@@ -142,6 +144,7 @@ void ADC_Init(void)
     // precalculate part of the PY32 internal temperature calculation:
     temperature_cal = (float) (85 - 30) / (float) (HAL_ADC_TSCAL2 - HAL_ADC_TSCAL1);        
 }
+*/
 
 
 float ADC_Vrefint_to_Vcc(uint32_t adc_val)

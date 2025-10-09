@@ -1,5 +1,7 @@
 {
     "files.associations": {
-        "py32f0xx_hal_conf.h": "c"
+        "py32f0xx_hal_conf.h": "c",
+        "main.h": "c",
+        "py32f0xx_hal_rcc.h": "c"
     }
 }

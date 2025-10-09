@@ -27,9 +27,6 @@
 #define USB_CC_MAX_VALID_SOURCE_V   2.00        // Readings between 0.75 and 2v are valid USB power supplies
                                                 // Readings above 2v are not from a valid USB CC voltage divider 
 
-
-/* Private define ------------------------------------------------------------*/
-
 //#define DEBUG_HEATERS
 
 /* Private variables ---------------------------------------------------------*/
@@ -57,6 +54,7 @@ GPIO_PinState pushbutton_value, last_pushbutton_value;
 
 #define SH_FIXED_PWM_TEST 250
 #define VH_FIXED_PWM_TEST 250
+
 
 CONTROL sample_amp_control[NUMPROCESS] = 
 {
@@ -100,6 +98,9 @@ int __io_putchar(int ch) {
 }
 
 // Each PY32 has a unique ID (UID).
+/**
+ * @brief Prints the unique device ID (UID) over UART.
+ */
 void print_UID(void)
 {
     uint8_t *uid;
@@ -122,11 +123,19 @@ void print_UID(void)
 #define FLAG_ADDRESS  0x0800FC00  // Adjust if using this page for other config
 #define FLAG_VALUE    0xDEADBEEF  // Arbitrary "magic" flag
 
+/**
+ * @brief Reads a flag value from flash memory.
+ * @return The flag value as a uint32_t.
+ */
 uint32_t ReadFlag(void)
 {
     return *(uint32_t *)FLAG_ADDRESS;
 }
 
+/**
+ * @brief Writes a flag value to flash memory.
+ * @param value The value to write.
+ */
 void WriteFlag(uint32_t value)
 {
 
@@ -190,6 +199,9 @@ void WriteFlag(uint32_t value)
 
 
 #ifdef SET_OB_ONCE
+/**
+ * @brief Sets option bytes for the MCU (if SET_OB_ONCE is defined).
+ */
 void SetOptionBytes(void)
 {
     // Unlock FLASH and Option Bytes
@@ -240,6 +252,9 @@ void InitWatchdog(void)
     }
 }
 */
+/**
+ * @brief Prints the current option byte configuration to UART.
+ */
 void PrintOptionBytes(void)
         {
                 FLASH_OBProgramInitTypeDef OBInit;
@@ -283,6 +298,11 @@ void PrintOptionBytes(void)
 
 
 // Init PID Controller based on the STATE MACHINE state
+/**
+ * @brief Initializes the PID controller for a given heater and settings.
+ * @param heater The heater to initialize.
+ * @param pid_settings The PID settings to use.
+ */
 void pid_init(heater_t heater, CONTROL pid_settings){
   float adjusted_setpoint;
   if (data.cold_ambient_temp_mode && pid_settings.cold_temp_adjusted) {
@@ -301,6 +321,9 @@ void pid_init(heater_t heater, CONTROL pid_settings){
     SLEW_RATE_LIMIT);
 }
 
+/**
+ * @brief Initializes system peripherals, timers, and PID controllers.
+ */
 void system_setup() {
     HAL_Init();
   
@@ -356,6 +379,9 @@ void system_setup() {
     HAL_GPIO_WritePin(Pins.GPIOx_LED2, Pins.GPIO_Pin_LED2, GPIO_PIN_RESET); // Turn on LED2    
 }
 
+/**
+ * @brief Performs power-on self-tests and validates power supply.
+ */
 void power_on_tests(void){
     #ifdef ENABLE_POWER_ON_TESTS
         if (Validate_Power_Supply() == false) APP_ErrorHandler(ERR_POWER_SUPPLY);
@@ -369,6 +395,9 @@ void power_on_tests(void){
     ADC_Set_USB_cc_read_state(false);       // disable reading of USB-C CC voltages in the ADC.
 }
 
+/**
+ * @brief Initializes ADC data and determines power source.
+ */
 void init_adc_data(void){
 
     //uint32_t start_tick;
@@ -400,6 +429,20 @@ void init_adc_data(void){
     
 }
 
+/**
+ * @brief Updates the PID control and manages the main state machine transitions.
+ * This function combines the periodic PID update logic and the primary state machine
+ * for the NAATOS application. It should be called at regular intervals (e.g., from a timer interrupt
+ * or main loop) to:
+ *   - Update test timing and collect ADC data.
+ *   - Transition between amplification, actuation ramp, actuation, detection, and low power states
+ *     based on elapsed time and temperature conditions.
+ *   - Initialize or update PID controllers and PWM outputs as needed for each state.
+ *   - Handle actuation delay, ramp targets, and error conditions.
+ *   - Shut down loads and trigger alarms if minimum temperature requirements are not met.
+ * All state transitions and control actions are performed based on the current values in the
+ * global data and flags structures.
+ */
 void APP_UpdateState(void){
 /**
  * @brief Updates the PID control and manages the main state machine transitions.
@@ -609,6 +652,25 @@ void APP_UpdateState(void){
  *
  * The main loop runs indefinitely, managing application state and responding to hardware events.
  */
+/**
+ * @brief Main entry point for the application.
+ *
+ * This function performs the following steps:
+ * 1. Reads the boot state from the RCC CSR register.
+ * 2. Calls system setup routines.
+ * 3. Optionally sets or prints option bytes based on compile-time flags.
+ * 4. Initializes ADC data and performs power-on self-tests.
+ * 5. Checks for cold ambient temperature and sets mode accordingly.
+ * 6. Enters the main application loop, which:
+ *    - Updates application state.
+ *    - Handles pushbutton events to start/stop tests.
+ *    - Manages delayed start logic and self-test error handling.
+ *    - Updates minute counters for state transitions.
+ *    - Collects ADC data and updates PID control if required.
+ *    - Sends log data and performs temperature readings in low power mode.
+ *
+ * The main loop runs indefinitely, managing application state and responding to hardware events.
+ */
 int main(void)
 {
     
@@ -727,6 +789,9 @@ int main(void)
     }   
 }
 
+/**
+ * @brief Starts a NAAT test, initializes state and PID controllers.
+ */
 void start_naat_test(void) {
     data.msec_test_count = 0;
     data.minute_test_count = 0;
@@ -802,6 +867,9 @@ void start_naat_test(void) {
     
 }
 
+/**
+ * @brief Stops the NAAT test and disables timers and PWM outputs.
+ */
 void stop_naat_test(void) {
     data.test_active = false;
     data.state = low_power;
@@ -819,6 +887,9 @@ void stop_naat_test(void) {
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
 }
 
+/**
+ * @brief Initializes the data and flags structures to default values.
+ */
 void Data_init(void)
 {    
     flags.flagDataCollection = false;
@@ -857,6 +928,9 @@ void Data_init(void)
     data.vh_pwm_during_adc_meas = 0;    
 }
 
+/**
+ * @brief Collects ADC data and manages heater control during measurement.
+ */
 void ADC_data_collect(void) 
 {
     // Fix the heaters to a known state while reading the ADCs (to minimize measurement error and noise)
@@ -894,6 +968,9 @@ void ADC_data_collect(void)
     }
 }
 
+/**
+ * @brief Updates the PID controllers for sample and valve heaters.
+ */
 void Update_PID(void)
 {    
     
