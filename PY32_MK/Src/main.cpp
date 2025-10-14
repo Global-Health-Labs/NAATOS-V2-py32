@@ -15,10 +15,15 @@
 // Ensure your state_machine.h defines an enum like:
 // typedef enum { low_power, self_test_1, self_test_2, preheat, amplification_ramp, amplification, actuation_ramp, actuation, detection } state_t;
 #include "alarm.h"
+extern "C" {
 #include "pid.h"
+}
 #include "adc.h"
 #include "app_data.h"
 #include "timers.h"
+#include "io/gpio_init.h"
+#include "io/uart_init.h"
+#include "io/adc_init.h"
 
 
 #define USB_MIN_VALID_SOURCE_V      4.5         // Minimum USB power supply voltage for NAATOS operation
@@ -30,11 +35,10 @@
 //#define DEBUG_HEATERS
 
 /* Private variables ---------------------------------------------------------*/
-UART_HandleTypeDef UartHandle;
 GPIO_InitTypeDef GpioInitStruct;
 GPIO_InitTypeDef AdcPinStruct;
 
-Pin_assignments_t Pins;
+
 
 app_data_t data;
 flags_t flags;
@@ -297,7 +301,6 @@ void PrintOptionBytes(void)
 
 
 
-// Init PID Controller based on the STATE MACHINE state
 /**
  * @brief Initializes the PID controller for a given heater and settings.
  * @param heater The heater to initialize.
@@ -331,6 +334,29 @@ void system_setup() {
     
     //Initialize periperhals
     GPIO_Init();
+    pushbutton_value = GPIO_PIN_SET;
+    last_pushbutton_value = GPIO_PIN_SET;
+
+    pwm_amp_ctrl.enabled = false;
+    pwm_amp_ctrl.suspended = false;
+    pwm_amp_ctrl.pwm_state = 0;
+    pwm_amp_ctrl.pwm_tick_count = 0;
+    
+    // always start in low power, not_simultaneous mode
+    data.heater_control_not_simultaneous = true;    
+    pwm_amp_ctrl.heater_level_high = false;
+    pwm_valve_ctrl.heater_level_high = false;
+
+    HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL1, Pins.GPIO_Pin_AMP_CTRL1, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL2, Pins.GPIO_Pin_AMP_CTRL2, GPIO_PIN_RESET);
+            
+    pwm_valve_ctrl.enabled = false;
+    pwm_valve_ctrl.suspended = false;    
+    pwm_valve_ctrl.pwm_state = 0;
+    pwm_valve_ctrl.pwm_tick_count = 0;
+    HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL1, Pins.GPIO_Pin_VALVE_CTRL1, GPIO_PIN_RESET);    
+    HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL2, Pins.GPIO_Pin_VALVE_CTRL2, GPIO_PIN_RESET); 
+
     TIMER_Init();
     UART_Init();
     ADC_Init();
@@ -1137,11 +1163,8 @@ void Distribute_PWM_Bits(uint8_t pwm_val, uint64_t *pwm_bit_array)
     
 #endif 
 
-void GPIO_Init(void)
-{
-    GPIO_InitTypeDef GPIO_InitStruct;
-
-    //Configure GPIO for ADC, UART, PWM outputs
+/*
+// GPIO initialization moved to gpio_init.c
 
     // Devkit (benchtop prototype) pins:
     //  PIN 19, PA0 is TX
@@ -1391,25 +1414,8 @@ void GPIO_Init(void)
     HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL2, Pins.GPIO_Pin_VALVE_CTRL2, GPIO_PIN_RESET);    
 }
 
-void UART_Init(void)
-{
-    //Configure UART1
-    //PA0 is TX
-    //PA1 is RX
-    
-  UartHandle.Instance          = USART2;
-  UartHandle.Init.BaudRate     = 115200;
-  UartHandle.Init.WordLength   = UART_WORDLENGTH_8B;
-  UartHandle.Init.StopBits     = UART_STOPBITS_1;
-  UartHandle.Init.Parity       = UART_PARITY_NONE;
-  UartHandle.Init.HwFlowCtl    = UART_HWCONTROL_NONE;
-  UartHandle.Init.Mode         = UART_MODE_TX_RX;
-    
-  if (HAL_UART_Init(&UartHandle) != HAL_OK)
-  {
-    APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
-  }
-}
+// UART initialization moved to uart_init.c
+*/
 
 // Timer ISR functions are called from the HAL_TIM ISR.
 // Only time critical code should be run in these routines.

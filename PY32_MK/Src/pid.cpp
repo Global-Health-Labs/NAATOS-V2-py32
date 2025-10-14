@@ -7,9 +7,11 @@
 #include "pid.h"
 #include "timers.h"
 #include "alarm.h"
+#include "error_handler.h"
 
-// PID structures
 pid_controller_t pid_data[2];
+
+extern "C" {
 
 float constrain(float input_val, float min_val, float max_val) 
 {
@@ -89,3 +91,5 @@ void pid_controller_compute(heater_t heater, float measurement) {
     // Keep Track of for Next Execution
     pid_data[heater].prevMesurement = measurement;
 }
+
+} // extern "C"

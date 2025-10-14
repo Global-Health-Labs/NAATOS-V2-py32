@@ -1,16 +1,23 @@
 #include "gpio_init.h"
-#include "main.h"
 #include "py32f0xx_hal.h"
 #include "py32f0xx_hal_gpio.h"
+
+GPIO_PinAssignments_t Pins;
 
 /**
  * @brief Initializes all GPIO pins for the project.
  *
- * This function enables clocks and configures all required pins for input, output, analog, and alternate functions.
+ * This function enables clocks and configures all required pins for input, output, analog, and alternate functions:
+ * - Configures ADC pins as analog inputs with no pull-ups
+ * - Sets up UART pins for TX/RX with alternate function
+ * - Configures LED outputs with pull-ups
+ * - Sets up control pins for amplifier and valve with pull-downs
+ * - Initializes pushbutton input with pull-up if enabled
  */
 void GPIO_Init(void)
 {
     GPIO_InitTypeDef GPIO_InitStruct;
+    GPIO_InitTypeDef AdcPinStruct;
 
     //Configure GPIO for ADC, UART, PWM outputs
 
@@ -54,12 +61,12 @@ void GPIO_Init(void)
     __HAL_RCC_GPIOF_CLK_ENABLE();
     
     // Initialize UART pins
-    GpioInitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_1;
-    GpioInitStruct.Mode = GPIO_MODE_AF_PP;
-    GpioInitStruct.Pull = GPIO_PULLUP;
-    GpioInitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-    GpioInitStruct.Alternate = GPIO_AF9_USART2;
-    HAL_GPIO_Init(GPIOA, &GpioInitStruct);
+    GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_1;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+    GPIO_InitStruct.Alternate = GPIO_AF3_USART2;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
     
     //Pin settings for ADC inputs
     __HAL_RCC_ADC_CLK_ENABLE();
@@ -96,7 +103,26 @@ void GPIO_Init(void)
     Pins.GPIOx_PUSHBUTTON = GPIOF;
     Pins.GPIO_Pin_PUSHBUTTON = GPIO_PIN_2;
 #elif defined(BOARDCONFIG_MK8)
- 
+    Pins.GPIOx_AMP_VALVE_TEMP_V = GPIOA;
+    Pins.GPIO_Pin_AMP_VALVE_TEMP_V = GPIO_PIN_2;
+    Pins.ADC_CHANNEL_VALVE_TEMP_V = ADC_CHANNEL_2; 
+    
+    Pins.GPIOx_AMP_TEMP_V = GPIOA;
+    Pins.GPIO_Pin_AMP_TEMP_V = GPIO_PIN_3;
+    Pins.ADC_CHANNEL_AMP_TEMP_V = ADC_CHANNEL_3;    
+    
+    Pins.GPIOx_AMP_V_BATT_SENSE = GPIOA;
+    Pins.GPIO_Pin_V_BATT_SENSE = GPIO_PIN_6;
+    Pins.ADC_CHANNEL_V_BATT_SENSE = ADC_CHANNEL_6;    
+    
+    Pins.GPIOx_USB_CC1 = GPIOA;
+    Pins.GPIO_Pin_USB_CC1 = GPIO_PIN_7;
+    Pins.ADC_CHANNEL_USB_CC1 = ADC_CHANNEL_7;    
+    
+    Pins.GPIOx_USB_CC2 = GPIOA;
+    Pins.GPIO_Pin_USB_CC2 = GPIO_PIN_4;
+    Pins.ADC_CHANNEL_USB_CC2 = ADC_CHANNEL_4;
+    
     Pins.GPIOx_LED1 = GPIOA;
     Pins.GPIO_Pin_LED1 = GPIO_PIN_5;
     Pins.GPIOx_LED2 = GPIOB;
@@ -221,27 +247,6 @@ void GPIO_Init(void)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(Pins.GPIOx_PUSHBUTTON, &GPIO_InitStruct);    
 #endif
-    pushbutton_value = GPIO_PIN_SET;
-    last_pushbutton_value = GPIO_PIN_SET;
-
-    pwm_amp_ctrl.enabled = false;
-    pwm_amp_ctrl.suspended = false;
-    pwm_amp_ctrl.pwm_state = 0;
-    pwm_amp_ctrl.pwm_tick_count = 0;
-    
-    // always start in low power, not_simultaneous mode
-    data.heater_control_not_simultaneous = true;    
-    pwm_amp_ctrl.heater_level_high = false;
-    pwm_valve_ctrl.heater_level_high = false;
-
-    HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL1, Pins.GPIO_Pin_AMP_CTRL1, GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL2, Pins.GPIO_Pin_AMP_CTRL2, GPIO_PIN_RESET);
-            
-    pwm_valve_ctrl.enabled = false;
-    pwm_valve_ctrl.suspended = false;    
-    pwm_valve_ctrl.pwm_state = 0;
-    pwm_valve_ctrl.pwm_tick_count = 0;
-    HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL1, Pins.GPIO_Pin_VALVE_CTRL1, GPIO_PIN_RESET);    
-    HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL2, Pins.GPIO_Pin_VALVE_CTRL2, GPIO_PIN_RESET);    
+       
 }
 

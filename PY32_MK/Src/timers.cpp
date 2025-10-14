@@ -17,6 +17,8 @@
 #include "app_data.h"
 #include "alarm.h"
 
+extern "C" {
+
 TIM_HandleTypeDef tim1Handle;
 uint32_t TIM1_tick_count;
 uint8_t Registered_ISRTimers;
@@ -181,3 +183,4 @@ void APP_SystemClockConfig(void)
 }
 
 
+} // extern "C"

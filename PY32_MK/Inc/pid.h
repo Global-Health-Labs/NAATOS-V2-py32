@@ -7,6 +7,10 @@
 #ifndef PID_H
 #define PID_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Based on PID Conroller:
    https://github.com/geekfactory/PID
 */
@@ -14,6 +18,10 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "main.h"
+#include "heater_types.h"
+#include "error_handler.h"
+
+#define PID_LINKAGE extern
 
 /* PID Controller Parameters */
 #define PID_LIM_MIN 0.0f
@@ -86,9 +94,12 @@ typedef struct {
   
 } pid_controller_t;
 
-void pid_controller_init(heater_t heater, float setpoint, float k_p, float k_i, float k_d, int pid_max, float slew_rate);
-void pid_controller_compute(heater_t heater, float measurement);
+PID_LINKAGE void pid_controller_init(heater_t heater, float setpoint, float k_p, float k_i, float k_d, int pid_max, float slew_rate);
+PID_LINKAGE void pid_controller_compute(heater_t heater, float measurement);
+PID_LINKAGE pid_controller_t pid_data[];
 
-extern pid_controller_t pid_data[];
+#ifdef __cplusplus
+}
+#endif
 
 #endif

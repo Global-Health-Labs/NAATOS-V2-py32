@@ -3,11 +3,47 @@
 #include "alarm.h"
 #include "py32f0xx_hal.h"
 #include "py32f0xx_hal_gpio.h"
+#include "io/gpio_init.h"
 
 ADC_HandleTypeDef AdcHandle;
 ADC_ChannelConfTypeDef AdcChanConf;
 
 float temperature_cal;
+
+void ADC_Set_USB_cc_read_state(bool enable_usb_cc_adc_read) {
+    if (enable_usb_cc_adc_read) {
+        AdcChanConf.Rank = Pins.ADC_CHANNEL_USB_CC1; 
+        AdcChanConf.Channel = Pins.ADC_CHANNEL_USB_CC1;             
+        if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
+        {
+            APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
+        }
+
+        AdcChanConf.Rank = Pins.ADC_CHANNEL_USB_CC2; 
+        AdcChanConf.Channel = Pins.ADC_CHANNEL_USB_CC2;             
+        if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
+        {
+            APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
+        }
+        
+        data.usb_cc_adc_read_enabled = true;
+    } else {
+        AdcChanConf.Rank = ADC_RANK_NONE;       // This disables the ADC channel from the ADC read group.
+        AdcChanConf.Channel = Pins.ADC_CHANNEL_USB_CC1;            
+        if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
+        {
+            APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
+        }
+
+        AdcChanConf.Rank = ADC_RANK_NONE; 
+        AdcChanConf.Channel = Pins.ADC_CHANNEL_USB_CC2;            
+        if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
+        {
+            APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
+        }
+        data.usb_cc_adc_read_enabled = false;
+    }
+}
 
 /**
  * @brief Initializes the ADC peripheral and configures input pins.
@@ -130,95 +166,4 @@ void ADC_Init(void)
     
     // precalculate part of the PY32 internal temperature calculation:
     temperature_cal = (float) (85 - 30) / (float) (HAL_ADC_TSCAL2 - HAL_ADC_TSCAL1); 
-
 }
-
-/*
-void ADC_Init(void)
-{
-	
-	
-	
-	
-	
-	if (HAL_ADCEx_Calibration_Start(&AdcHandle) != HAL_OK)
-		{
-			APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
-		}
-	
-	//Populate ADC init data
-	AdcHandle.Init.ClockPrescaler = ADC_CLOCK_ASYNC_HSI_DIV8; //HSI = 24 MHz (ADC Clock = 24 MHz / 8)
-	AdcHandle.Init.Resolution = ADC_RESOLUTION_12B; //12 bits
-	AdcHandle.Init.DataAlign = ADC_DATAALIGN_RIGHT; //Right aligned
-	AdcHandle.Init.ScanConvMode = ADC_SCAN_DIRECTION_FORWARD; //Don't plan to use
-	AdcHandle.Init.EOCSelection = ADC_EOC_SINGLE_CONV; //single conversion
-	AdcHandle.Init.LowPowerAutoWait = DISABLE; //use all the power
-	AdcHandle.Init.ContinuousConvMode = DISABLE; //don't need for polling
-	AdcHandle.Init.DiscontinuousConvMode = ENABLE; 
-	AdcHandle.Init.ExternalTrigConv = ADC_SOFTWARE_START; //Will start ADC in code
-	AdcHandle.Init.ExternalTrigConvEdge = ADC_EXTERNALTRIGCONVEDGE_NONE; //not going to use external trigger
-	AdcHandle.Init.DMAContinuousRequests = DISABLE; //Not using DMA
-	AdcHandle.Init.Overrun = ADC_OVR_DATA_OVERWRITTEN; //shouldn't matter for polling
-	AdcHandle.Init.SamplingTimeCommon = ADC_SAMPLETIME_41CYCLES_5; //Setting conversion time to 41.5 cycles
-		
-	//Initialize ADC
-	if (HAL_ADC_Init(&AdcHandle) != HAL_OK)
-	{
-		APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
-	}
-
-    // ADC_CHANNEL_AMP_TEMP_V       (PA2 on PY32F003F1)
-    // ADC_CHANNEL_VALVE_TEMP_V     (PA3 on PY32F003F1)
-    // ADC_CHANNEL_V_BATT_SENSE     (PA6 on PY32F003F1)
-    // ADC_CHANNEL_USB_CC1          (PA7 on PY32F003F1)
-    // ADC_CHANNEL_USB_CC2          (PA4 on PY32F003F1)
-    // ADC_CHANNEL_TEMPSENSOR       (ch 11, 9 usec min sample time)
-    // ADC_CHANNEL_VREFINT          (ch 12)
-	
-	// Set ADC rank and channel
-    
-	AdcChanConf.Rank = Pins.ADC_CHANNEL_AMP_TEMP_V; 
-	AdcChanConf.Channel = Pins.ADC_CHANNEL_AMP_TEMP_V;     
-	
-	if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
-	{
-		APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
-	}
-	AdcChanConf.Rank = Pins.ADC_CHANNEL_VALVE_TEMP_V; 
-	AdcChanConf.Channel = Pins.ADC_CHANNEL_VALVE_TEMP_V;     
-	
-	if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
-	{
-		APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
-	}
-	AdcChanConf.Rank = Pins.ADC_CHANNEL_V_BATT_SENSE; 
-	AdcChanConf.Channel = Pins.ADC_CHANNEL_V_BATT_SENSE;     
-	
-	if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
-	{
-		APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
-	}
-
-    ADC_Set_USB_cc_read_state(true);
-
-	// Set ADC rank and channel
-	AdcChanConf.Rank = ADC_CHANNEL_TEMPSENSOR; 
-	AdcChanConf.Channel = ADC_CHANNEL_TEMPSENSOR;     
-	
-	if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
-	{
-		APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
-	}
-        
-	AdcChanConf.Rank = ADC_CHANNEL_VREFINT; 
-	AdcChanConf.Channel = ADC_CHANNEL_VREFINT;     
-	
-	if (HAL_ADC_ConfigChannel(&AdcHandle, &AdcChanConf) != HAL_OK)
-	{
-		APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
-	}
-    
-    // precalculate part of the PY32 internal temperature calculation:
-    temperature_cal = (float) (85 - 30) / (float) (HAL_ADC_TSCAL2 - HAL_ADC_TSCAL1);        
-}
-*/

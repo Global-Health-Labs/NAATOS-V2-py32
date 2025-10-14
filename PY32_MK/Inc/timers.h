@@ -7,6 +7,10 @@
 #ifndef TIMERS_H
 #define TIMERS_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include <stdint.h>
 #include <stdbool.h>
 #include "py32f0xx_hal.h"
@@ -38,5 +42,9 @@ int8_t Register_timer(TimerCallback CallbackFunc, uint32_t TickInterval);
 bool Enable_timer(int8_t TimerNumber);
 bool Disable_timer(int8_t TimerNumber);    
 bool Update_TimerTickInterval(int8_t TimerNumber, uint32_t new_TimerTickInterval);  
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

@@ -41,7 +41,7 @@ PYOCD_EXE		?= pyocd
 ##### Paths ############
 
 # C and CPP source folders
-CDIRS		:= Src 
+CDIRS		:= Src Src/io
 # Single C and CPP source files
 CFILES		:= 
 CPPFILES	:= 
@@ -55,6 +55,7 @@ AFILES		:=
 INCLUDES	:= Libraries/CMSIS/Core/Include \
 			Libraries/CMSIS/Device/PY32F0xx/Include \
 			Inc \
+			Inc/io \
 			$(CDIRS)
 
 ##### Library Paths ############

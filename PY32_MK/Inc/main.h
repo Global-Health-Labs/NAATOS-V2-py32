@@ -25,6 +25,10 @@
 #ifndef __MAIN_H
 #define __MAIN_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /* Includes ------------------------------------------------------------------*/
 #include "timers.h"
 #include "py32f0xx_hal.h"
@@ -32,23 +36,21 @@
 #include "py32f0xx_hal_flash_ex.h"
 //#include "py32f002x5.h"
 #include "app_data.h"
+#include "io/gpio_init.h"
+#include "io/uart_init.h"
+#include "io/adc_init.h"
+#include "error_handler.h"
+#include "adc.h"
+#include "heater_types.h"
 
 
 /* Defines ------------------------------------------------------------------*/
 
 //#define DEBUG 1
 
-typedef enum {
-    // define alarm states here, probably related to LED indicators
-    SAMPLE_HEATER = 0,
-    VALVE_HEATER = 1
-} heater_t;
-
 /* Exported functions prototypes ---------------------------------------------*/
 void APP_ErrorHandler(uint8_t errnum);
-
-void GPIO_Init(void);
-void UART_Init(void);
+void APP_SystemClockConfig(void);
 
 void PWMTimer_ISR(void);
 void LEDTimer_ISR(void);
@@ -77,6 +79,7 @@ typedef struct {
     uint8_t  pwm_tick_count;
 } Pin_pwm_t;
 
+/*
 // Store the pin assignments in this structure
 typedef struct {
     GPIO_TypeDef    *GPIOx_AMP_TEMP_V;
@@ -116,12 +119,16 @@ typedef struct {
     GPIO_TypeDef    *GPIOx_PUSHBUTTON;
     uint16_t        GPIO_Pin_PUSHBUTTON;
 } Pin_assignments_t;
-
+*/
 /* Exported variables prototypes ---------------------------------------------*/
 extern struct app_data_t data;
 extern struct flags_t flags;
-extern Pin_assignments_t Pins;
+//extern Pin_assignments_t Pins;
 
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* __MAIN_H */
 
