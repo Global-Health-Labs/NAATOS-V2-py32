@@ -32,10 +32,7 @@ USB DFP has pull-up resistors on both CC pins
 #define USB_CC_THRESHOLD_1500MA     0.75
 #define USB_CC_THRESHOLD_3000MA     1.25
 
-void ADC_Init(void);
-
 void ADC_Read(void);
-
 float PY32_ADC_Temp_to_degC(uint32_t adc_temp);
 float TMP235_V_to_degC(float vin);
 uint32_t ADC_to_thermistor_resistance(uint32_t raw_adc);

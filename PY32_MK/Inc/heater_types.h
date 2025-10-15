@@ -12,9 +12,9 @@ extern "C" {
 #endif
 
 typedef enum {
-    // define alarm states here, probably related to LED indicators
-    SAMPLE_HEATER = 0,
-    VALVE_HEATER = 1
+    SAMPLE_HEATER = 0,    // Sample heater control channel
+    VALVE_HEATER = 1,     // Valve heater control channel
+    NUM_HEATERS           // Total number of heaters (always keep last)
 } heater_t;
 
 #ifdef __cplusplus

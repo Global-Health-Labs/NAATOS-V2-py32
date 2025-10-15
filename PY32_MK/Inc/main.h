@@ -49,7 +49,7 @@ extern "C" {
 //#define DEBUG 1
 
 /* Exported functions prototypes ---------------------------------------------*/
-void APP_ErrorHandler(uint8_t errnum);
+//void APP_ErrorHandler(uint8_t errnum);
 void APP_SystemClockConfig(void);
 
 void PWMTimer_ISR(void);

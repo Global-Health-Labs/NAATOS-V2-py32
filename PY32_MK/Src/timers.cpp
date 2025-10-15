@@ -16,6 +16,7 @@
 #include "main.h"
 #include "app_data.h"
 #include "alarm.h"
+#include "error_handler.h"
 
 extern "C" {
 

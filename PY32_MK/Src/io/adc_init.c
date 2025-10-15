@@ -1,8 +1,11 @@
 #include "adc_init.h"
 #include "main.h"
 #include "alarm.h"
+#include "error_handler.h"
+
 #include "py32f0xx_hal.h"
 #include "py32f0xx_hal_gpio.h"
+
 #include "io/gpio_init.h"
 
 ADC_HandleTypeDef AdcHandle;

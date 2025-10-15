@@ -8,11 +8,19 @@
 #include "timers.h"
 #include "alarm.h"
 #include "error_handler.h"
+#include "heater_types.h"
 
-pid_controller_t pid_data[2];
+pid_controller_t pid_data[NUM_HEATERS];
 
 extern "C" {
 
+/**
+ * @brief Constrains a value between specified minimum and maximum limits.
+ * @param input_val The value to constrain.
+ * @param min_val The minimum allowed value.
+ * @param max_val The maximum allowed value.
+ * @return The constrained value, clamped between min_val and max_val.
+ */
 float constrain(float input_val, float min_val, float max_val) 
 {
     float output_val;
@@ -24,7 +32,20 @@ float constrain(float input_val, float min_val, float max_val)
     return output_val;
 }
 
-// slew_rate : 255 negates slew rate limiting
+/**
+ * @brief Initializes a PID controller for a specific heater.
+ * @param heater The heater to initialize (SAMPLE_HEATER or VALVE_HEATER).
+ * @param setpoint The target temperature in degrees Celsius.
+ * @param k_p Proportional gain coefficient.
+ * @param k_i Integral gain coefficient.
+ * @param k_d Derivative gain coefficient.
+ * @param pid_max Maximum output value (upper limit).
+ * @param slew_rate Maximum rate of change for the output (255 disables slew rate limiting).
+ * 
+ * Initializes PID controller state variables and parameters for the specified heater.
+ * Sets up anti-windup limits, initial conditions, and validates setpoint range.
+ * Will trigger ERR_FIRMWARE_CONFIG if setpoint is invalid.
+ */
 void pid_controller_init(heater_t heater, float setpoint, float k_p, float k_i, float k_d, int pid_max, float slew_rate) {
     // Clear controller variables
     pid_data[heater].integrator = 0.0f;
@@ -46,6 +67,23 @@ void pid_controller_init(heater_t heater, float setpoint, float k_p, float k_i, 
     pid_data[heater].slew_rate = slew_rate;
 }
 
+/**
+ * @brief Computes PID control output for a specified heater.
+ * @param heater The heater to compute control for (SAMPLE_HEATER or VALVE_HEATER).
+ * @param measurement The current temperature measurement in degrees Celsius.
+ * 
+ * Implements a PID controller with the following features:
+ * - Initial ramp mode with maximum output until near setpoint
+ * - Anti-windup on integral term
+ * - Derivative on measurement (not error) to avoid derivative kick
+ * - Slew rate limiting on output changes
+ * - Output value clamping
+ * 
+ * The controller uses the following formula in normal operation:
+ * output = Kp * error + Ki * ∫error dt - Kd * d(measurement)/dt
+ * 
+ * Updates the controller state and output value in the pid_data structure.
+ */
 void pid_controller_compute(heater_t heater, float measurement) {
     float out;
     // Error Signal

@@ -8,16 +8,29 @@
 #include "adc.h"
 #include "app_data.h"
 #include "alarm.h"
+#include "error_handler.h"
+
 #include "io/adc_init.h"
 #include "io/gpio_init.h"
+
 #include "py32f0xx_hal.h"
 
 extern "C" {
 
 #define VREFINT_V 1.20
+#define THERMISTOR_NOMINAL	((float) 100000)	/* 100k */
+#define TEMPERATURE_NOMINAL	((float) 25)		/* 25 degrees C */
+#define B_CONSTANT			((float) 4250)	    /* B-constant (K) 25/50 degrees C */
+
+#define BRIDGE_RESISTOR		((float) 100000)	/* 100k */
+#define ADC_RESOLUTION		4095	            /* 12bit */
 
 
-
+/**
+ * @brief Converts ADC reading of internal reference voltage to MCU VCC voltage.
+ * @param adc_val The raw ADC value from internal reference measurement.
+ * @return The calculated VCC voltage in volts.
+ */
 float ADC_Vrefint_to_Vcc(uint32_t adc_val)
 {
     float f;    
@@ -25,6 +38,12 @@ float ADC_Vrefint_to_Vcc(uint32_t adc_val)
     return VREFINT_V * f;    
 }
 
+/**
+ * @brief Converts raw ADC value to voltage based on VCC reference.
+ * @param adc_val The raw ADC value to convert.
+ * @param Vcc The reference VCC voltage.
+ * @return The calculated voltage in volts.
+ */
 float ADC_to_Volts(uint32_t adc_val, float Vcc)
 {
     float f;    
@@ -135,6 +154,14 @@ void ADC_Read(void)
 // PY32 internal temperature conversion formula:
 // temp_c = ((85c - 30c) / (HAL_ADC_TSCAL2 - HAL_ADC_TSCAL1)) * (ADC_TEMP - HAL_ADC_TSCAL1) - 30
 //      The first part of this equation is pre-calculated and stored in: temperature_cal
+/**
+ * @brief Converts ADC temperature sensor reading to degrees Celsius.
+ * @param adc_temp The raw ADC value from the MCU's internal temperature sensor.
+ * @return The calculated temperature in degrees Celsius.
+ * 
+ * Uses the formula: temp_c = ((85°C - 30°C) / (TSCAL2 - TSCAL1)) * (ADC_TEMP - TSCAL1) + 30
+ * where TSCAL1 and TSCAL2 are factory-calibrated values.
+ */
 float PY32_ADC_Temp_to_degC(uint32_t adc_temp)
 {
     float temp_c;    
@@ -142,8 +169,14 @@ float PY32_ADC_Temp_to_degC(uint32_t adc_temp)
     return temp_c;
 }
 
-// TMP235: temperature is 10 mv per deg_c with a 500 mv offset
-//  (deg_c) = (v_in - 0.5) / .01
+/**
+ * @brief Converts TMP235 sensor voltage to temperature.
+ * @param vin The measured voltage from the TMP235 sensor.
+ * @return The calculated temperature in degrees Celsius.
+ * 
+ * TMP235 sensor output is 10mV per degree C with a 500mV offset.
+ * Formula: temperature = (voltage - 0.5V) / 0.01V/°C
+ */
 float TMP235_V_to_degC(float vin)
 {
     float temp_c;
@@ -151,20 +184,35 @@ float TMP235_V_to_degC(float vin)
     return temp_c;
 }
 
-#define THERMISTOR_NOMINAL	((float) 100000)	/* 100k */
-#define TEMPERATURE_NOMINAL	((float) 25)		/* 25 degrees C */
-#define B_CONSTANT			((float) 4250)	    /* B-constant (K) 25/50 degrees C */
-
-#define BRIDGE_RESISTOR		((float) 100000)	/* 100k */
-#define ADC_RESOLUTION		4095	            /* 12bit */
-
-
+/**
+ * @brief Converts ADC reading to thermistor resistance value.
+ * @param raw_adc The raw ADC value from the thermistor voltage divider.
+ * @return The calculated thermistor resistance in ohms.
+ * 
+ * Calculates thermistor resistance using voltage divider equation:
+ * R_thermistor = ((ADC_MAX - ADC_value) * R_bridge) / ADC_value
+ * where R_bridge is the fixed bridge resistor value.
+ */
 uint32_t ADC_to_thermistor_resistance(uint32_t raw_adc)
 {
 	float r;					
 	r = ((ADC_RESOLUTION - raw_adc) * BRIDGE_RESISTOR) / (raw_adc);
 	return (uint32_t) r;				
 }    
+
+/**
+ * @brief Converts thermistor resistance to temperature using B-equation.
+ * @param resistance The thermistor resistance in ohms.
+ * @return The calculated temperature in degrees Celsius.
+ * 
+ * Uses the B-equation for NTC thermistors:
+ * 1/T = 1/T0 + (1/B) * ln(R/R0)
+ * where:
+ * - T0 is nominal temperature (25°C)
+ * - B is the B-constant
+ * - R0 is nominal resistance at T0
+ * Returns temperature rounded to 1 decimal place.
+ */
 float thermistor_r_to_temperature(uint32_t resistance)
 {
 	float temp;
