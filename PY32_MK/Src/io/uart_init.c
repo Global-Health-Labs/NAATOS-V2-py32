@@ -21,7 +21,7 @@ void UART_Init(void)
     GPIO_InitStruct.Mode                    = GPIO_MODE_AF_PP;
     GPIO_InitStruct.Pull                    = GPIO_PULLUP;
     GPIO_InitStruct.Speed                   = GPIO_SPEED_FREQ_VERY_HIGH;
-    GPIO_InitStruct.Alternate               = GPIO_AF3_USART2;//GPIO_AF1_USART2;
+    GPIO_InitStruct.Alternate               = GPIO_AF9_USART2;  // USART2 uses AF9 on PA0/PA1 for PY32F003, GPIO_AF1_USART2
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
     // Configure UART

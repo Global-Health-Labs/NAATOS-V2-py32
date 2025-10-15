@@ -5,7 +5,7 @@
 extern "C" {
 #endif
 
-#define PY32F003x8
+//#define PY32F003x8
 #include "main.h"
 #include "py32f0xx_hal.h"
 #include "py32f0xx_hal_uart.h"

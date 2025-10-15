@@ -60,6 +60,7 @@ void GPIO_Init(void)
     __HAL_RCC_GPIOB_CLK_ENABLE();
     __HAL_RCC_GPIOF_CLK_ENABLE();
     
+    /*
     // Initialize UART pins
     GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_1;
     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
@@ -67,7 +68,7 @@ void GPIO_Init(void)
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF3_USART2;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
-    
+    */
     //Pin settings for ADC inputs
     __HAL_RCC_ADC_CLK_ENABLE();
     
