@@ -62,7 +62,7 @@ GPIO_PinState pushbutton_value, last_pushbutton_value;
 #define VH_FIXED_PWM_TEST 250
 
 
-CONTROL sample_amp_control[NUMPROCESS] = 
+CONTROL sample_amp_control[NUM_STATES] = 
 {
   {HEATER_SHUTDOWN_C, 0, 0, 2, 1, .5, false,0},                                                      // shutdown
   {SAMPLE_ZONE_AMP_RAMP_TARGET_C, 0,0, PID_P_RAMP_TERM, 0, 0, true,-12},                             // AMP RAMP
@@ -71,7 +71,7 @@ CONTROL sample_amp_control[NUMPROCESS] =
   {HEATER_SHUTDOWN_C, 0, 0, 2, 5, 1, false,0},                                                       // DETECTION
   {HEATER_SHUTDOWN_C, 0, 0, 0, 0, 0, false,0}                                                        // ACT RAMP 
 };
-CONTROL valve_amp_control[NUMPROCESS] = 
+CONTROL valve_amp_control[NUM_STATES] = 
 {
   {HEATER_SHUTDOWN_C, 0, 0, 0, 0, 0, false,0},                                                       // shutdown
   {VALVE_ZONE_AMP_RAMP_TARGET_C, 0,0, PID_P_RAMP_TERM, 0, 0, false,0},                               // AMP RAMP

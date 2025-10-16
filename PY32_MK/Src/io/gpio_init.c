@@ -69,6 +69,7 @@ void GPIO_Init(void)
     GPIO_InitStruct.Alternate = GPIO_AF3_USART2;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
     */
+   
     //Pin settings for ADC inputs
     __HAL_RCC_ADC_CLK_ENABLE();
     

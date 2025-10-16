@@ -783,8 +783,8 @@ Disassembly of section .text:
  8000662:	d000      	beq.n	8000666 <deregister_tm_clones+0x12>
  8000664:	4798      	blx	r3
  8000666:	bd10      	pop	{r4, pc}
- 8000668:	20000414 	.word	0x20000414
- 800066c:	20000414 	.word	0x20000414
+ 8000668:	200004d4 	.word	0x200004d4
+ 800066c:	200004d4 	.word	0x200004d4
  8000670:	00000000 	.word	0x00000000
 
 08000674 <register_tm_clones>:
@@ -802,8 +802,8 @@ Disassembly of section .text:
  800068a:	d000      	beq.n	800068e <register_tm_clones+0x1a>
  800068c:	4798      	blx	r3
  800068e:	bd10      	pop	{r4, pc}
- 8000690:	20000414 	.word	0x20000414
- 8000694:	20000414 	.word	0x20000414
+ 8000690:	200004d4 	.word	0x200004d4
+ 8000694:	200004d4 	.word	0x200004d4
  8000698:	00000000 	.word	0x00000000
 
 0800069c <__do_global_dtors_aux>:
@@ -822,7 +822,7 @@ Disassembly of section .text:
  80006b6:	2301      	movs	r3, #1
  80006b8:	7023      	strb	r3, [r4, #0]
  80006ba:	bd10      	pop	{r4, pc}
- 80006bc:	20000418 	.word	0x20000418
+ 80006bc:	200004d8 	.word	0x200004d8
  80006c0:	00000000 	.word	0x00000000
  80006c4:	0800a348 	.word	0x0800a348
 
@@ -839,7 +839,7 @@ Disassembly of section .text:
  80006dc:	bd10      	pop	{r4, pc}
  80006de:	46c0      	nop			@ (mov r8, r8)
  80006e0:	00000000 	.word	0x00000000
- 80006e4:	2000041c 	.word	0x2000041c
+ 80006e4:	200004dc 	.word	0x200004dc
  80006e8:	0800a348 	.word	0x0800a348
 
 080006ec <__cvt>:
@@ -1963,9 +1963,9 @@ Disassembly of section .text:
  8000fe4:	08001141 	.word	0x08001141
  8000fe8:	08001179 	.word	0x08001179
  8000fec:	080011a5 	.word	0x080011a5
- 8000ff0:	20000434 	.word	0x20000434
- 8000ff4:	2000049c 	.word	0x2000049c
- 8000ff8:	20000504 	.word	0x20000504
+ 8000ff0:	200004f4 	.word	0x200004f4
+ 8000ff4:	2000055c 	.word	0x2000055c
+ 8000ff8:	200005c4 	.word	0x200005c4
 
 08000ffc <stdio_exit_handler>:
  8000ffc:	b510      	push	{r4, lr}
@@ -2001,9 +2001,9 @@ Disassembly of section .text:
  8001040:	f001 fcf0 	bl	8002a24 <_fflush_r>
  8001044:	bd10      	pop	{r4, pc}
  8001046:	46c0      	nop			@ (mov r8, r8)
- 8001048:	20000434 	.word	0x20000434
- 800104c:	2000049c 	.word	0x2000049c
- 8001050:	20000504 	.word	0x20000504
+ 8001048:	200004f4 	.word	0x200004f4
+ 800104c:	2000055c 	.word	0x2000055c
+ 8001050:	200005c4 	.word	0x200005c4
 
 08001054 <global_stdio_init.part.0>:
  8001054:	b510      	push	{r4, lr}
@@ -2023,11 +2023,11 @@ Disassembly of section .text:
  8001074:	4805      	ldr	r0, [pc, #20]	@ (800108c <global_stdio_init.part.0+0x38>)
  8001076:	f7ff ff8b 	bl	8000f90 <std>
  800107a:	bd10      	pop	{r4, pc}
- 800107c:	2000056c 	.word	0x2000056c
+ 800107c:	2000062c 	.word	0x2000062c
  8001080:	08000ffd 	.word	0x08000ffd
- 8001084:	20000434 	.word	0x20000434
- 8001088:	2000049c 	.word	0x2000049c
- 800108c:	20000504 	.word	0x20000504
+ 8001084:	200004f4 	.word	0x200004f4
+ 8001088:	2000055c 	.word	0x2000055c
+ 800108c:	200005c4 	.word	0x200005c4
 
 08001090 <__sfp_lock_acquire>:
  8001090:	b510      	push	{r4, lr}
@@ -2035,7 +2035,7 @@ Disassembly of section .text:
  8001094:	f000 f90b 	bl	80012ae <__retarget_lock_acquire_recursive>
  8001098:	bd10      	pop	{r4, pc}
  800109a:	46c0      	nop			@ (mov r8, r8)
- 800109c:	20000575 	.word	0x20000575
+ 800109c:	20000635 	.word	0x20000635
 
 080010a0 <__sfp_lock_release>:
  80010a0:	b510      	push	{r4, lr}
@@ -2043,7 +2043,7 @@ Disassembly of section .text:
  80010a4:	f000 f904 	bl	80012b0 <__retarget_lock_release_recursive>
  80010a8:	bd10      	pop	{r4, pc}
  80010aa:	46c0      	nop			@ (mov r8, r8)
- 80010ac:	20000575 	.word	0x20000575
+ 80010ac:	20000635 	.word	0x20000635
 
 080010b0 <__sinit>:
  80010b0:	b510      	push	{r4, lr}
@@ -2064,7 +2064,7 @@ Disassembly of section .text:
  80010d4:	e7f3      	b.n	80010be <__sinit+0xe>
  80010d6:	46c0      	nop			@ (mov r8, r8)
  80010d8:	08001019 	.word	0x08001019
- 80010dc:	2000056c 	.word	0x2000056c
+ 80010dc:	2000062c 	.word	0x2000062c
 
 080010e0 <_fwalk_sglue>:
  80010e0:	b5f7      	push	{r0, r1, r2, r4, r5, r6, r7, lr}
@@ -2203,7 +2203,7 @@ Disassembly of section .text:
  80011e2:	6023      	str	r3, [r4, #0]
  80011e4:	bd70      	pop	{r4, r5, r6, pc}
  80011e6:	46c0      	nop			@ (mov r8, r8)
- 80011e8:	20000570 	.word	0x20000570
+ 80011e8:	20000630 	.word	0x20000630
 
 080011ec <_lseek_r>:
  80011ec:	b570      	push	{r4, r5, r6, lr}
@@ -2223,7 +2223,7 @@ Disassembly of section .text:
  800120a:	6023      	str	r3, [r4, #0]
  800120c:	bd70      	pop	{r4, r5, r6, pc}
  800120e:	46c0      	nop			@ (mov r8, r8)
- 8001210:	20000570 	.word	0x20000570
+ 8001210:	20000630 	.word	0x20000630
 
 08001214 <_read_r>:
  8001214:	b570      	push	{r4, r5, r6, lr}
@@ -2243,7 +2243,7 @@ Disassembly of section .text:
  8001232:	6023      	str	r3, [r4, #0]
  8001234:	bd70      	pop	{r4, r5, r6, pc}
  8001236:	46c0      	nop			@ (mov r8, r8)
- 8001238:	20000570 	.word	0x20000570
+ 8001238:	20000630 	.word	0x20000630
 
 0800123c <_write_r>:
  800123c:	b570      	push	{r4, r5, r6, lr}
@@ -2263,7 +2263,7 @@ Disassembly of section .text:
  800125a:	6023      	str	r3, [r4, #0]
  800125c:	bd70      	pop	{r4, r5, r6, pc}
  800125e:	46c0      	nop			@ (mov r8, r8)
- 8001260:	20000570 	.word	0x20000570
+ 8001260:	20000630 	.word	0x20000630
 
 08001264 <__libc_init_array>:
  8001264:	b570      	push	{r4, r5, r6, lr}
@@ -3899,7 +3899,7 @@ Disassembly of section .text:
  8002036:	6054      	str	r4, [r2, #4]
  8002038:	e7ca      	b.n	8001fd0 <_free_r+0x24>
  800203a:	46c0      	nop			@ (mov r8, r8)
- 800203c:	2000057c 	.word	0x2000057c
+ 800203c:	2000063c 	.word	0x2000063c
 
 08002040 <malloc>:
  8002040:	b510      	push	{r4, lr}
@@ -3941,7 +3941,7 @@ Disassembly of section .text:
  800208e:	3001      	adds	r0, #1
  8002090:	d1f2      	bne.n	8002078 <sbrk_aligned+0x24>
  8002092:	e7ef      	b.n	8002074 <sbrk_aligned+0x20>
- 8002094:	20000578 	.word	0x20000578
+ 8002094:	20000638 	.word	0x20000638
 
 08002098 <_malloc_r>:
  8002098:	b5f7      	push	{r0, r1, r2, r4, r5, r6, r7, lr}
@@ -4064,7 +4064,7 @@ Disassembly of section .text:
  800218e:	6007      	str	r7, [r0, #0]
  8002190:	e7da      	b.n	8002148 <_malloc_r+0xb0>
  8002192:	46c0      	nop			@ (mov r8, r8)
- 8002194:	2000057c 	.word	0x2000057c
+ 8002194:	2000063c 	.word	0x2000063c
 
 08002198 <__malloc_lock>:
  8002198:	b510      	push	{r4, lr}
@@ -4072,7 +4072,7 @@ Disassembly of section .text:
  800219c:	f7ff f887 	bl	80012ae <__retarget_lock_acquire_recursive>
  80021a0:	bd10      	pop	{r4, pc}
  80021a2:	46c0      	nop			@ (mov r8, r8)
- 80021a4:	20000574 	.word	0x20000574
+ 80021a4:	20000634 	.word	0x20000634
 
 080021a8 <__malloc_unlock>:
  80021a8:	b510      	push	{r4, lr}
@@ -4080,7 +4080,7 @@ Disassembly of section .text:
  80021ac:	f7ff f880 	bl	80012b0 <__retarget_lock_release_recursive>
  80021b0:	bd10      	pop	{r4, pc}
  80021b2:	46c0      	nop			@ (mov r8, r8)
- 80021b4:	20000574 	.word	0x20000574
+ 80021b4:	20000634 	.word	0x20000634
 
 080021b8 <_Balloc>:
  80021b8:	b570      	push	{r4, r5, r6, lr}
@@ -5183,7 +5183,7 @@ Disassembly of section .text:
  8002a96:	6023      	str	r3, [r4, #0]
  8002a98:	bd70      	pop	{r4, r5, r6, pc}
  8002a9a:	46c0      	nop			@ (mov r8, r8)
- 8002a9c:	20000570 	.word	0x20000570
+ 8002a9c:	20000630 	.word	0x20000630
 
 08002aa0 <memcpy>:
  8002aa0:	2300      	movs	r3, #0
@@ -5881,7 +5881,7 @@ Disassembly of section .text:
  8003022:	d000      	beq.n	8003026 <_kill_r+0x1e>
  8003024:	6023      	str	r3, [r4, #0]
  8003026:	bd70      	pop	{r4, r5, r6, pc}
- 8003028:	20000570 	.word	0x20000570
+ 8003028:	20000630 	.word	0x20000630
 
 0800302c <_getpid_r>:
  800302c:	b510      	push	{r4, lr}
@@ -6047,7 +6047,7 @@ Disassembly of section .text:
  8003176:	d000      	beq.n	800317a <_fstat_r+0x1e>
  8003178:	6023      	str	r3, [r4, #0]
  800317a:	bd70      	pop	{r4, r5, r6, pc}
- 800317c:	20000570 	.word	0x20000570
+ 800317c:	20000630 	.word	0x20000630
 
 08003180 <_isatty_r>:
  8003180:	2300      	movs	r3, #0
@@ -6065,7 +6065,7 @@ Disassembly of section .text:
  800319a:	6023      	str	r3, [r4, #0]
  800319c:	bd70      	pop	{r4, r5, r6, pc}
  800319e:	46c0      	nop			@ (mov r8, r8)
- 80031a0:	20000570 	.word	0x20000570
+ 80031a0:	20000630 	.word	0x20000630
 
 080031a4 <_malloc_usable_size_r>:
  80031a4:	1f0b      	subs	r3, r1, #4
@@ -6201,10 +6201,10 @@ __STATIC_FORCEINLINE void __disable_irq(void)
         for (int i = 0; i < errnum; i++) {          // blink the error code
  8003260:	3701      	adds	r7, #1
  8003262:	e7ee      	b.n	8003242 <APP_ErrorHandler+0x8e>
- 8003264:	200005d0 	.word	0x200005d0
- 8003268:	20000628 	.word	0x20000628
+ 8003264:	20000690 	.word	0x20000690
+ 8003268:	200006e8 	.word	0x200006e8
  800326c:	0800a4e7 	.word	0x0800a4e7
- 8003270:	2000064c 	.word	0x2000064c
+ 8003270:	2000070c 	.word	0x2000070c
 
 08003274 <HAL_MspInit>:
 /**
@@ -6343,7 +6343,7 @@ void TIM1_BRK_UP_TRG_COM_IRQHandler(void)
 }
  80032e8:	bd10      	pop	{r4, pc}
  80032ea:	46c0      	nop			@ (mov r8, r8)
- 80032ec:	20000a9c 	.word	0x20000a9c
+ 80032ec:	20000b5c 	.word	0x20000b5c
 
 080032f0 <ADC_Set_USB_cc_read_state>:
 ADC_HandleTypeDef AdcHandle;
@@ -6434,10 +6434,10 @@ void ADC_Set_USB_cc_read_state(bool enable_usb_cc_adc_read) {
  8003350:	6067      	str	r7, [r4, #4]
         AdcChanConf.Channel = Pins.ADC_CHANNEL_USB_CC2;            
  8003352:	e7e2      	b.n	800331a <ADC_Set_USB_cc_read_state+0x2a>
- 8003354:	200005d0 	.word	0x200005d0
- 8003358:	20000584 	.word	0x20000584
- 800335c:	20000590 	.word	0x20000590
- 8003360:	200008e4 	.word	0x200008e4
+ 8003354:	20000690 	.word	0x20000690
+ 8003358:	20000644 	.word	0x20000644
+ 800335c:	20000650 	.word	0x20000650
+ 8003360:	200009a4 	.word	0x200009a4
  8003364:	00001001 	.word	0x00001001
 
 08003368 <ADC_Init>:
@@ -6731,12 +6731,12 @@ void ADC_Set_USB_cc_read_state(bool enable_usb_cc_adc_read) {
  80034aa:	46c0      	nop			@ (mov r8, r8)
  80034ac:	40021000 	.word	0x40021000
  80034b0:	ffefffff 	.word	0xffefffff
- 80034b4:	20000590 	.word	0x20000590
+ 80034b4:	20000650 	.word	0x20000650
  80034b8:	40012400 	.word	0x40012400
- 80034bc:	200005d0 	.word	0x200005d0
- 80034c0:	20000584 	.word	0x20000584
+ 80034bc:	20000690 	.word	0x20000690
+ 80034c0:	20000644 	.word	0x20000644
  80034c4:	1fff0f18 	.word	0x1fff0f18
- 80034c8:	20000580 	.word	0x20000580
+ 80034c8:	20000640 	.word	0x20000640
  80034cc:	1fff0f14 	.word	0x1fff0f14
  80034d0:	425c0000 	.word	0x425c0000
 
@@ -6763,10 +6763,10 @@ void GPIO_Init(void)
  80034dc:	b08f      	sub	sp, #60	@ 0x3c
     __HAL_RCC_GPIOA_CLK_ENABLE();
  80034de:	6b53      	ldr	r3, [r2, #52]	@ 0x34
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
     GPIO_InitStruct.Alternate = GPIO_AF3_USART2;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
     */
+   
     //Pin settings for ADC inputs
     __HAL_RCC_ADC_CLK_ENABLE();
  80034e0:	2080      	movs	r0, #128	@ 0x80
@@ -7175,15 +7175,15 @@ void GPIO_Init(void)
  8003660:	b00f      	add	sp, #60	@ 0x3c
  8003662:	bdf0      	pop	{r4, r5, r6, r7, pc}
  8003664:	40021000 	.word	0x40021000
- 8003668:	200005d0 	.word	0x200005d0
- 800366c:	20000618 	.word	0x20000618
- 8003670:	200005d2 	.word	0x200005d2
- 8003674:	20000628 	.word	0x20000628
+ 8003668:	20000690 	.word	0x20000690
+ 800366c:	200006d8 	.word	0x200006d8
+ 8003670:	20000692 	.word	0x20000692
+ 8003674:	200006e8 	.word	0x200006e8
  8003678:	50000400 	.word	0x50000400
  800367c:	50001400 	.word	0x50001400
- 8003680:	20000630 	.word	0x20000630
- 8003684:	20000638 	.word	0x20000638
- 8003688:	20000640 	.word	0x20000640
+ 8003680:	200006f0 	.word	0x200006f0
+ 8003684:	200006f8 	.word	0x200006f8
+ 8003688:	20000700 	.word	0x20000700
 
 0800368c <UART_Init>:
  * This function configures the UART peripheral and associated GPIO pins.
@@ -7286,7 +7286,7 @@ void UART_Init(void)
  80036f8:	bd00      	pop	{pc}
  80036fa:	46c0      	nop			@ (mov r8, r8)
  80036fc:	40021000 	.word	0x40021000
- 8003700:	2000064c 	.word	0x2000064c
+ 8003700:	2000070c 	.word	0x2000070c
  8003704:	40004400 	.word	0x40004400
 
 08003708 <HAL_InitTick>:
@@ -7384,7 +7384,7 @@ __weak void HAL_IncTick(void)
 }
  800377c:	4770      	bx	lr
  800377e:	46c0      	nop			@ (mov r8, r8)
- 8003780:	20000698 	.word	0x20000698
+ 8003780:	20000758 	.word	0x20000758
  8003784:	20000288 	.word	0x20000288
 
 08003788 <HAL_GetTick>:
@@ -7399,7 +7399,7 @@ __weak uint32_t HAL_GetTick(void)
 }
  800378c:	4770      	bx	lr
  800378e:	46c0      	nop			@ (mov r8, r8)
- 8003790:	20000698 	.word	0x20000698
+ 8003790:	20000758 	.word	0x20000758
 
 08003794 <HAL_SetTickFreq>:
 /**
@@ -10348,7 +10348,7 @@ PUTCHAR_PROTOTYPE
 }
  8004740:	bd0e      	pop	{r1, r2, r3, pc}
  8004742:	46c0      	nop			@ (mov r8, r8)
- 8004744:	2000069c 	.word	0x2000069c
+ 8004744:	2000075c 	.word	0x2000075c
 
 08004748 <__io_getchar>:
 
@@ -10369,7 +10369,7 @@ GETCHAR_PROTOTYPE
  8004758:	9801      	ldr	r0, [sp, #4]
 }
  800475a:	bd0e      	pop	{r1, r2, r3, pc}
- 800475c:	2000069c 	.word	0x2000069c
+ 800475c:	2000075c 	.word	0x2000075c
 
 08004760 <_write>:
 
@@ -10635,7 +10635,7 @@ float PY32_ADC_Temp_to_degC(uint32_t adc_temp)
 }
  800487a:	bd10      	pop	{r4, pc}
  800487c:	1fff0f14 	.word	0x1fff0f14
- 8004880:	20000580 	.word	0x20000580
+ 8004880:	20000640 	.word	0x20000640
  8004884:	41f00000 	.word	0x41f00000
 
 08004888 <ADC_to_thermistor_resistance>:
@@ -11025,11 +11025,11 @@ float thermistor_r_to_temperature(uint32_t resistance)
  8004b32:	2800      	cmp	r0, #0
  8004b34:	d0ec      	beq.n	8004b10 <ADC_Read+0x1e8>
  8004b36:	e7e8      	b.n	8004b0a <ADC_Read+0x1e2>
- 8004b38:	20000590 	.word	0x20000590
- 8004b3c:	2000085c 	.word	0x2000085c
+ 8004b38:	20000650 	.word	0x20000650
+ 8004b3c:	2000091c 	.word	0x2000091c
  8004b40:	33333333 	.word	0x33333333
  8004b44:	3ff33333 	.word	0x3ff33333
- 8004b48:	200008e8 	.word	0x200008e8
+ 8004b48:	200009a8 	.word	0x200009a8
  8004b4c:	41300000 	.word	0x41300000
  8004b50:	42f00000 	.word	0x42f00000
  8004b54:	bf800000 	.word	0xbf800000
@@ -11046,7 +11046,7 @@ void PIDTimer_ISR(void)
  8004b5c:	709a      	strb	r2, [r3, #2]
 }
  8004b5e:	4770      	bx	lr
- 8004b60:	20000852 	.word	0x20000852
+ 8004b60:	20000912 	.word	0x20000912
 
 08004b64 <MinuteTimer_ISR>:
 
@@ -11058,7 +11058,7 @@ void MinuteTimer_ISR(void)
  8004b68:	701a      	strb	r2, [r3, #0]
 }
  8004b6a:	4770      	bx	lr
- 8004b6c:	20000852 	.word	0x20000852
+ 8004b6c:	20000912 	.word	0x20000912
 
 08004b70 <DataCollection_ISR>:
 
@@ -11070,7 +11070,7 @@ void DataCollection_ISR(void)
  8004b74:	705a      	strb	r2, [r3, #1]
 }
  8004b76:	4770      	bx	lr
- 8004b78:	20000852 	.word	0x20000852
+ 8004b78:	20000912 	.word	0x20000912
 
 08004b7c <ActuationDelay_ISR>:
 
@@ -11082,7 +11082,7 @@ void ActuationDelay_ISR(void)
  8004b80:	71da      	strb	r2, [r3, #7]
 }
  8004b82:	4770      	bx	lr
- 8004b84:	20000852 	.word	0x20000852
+ 8004b84:	20000912 	.word	0x20000912
 
 08004b88 <DelayedStart_ISR>:
 
@@ -11094,7 +11094,7 @@ void DelayedStart_ISR(void)
  8004b8c:	715a      	strb	r2, [r3, #5]
 }
  8004b8e:	4770      	bx	lr
- 8004b90:	20000852 	.word	0x20000852
+ 8004b90:	20000912 	.word	0x20000912
 
 08004b94 <LogData_ISR>:
 
@@ -11106,7 +11106,7 @@ void LogData_ISR(void)
  8004b98:	711a      	strb	r2, [r3, #4]
 }
  8004b9a:	4770      	bx	lr
- 8004b9c:	20000852 	.word	0x20000852
+ 8004b9c:	20000912 	.word	0x20000912
 
 08004ba0 <PWMTimer_ISR>:
 {   
@@ -11282,10 +11282,10 @@ void LogData_ISR(void)
  8004cb2:	3370      	adds	r3, #112	@ 0x70
  8004cb4:	8819      	ldrh	r1, [r3, #0]
  8004cb6:	e7f2      	b.n	8004c9e <PWMTimer_ISR+0xfe>
- 8004cb8:	200005d0 	.word	0x200005d0
- 8004cbc:	20000718 	.word	0x20000718
- 8004cc0:	2000085c 	.word	0x2000085c
- 8004cc4:	200006e8 	.word	0x200006e8
+ 8004cb8:	20000690 	.word	0x20000690
+ 8004cbc:	200007d8 	.word	0x200007d8
+ 8004cc0:	2000091c 	.word	0x2000091c
+ 8004cc4:	200007a8 	.word	0x200007a8
 
 08004cc8 <LEDTimer_ISR>:
 {
@@ -11327,9 +11327,9 @@ void LogData_ISR(void)
  8004d02:	f7ff f851 	bl	8003da8 <HAL_GPIO_TogglePin>
 }
  8004d06:	e7f8      	b.n	8004cfa <LEDTimer_ISR+0x32>
- 8004d08:	20000888 	.word	0x20000888
- 8004d0c:	2000085c 	.word	0x2000085c
- 8004d10:	200005d0 	.word	0x200005d0
+ 8004d08:	20000948 	.word	0x20000948
+ 8004d0c:	2000091c 	.word	0x2000091c
+ 8004d10:	20000690 	.word	0x20000690
 
 08004d14 <_Z9print_UIDv>:
 {
@@ -11358,11 +11358,11 @@ void LogData_ISR(void)
 }
  8004d42:	bd13      	pop	{r0, r1, r4, pc}
  8004d44:	1fff0e0d 	.word	0x1fff0e0d
- 8004d48:	20000748 	.word	0x20000748
+ 8004d48:	20000808 	.word	0x20000808
  8004d4c:	1fff0e0e 	.word	0x1fff0e0e
  8004d50:	1fff0e0f 	.word	0x1fff0e0f
  8004d54:	0800a50f 	.word	0x0800a50f
- 8004d58:	2000064c 	.word	0x2000064c
+ 8004d58:	2000070c 	.word	0x2000070c
 
 08004d5c <_Z8pid_init8heater_t7CONTROL>:
 void pid_init(heater_t heater, CONTROL pid_settings){
@@ -11406,7 +11406,7 @@ void pid_init(heater_t heater, CONTROL pid_settings){
  8004d9a:	bc08      	pop	{r3}
  8004d9c:	b004      	add	sp, #16
  8004d9e:	4718      	bx	r3
- 8004da0:	2000085c 	.word	0x2000085c
+ 8004da0:	2000091c 	.word	0x2000091c
  8004da4:	437a0000 	.word	0x437a0000
 
 08004da8 <_Z14power_on_testsv>:
@@ -11530,11 +11530,11 @@ void init_adc_data(void){
  8004e8c:	b007      	add	sp, #28
  8004e8e:	bdf0      	pop	{r4, r5, r6, r7, pc}
  8004e90:	40021000 	.word	0x40021000
- 8004e94:	2000085c 	.word	0x2000085c
+ 8004e94:	2000091c 	.word	0x2000091c
  8004e98:	40900000 	.word	0x40900000
- 8004e9c:	20000748 	.word	0x20000748
+ 8004e9c:	20000808 	.word	0x20000808
  8004ea0:	0800a522 	.word	0x0800a522
- 8004ea4:	2000064c 	.word	0x2000064c
+ 8004ea4:	2000070c 	.word	0x2000070c
  8004ea8:	0800a557 	.word	0x0800a557
  8004eac:	0800a596 	.word	0x0800a596
 
@@ -11694,19 +11694,19 @@ void start_naat_test(void) {
  8004f8c:	f7ff fb0c 	bl	80045a8 <HAL_UART_Transmit>
  8004f90:	e7e8      	b.n	8004f64 <_Z15start_naat_testv+0xb4>
  8004f92:	46c0      	nop			@ (mov r8, r8)
- 8004f94:	2000085c 	.word	0x2000085c
- 8004f98:	20000888 	.word	0x20000888
- 8004f9c:	20000718 	.word	0x20000718
- 8004fa0:	200006e8 	.word	0x200006e8
- 8004fa4:	20000618 	.word	0x20000618
- 8004fa8:	200005d0 	.word	0x200005d0
- 8004fac:	20000380 	.word	0x20000380
- 8004fb0:	20000354 	.word	0x20000354
+ 8004f94:	2000091c 	.word	0x2000091c
+ 8004f98:	20000948 	.word	0x20000948
+ 8004f9c:	200007d8 	.word	0x200007d8
+ 8004fa0:	200007a8 	.word	0x200007a8
+ 8004fa4:	200006d8 	.word	0x200006d8
+ 8004fa8:	20000690 	.word	0x20000690
+ 8004fac:	200003e0 	.word	0x200003e0
+ 8004fb0:	200003b4 	.word	0x200003b4
  8004fb4:	20000294 	.word	0x20000294
- 8004fb8:	2000084f 	.word	0x2000084f
- 8004fbc:	20000748 	.word	0x20000748
+ 8004fb8:	2000090f 	.word	0x2000090f
+ 8004fbc:	20000808 	.word	0x20000808
  8004fc0:	0800a5cf 	.word	0x0800a5cf
- 8004fc4:	2000064c 	.word	0x2000064c
+ 8004fc4:	2000070c 	.word	0x2000070c
 
 08004fc8 <_Z14stop_naat_testv>:
     data.test_active = false;
@@ -11762,14 +11762,14 @@ void stop_naat_test(void) {
 }
  8005014:	bd10      	pop	{r4, pc}
  8005016:	46c0      	nop			@ (mov r8, r8)
- 8005018:	2000085c 	.word	0x2000085c
- 800501c:	20000718 	.word	0x20000718
- 8005020:	200006e8 	.word	0x200006e8
- 8005024:	2000084b 	.word	0x2000084b
- 8005028:	2000084e 	.word	0x2000084e
- 800502c:	20000748 	.word	0x20000748
+ 8005018:	2000091c 	.word	0x2000091c
+ 800501c:	200007d8 	.word	0x200007d8
+ 8005020:	200007a8 	.word	0x200007a8
+ 8005024:	2000090b 	.word	0x2000090b
+ 8005028:	2000090e 	.word	0x2000090e
+ 800502c:	20000808 	.word	0x20000808
  8005030:	0800a5f3 	.word	0x0800a5f3
- 8005034:	2000064c 	.word	0x2000064c
+ 8005034:	2000070c 	.word	0x2000070c
 
 08005038 <_Z9Data_initv>:
     flags.flagDataCollection = false;
@@ -11860,8 +11860,8 @@ void stop_naat_test(void) {
 }
  8005098:	4770      	bx	lr
  800509a:	46c0      	nop			@ (mov r8, r8)
- 800509c:	20000852 	.word	0x20000852
- 80050a0:	2000085c 	.word	0x2000085c
+ 800509c:	20000912 	.word	0x20000912
+ 80050a0:	2000091c 	.word	0x2000091c
 
 080050a4 <_Z12system_setupv>:
 void system_setup() {
@@ -12132,39 +12132,39 @@ void system_setup() {
  8005246:	b00d      	add	sp, #52	@ 0x34
  8005248:	bdf0      	pop	{r4, r5, r6, r7, pc}
  800524a:	46c0      	nop			@ (mov r8, r8)
- 800524c:	20000849 	.word	0x20000849
- 8005250:	20000848 	.word	0x20000848
- 8005254:	200006e8 	.word	0x200006e8
- 8005258:	20000718 	.word	0x20000718
- 800525c:	200005d0 	.word	0x200005d0
- 8005260:	2000085c 	.word	0x2000085c
- 8005264:	20000628 	.word	0x20000628
- 8005268:	20000748 	.word	0x20000748
+ 800524c:	20000909 	.word	0x20000909
+ 8005250:	20000908 	.word	0x20000908
+ 8005254:	200007a8 	.word	0x200007a8
+ 8005258:	200007d8 	.word	0x200007d8
+ 800525c:	20000690 	.word	0x20000690
+ 8005260:	2000091c 	.word	0x2000091c
+ 8005264:	200006e8 	.word	0x200006e8
+ 8005268:	20000808 	.word	0x20000808
  800526c:	0800a603 	.word	0x0800a603
  8005270:	0800a60a 	.word	0x0800a60a
  8005274:	0800a612 	.word	0x0800a612
- 8005278:	2000064c 	.word	0x2000064c
+ 8005278:	2000070c 	.word	0x2000070c
  800527c:	08004ba1 	.word	0x08004ba1
- 8005280:	20000851 	.word	0x20000851
+ 8005280:	20000911 	.word	0x20000911
  8005284:	08004cc9 	.word	0x08004cc9
- 8005288:	20000850 	.word	0x20000850
+ 8005288:	20000910 	.word	0x20000910
  800528c:	08004b71 	.word	0x08004b71
- 8005290:	2000084d 	.word	0x2000084d
+ 8005290:	2000090d 	.word	0x2000090d
  8005294:	08004b59 	.word	0x08004b59
- 8005298:	2000084f 	.word	0x2000084f
+ 8005298:	2000090f 	.word	0x2000090f
  800529c:	0000ea60 	.word	0x0000ea60
  80052a0:	08004b65 	.word	0x08004b65
- 80052a4:	2000084e 	.word	0x2000084e
+ 80052a4:	2000090e 	.word	0x2000090e
  80052a8:	00001388 	.word	0x00001388
  80052ac:	08004b89 	.word	0x08004b89
- 80052b0:	2000084c 	.word	0x2000084c
+ 80052b0:	2000090c 	.word	0x2000090c
  80052b4:	00004e20 	.word	0x00004e20
  80052b8:	08004b7d 	.word	0x08004b7d
- 80052bc:	2000084a 	.word	0x2000084a
- 80052c0:	20000852 	.word	0x20000852
+ 80052bc:	2000090a 	.word	0x2000090a
+ 80052c0:	20000912 	.word	0x20000912
  80052c4:	08004b95 	.word	0x08004b95
- 80052c8:	2000084b 	.word	0x2000084b
- 80052cc:	20000354 	.word	0x20000354
+ 80052c8:	2000090b 	.word	0x2000090b
+ 80052cc:	200003b4 	.word	0x200003b4
  80052d0:	20000294 	.word	0x20000294
 
 080052d4 <ADC_data_collect>:
@@ -12270,12 +12270,12 @@ void system_setup() {
  8005378:	6028      	str	r0, [r5, #0]
 }
  800537a:	bdf8      	pop	{r3, r4, r5, r6, r7, pc}
- 800537c:	20000718 	.word	0x20000718
- 8005380:	2000085c 	.word	0x2000085c
- 8005384:	200005d0 	.word	0x200005d0
- 8005388:	20000628 	.word	0x20000628
- 800538c:	200006e8 	.word	0x200006e8
- 8005390:	20000638 	.word	0x20000638
+ 800537c:	200007d8 	.word	0x200007d8
+ 8005380:	2000091c 	.word	0x2000091c
+ 8005384:	20000690 	.word	0x20000690
+ 8005388:	200006e8 	.word	0x200006e8
+ 800538c:	200007a8 	.word	0x200007a8
+ 8005390:	200006f8 	.word	0x200006f8
  8005394:	42be0000 	.word	0x42be0000
 
 08005398 <Update_PID>:
@@ -12339,13 +12339,13 @@ void system_setup() {
                 data.valve_heater_pwm_value = pid_data[VALVE_HEATER].out;
  80053f4:	1c30      	adds	r0, r6, #0
  80053f6:	e7ef      	b.n	80053d8 <Update_PID+0x40>
- 80053f8:	2000085c 	.word	0x2000085c
- 80053fc:	20000908 	.word	0x20000908
+ 80053f8:	2000091c 	.word	0x2000091c
+ 80053fc:	200009c8 	.word	0x200009c8
  8005400:	437a0000 	.word	0x437a0000
  8005404:	43090000 	.word	0x43090000
  8005408:	42e00000 	.word	0x42e00000
- 800540c:	20000740 	.word	0x20000740
- 8005410:	20000710 	.word	0x20000710
+ 800540c:	20000800 	.word	0x20000800
+ 8005410:	200007d0 	.word	0x200007d0
 
 08005414 <print_log_data>:
 {
@@ -12408,11 +12408,11 @@ void system_setup() {
 }
  800548c:	b013      	add	sp, #76	@ 0x4c
  800548e:	bdf0      	pop	{r4, r5, r6, r7, pc}
- 8005490:	2000085c 	.word	0x2000085c
- 8005494:	20000748 	.word	0x20000748
+ 8005490:	2000091c 	.word	0x2000091c
+ 8005494:	20000808 	.word	0x20000808
  8005498:	0800a631 	.word	0x0800a631
- 800549c:	20000908 	.word	0x20000908
- 80054a0:	2000064c 	.word	0x2000064c
+ 800549c:	200009c8 	.word	0x200009c8
+ 80054a0:	2000070c 	.word	0x2000070c
 
 080054a4 <send_max_temps>:
 void send_max_temps(void) {
@@ -12460,11 +12460,11 @@ void send_max_temps(void) {
  80054f6:	b005      	add	sp, #20
  80054f8:	bdf0      	pop	{r4, r5, r6, r7, pc}
  80054fa:	46c0      	nop			@ (mov r8, r8)
- 80054fc:	20000860 	.word	0x20000860
- 8005500:	2000085c 	.word	0x2000085c
+ 80054fc:	20000920 	.word	0x20000920
+ 8005500:	2000091c 	.word	0x2000091c
  8005504:	0800a666 	.word	0x0800a666
- 8005508:	20000748 	.word	0x20000748
- 800550c:	2000064c 	.word	0x2000064c
+ 8005508:	20000808 	.word	0x20000808
+ 800550c:	2000070c 	.word	0x2000070c
 
 08005510 <_Z15APP_UpdateStatev>:
 void APP_UpdateState(void){
@@ -12869,22 +12869,22 @@ void APP_UpdateState(void){
 }
  80057c4:	e771      	b.n	80056aa <_Z15APP_UpdateStatev+0x19a>
  80057c6:	46c0      	nop			@ (mov r8, r8)
- 80057c8:	20000888 	.word	0x20000888
- 80057cc:	2000085c 	.word	0x2000085c
- 80057d0:	20000908 	.word	0x20000908
- 80057d4:	200003a0 	.word	0x200003a0
- 80057d8:	20000354 	.word	0x20000354
+ 80057c8:	20000948 	.word	0x20000948
+ 80057cc:	2000091c 	.word	0x2000091c
+ 80057d0:	200009c8 	.word	0x200009c8
+ 80057d4:	20000400 	.word	0x20000400
+ 80057d8:	200003b4 	.word	0x200003b4
  80057dc:	20000294 	.word	0x20000294
- 80057e0:	20000718 	.word	0x20000718
- 80057e4:	2000084e 	.word	0x2000084e
- 80057e8:	200006e8 	.word	0x200006e8
- 80057ec:	200003e0 	.word	0x200003e0
- 80057f0:	20000360 	.word	0x20000360
- 80057f4:	20000850 	.word	0x20000850
- 80057f8:	200003f4 	.word	0x200003f4
- 80057fc:	20000400 	.word	0x20000400
- 8005800:	2000084a 	.word	0x2000084a
- 8005804:	20000852 	.word	0x20000852
+ 80057e0:	200007d8 	.word	0x200007d8
+ 80057e4:	2000090e 	.word	0x2000090e
+ 80057e8:	200007a8 	.word	0x200007a8
+ 80057ec:	20000440 	.word	0x20000440
+ 80057f0:	200003c0 	.word	0x200003c0
+ 80057f4:	20000910 	.word	0x20000910
+ 80057f8:	20000454 	.word	0x20000454
+ 80057fc:	20000460 	.word	0x20000460
+ 8005800:	2000090a 	.word	0x2000090a
+ 8005804:	20000912 	.word	0x20000912
 
 08005808 <main>:
 {
@@ -13017,12 +13017,12 @@ void APP_UpdateState(void){
  80058cc:	f000 f92c 	bl	8005b28 <Enable_timer>
  80058d0:	e7ba      	b.n	8005848 <main+0x40>
  80058d2:	46c0      	nop			@ (mov r8, r8)
- 80058d4:	2000085c 	.word	0x2000085c
+ 80058d4:	2000091c 	.word	0x2000091c
  80058d8:	41600000 	.word	0x41600000
- 80058dc:	20000852 	.word	0x20000852
- 80058e0:	2000084c 	.word	0x2000084c
- 80058e4:	20000851 	.word	0x20000851
- 80058e8:	2000084b 	.word	0x2000084b
+ 80058dc:	20000912 	.word	0x20000912
+ 80058e0:	2000090c 	.word	0x2000090c
+ 80058e4:	20000911 	.word	0x20000911
+ 80058e8:	2000090b 	.word	0x2000090b
 
 080058ec <pid_controller_init>:
  * 
@@ -13113,7 +13113,7 @@ void pid_controller_init(heater_t heater, float setpoint, float k_p, float k_i, 
  800594c:	6163      	str	r3, [r4, #20]
 }
  800594e:	bdf7      	pop	{r0, r1, r2, r4, r5, r6, r7, pc}
- 8005950:	20000908 	.word	0x20000908
+ 8005950:	200009c8 	.word	0x200009c8
  8005954:	42f00000 	.word	0x42f00000
 
 08005958 <pid_controller_compute>:
@@ -13302,7 +13302,7 @@ void pid_controller_compute(heater_t heater, float measurement) {
  8005a74:	1c30      	adds	r0, r6, #0
  8005a76:	f000 fe73 	bl	8006760 <__aeabi_fsub>
  8005a7a:	e7d1      	b.n	8005a20 <pid_controller_compute+0xc8>
- 8005a7c:	20000908 	.word	0x20000908
+ 8005a7c:	200009c8 	.word	0x200009c8
  8005a80:	40c00000 	.word	0x40c00000
 
 08005a84 <TIMER_Init>:
@@ -13399,12 +13399,12 @@ void TIMER_Init(void)
     }
 }
  8005ade:	bd70      	pop	{r4, r5, r6, pc}
- 8005ae0:	20000a98 	.word	0x20000a98
- 8005ae4:	20000a9c 	.word	0x20000a9c
+ 8005ae0:	20000b58 	.word	0x20000b58
+ 8005ae4:	20000b5c 	.word	0x20000b5c
  8005ae8:	40012c00 	.word	0x40012c00
  8005aec:	0000031f 	.word	0x0000031f
- 8005af0:	20000a94 	.word	0x20000a94
- 8005af4:	200009a4 	.word	0x200009a4
+ 8005af0:	20000b54 	.word	0x20000b54
+ 8005af4:	20000a64 	.word	0x20000a64
 
 08005af8 <Register_timer>:
 
@@ -13440,8 +13440,8 @@ int8_t Register_timer(TimerCallback CallbackFunc, uint32_t TickInterval)
  8005b1a:	2001      	movs	r0, #1
  8005b1c:	4240      	negs	r0, r0
  8005b1e:	e7fb      	b.n	8005b18 <Register_timer+0x20>
- 8005b20:	20000a94 	.word	0x20000a94
- 8005b24:	200009a4 	.word	0x200009a4
+ 8005b20:	20000b54 	.word	0x20000b54
+ 8005b24:	20000a64 	.word	0x20000a64
 
 08005b28 <Enable_timer>:
 
@@ -13499,9 +13499,9 @@ bool Enable_timer(int8_t TimerNumber) {
     return true;
 }
  8005b6a:	bdf8      	pop	{r3, r4, r5, r6, r7, pc}
- 8005b6c:	20000a94 	.word	0x20000a94
- 8005b70:	200009a4 	.word	0x200009a4
- 8005b74:	20000a98 	.word	0x20000a98
+ 8005b6c:	20000b54 	.word	0x20000b54
+ 8005b70:	20000a64 	.word	0x20000a64
+ 8005b74:	20000b58 	.word	0x20000b58
 
 08005b78 <Disable_timer>:
 
@@ -13525,8 +13525,8 @@ bool Disable_timer(int8_t TimerNumber) {
  8005b90:	3001      	adds	r0, #1
 }
  8005b92:	4770      	bx	lr
- 8005b94:	20000a94 	.word	0x20000a94
- 8005b98:	200009a4 	.word	0x200009a4
+ 8005b94:	20000b54 	.word	0x20000b54
+ 8005b98:	20000a64 	.word	0x20000a64
 
 08005b9c <Update_TimerTickInterval>:
 
@@ -13553,8 +13553,8 @@ bool Update_TimerTickInterval(int8_t TimerNumber, uint32_t new_TimerTickInterval
 }
  8005bb8:	4770      	bx	lr
  8005bba:	46c0      	nop			@ (mov r8, r8)
- 8005bbc:	20000a94 	.word	0x20000a94
- 8005bc0:	200009a4 	.word	0x200009a4
+ 8005bbc:	20000b54 	.word	0x20000b54
+ 8005bc0:	20000a64 	.word	0x20000a64
 
 08005bc4 <HAL_TIM_PeriodElapsedCallback>:
     } while (current_tick < tick  && wait_time < max_wait);
@@ -13643,10 +13643,10 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 }
  8005c14:	e7fb      	b.n	8005c0e <HAL_TIM_PeriodElapsedCallback+0x4a>
  8005c16:	46c0      	nop			@ (mov r8, r8)
- 8005c18:	20000a98 	.word	0x20000a98
- 8005c1c:	200009a4 	.word	0x200009a4
- 8005c20:	200009a0 	.word	0x200009a0
- 8005c24:	2000085c 	.word	0x2000085c
+ 8005c18:	20000b58 	.word	0x20000b58
+ 8005c1c:	20000a64 	.word	0x20000a64
+ 8005c20:	20000a60 	.word	0x20000a60
+ 8005c24:	2000091c 	.word	0x2000091c
 
 08005c28 <APP_SystemClockConfig>:
 void APP_SystemClockConfig(void)
@@ -13822,13 +13822,13 @@ LoopForever:
   ldr r0, =_sdata
  8005cbc:	200000c0 	.word	0x200000c0
   ldr r1, =_edata
- 8005cc0:	20000414 	.word	0x20000414
+ 8005cc0:	200004d4 	.word	0x200004d4
   ldr r2, =_sidata
  8005cc4:	0800ab94 	.word	0x0800ab94
   ldr r2, =_sbss
- 8005cc8:	20000418 	.word	0x20000418
+ 8005cc8:	200004d8 	.word	0x200004d8
   ldr r4, =_ebss
- 8005ccc:	20000ae0 	.word	0x20000ae0
+ 8005ccc:	20000ba0 	.word	0x20000ba0
 
 08005cd0 <ADC_COMP_IRQHandler>:
  * @retval : None
@@ -22284,8 +22284,8 @@ Infinite_Loop:
  8009fd6:	4770      	bx	lr
  8009fd8:	4801      	ldr	r0, [pc, #4]	@ (8009fe0 <_sbrk+0x18>)
  8009fda:	e7fa      	b.n	8009fd2 <_sbrk+0xa>
- 8009fdc:	20000adc 	.word	0x20000adc
- 8009fe0:	20000ae0 	.word	0x20000ae0
+ 8009fdc:	20000b9c 	.word	0x20000b9c
+ 8009fe0:	20000ba0 	.word	0x20000ba0
 
 08009fe4 <_exit>:
  8009fe4:	e7fe      	b.n	8009fe4 <_exit>

@@ -3,14 +3,48 @@
 #include <string.h>
 
 
+/** 
+ * @brief Approximate delay count for 100ms software delay.
+ * @note This value is calibrated for the current clock settings and may need
+ *       adjustment if system clock frequency changes.
+ */
 #define LOOP_TIMER_COUNT_100MSEC    0x17000
 
-// This will delay by roughly 100msec * delay_count. It is not very accurate.
+/**
+ * @brief Provides a rough software delay in 100ms increments.
+ * @param delay_count Number of 100ms intervals to delay.
+ * 
+ * This function implements a simple busy-wait delay using a software loop.
+ * The delay is approximate and not intended for precise timing. It should
+ * only be used in error handling or other non-critical timing scenarios.
+ * 
+ * @note This is not an accurate delay mechanism and should not be used for
+ *       precise timing requirements. The actual delay may vary based on
+ *       system clock frequency and optimization settings.
+ */
 void sw_delay_100msec(uint32_t delay_count) {
     for (uint32_t i=0; i < (delay_count * LOOP_TIMER_COUNT_100MSEC); i++);
 }
 
-// APP_ErrorHandler will shut down all heaters, then blink the error code number
+/**
+ * @brief System error handler for critical failures.
+ * @param errnum Error code number to display via LED blinks.
+ * 
+ * This function handles critical system errors by:
+ * 1. Disabling all interrupts to prevent further operation
+ * 2. Safely shutting down all heater outputs
+ * 3. Sending error message via UART
+ * 4. Entering infinite loop with visual error code display:
+ *    - Initial 1-second LED ON
+ *    - 1-second LED OFF
+ *    - Blinks LED number of times corresponding to error code (200ms intervals)
+ *    - 1-second pause before repeating
+ * 
+ * LED Pattern Example for errnum = 3:
+ * ON(1s)->OFF(1s)->[ON(200ms)->OFF(200ms)]x3->OFF(1s)->repeat
+ * 
+ * @note This function never returns and requires a system reset to recover.
+ */
 void APP_ErrorHandler(uint8_t errnum)
 {
     char outputStr[256];

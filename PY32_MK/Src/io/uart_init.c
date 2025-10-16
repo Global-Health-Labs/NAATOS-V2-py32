@@ -1,6 +1,7 @@
 #include "uart_init.h"
 #include "alarm.h"
 #include "main.h"
+#include "error_handler.h"
 
 UART_HandleTypeDef UartHandle;
 
