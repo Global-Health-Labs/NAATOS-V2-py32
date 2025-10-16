@@ -216,31 +216,7 @@ void GPIO_Init(void)
 
 #endif
 
-    GPIO_InitStruct.Pin = Pins.GPIO_Pin_AMP_CTRL1;          // AMP_CTRL1
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Pull = GPIO_PULLDOWN;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(Pins.GPIOx_AMP_CTRL1, &GPIO_InitStruct);    
-
-    GPIO_InitStruct.Pin = Pins.GPIO_Pin_AMP_CTRL2;          // AMP_CTRL2
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Pull = GPIO_PULLDOWN;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(Pins.GPIOx_AMP_CTRL2, &GPIO_InitStruct);    
-
-#if defined(BOARDCONFIG_MK5C) || defined(BOARDCONFIG_MK6C) || defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA) || defined(BOARDCONFIG_MK6F) || defined(BOARDCONFIG_MK8)
-    GPIO_InitStruct.Pin = Pins.GPIO_Pin_VALVE_CTRL1;        // VALVE_CTRL1
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Pull = GPIO_PULLDOWN;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(Pins.GPIOx_VALVE_CTRL1, &GPIO_InitStruct);    
-
-    GPIO_InitStruct.Pin = Pins.GPIO_Pin_VALVE_CTRL2;        // VALVE_CTRL2
-    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-    GPIO_InitStruct.Pull = GPIO_PULLDOWN;
-    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(Pins.GPIOx_VALVE_CTRL2, &GPIO_InitStruct);    
-#endif
+    // PWM pins are configured in PWM_Init()
 
 #ifdef PUSHBUTTON_UI_ENABLED
     GPIO_InitStruct.Pin = Pins.GPIO_Pin_PUSHBUTTON;

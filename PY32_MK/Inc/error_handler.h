@@ -32,6 +32,13 @@ enum ErrorCodes {
     ERR_MIN_ACTUATION_TEMP          = 8   /*!< Minimum actuation temperature not reached */
 };
 
+enum alarm_state {
+    // define alarm states here, probably related to LED indicators
+    no_alarm = 0,
+    sample_min_temp_not_reached,
+    valve_min_temp_not_reached
+};
+
 void APP_ErrorHandler(uint8_t errnum);
 
 #ifdef __cplusplus

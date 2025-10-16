@@ -32,6 +32,10 @@
 /* Private function prototypes -----------------------------------------------*/
 /* Private user code ---------------------------------------------------------*/
 /* External variables --------------------------------------------------------*/
+extern TIM_HandleTypeDef tim3Handle;
+extern TIM_HandleTypeDef htim14;
+extern TIM_HandleTypeDef htim16;
+extern TIM_HandleTypeDef htim17;
 
 /******************************************************************************/
 /*           Cortex-M0+ Processor Interruption and Exception Handlers          */ 
@@ -82,9 +86,24 @@ void SysTick_Handler(void)
 /* please refer to the startup file.                                          */
 /******************************************************************************/
 
-void TIM1_BRK_UP_TRG_COM_IRQHandler(void)
+void TIM3_IRQHandler(void)
 {
-  HAL_TIM_IRQHandler(&tim1Handle);
+  HAL_TIM_IRQHandler(&tim3Handle);
+}
+
+void TIM14_IRQHandler(void)
+{
+  HAL_TIM_IRQHandler(&htim14);
+}
+
+void TIM16_IRQHandler(void)
+{
+  HAL_TIM_IRQHandler(&htim16);
+}
+
+void TIM17_IRQHandler(void)
+{
+  HAL_TIM_IRQHandler(&htim17);
 }
 
 /************************ (C) COPYRIGHT Puya *****END OF FILE******************/

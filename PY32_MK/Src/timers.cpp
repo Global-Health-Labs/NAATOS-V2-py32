@@ -18,38 +18,40 @@
 #include "alarm.h"
 #include "error_handler.h"
 
+
 extern "C" {
 
-TIM_HandleTypeDef tim1Handle;
-uint32_t TIM1_tick_count;
+TIM_HandleTypeDef tim3Handle;
+uint32_t SYS_tick_count;
 uint8_t Registered_ISRTimers;
 
 ISRTimerData_t ISRTimers[MAX_REGISTERED_TIMERS];
 
 void TIMER_Init(void)
 {
-    TIM1_tick_count = 0;
+    SYS_tick_count = 0;
     
     // HAL_SetTickFreq configures the HAL tick timer
     // This has a minimum frequency of 1 kHz, which is too low for our application
     // This is not currently used.
     HAL_SetTickFreq(1);     // set the tick timer to 1 KHz (1 msec per tick)    
     
+    // Enable TIM3 clock
+    __HAL_RCC_TIM3_CLK_ENABLE();
 	
-	tim1Handle.Instance = TIM1;																						//Timer 1 advanced timer
-    tim1Handle.Init.Period            = 30 - 1;				    //Timer count = (period+1)*(prescaler+1), Period of 30 = 1 msec and 15 = 500 usec
-    tim1Handle.Init.Prescaler         = 800 - 1;                // 24 MHz / 800 = 30 KHz
-    tim1Handle.Init.ClockDivision     = TIM_CLOCKDIVISION_DIV1;						//Use full clock rate
-    tim1Handle.Init.CounterMode       = TIM_COUNTERMODE_UP;
-    tim1Handle.Init.RepetitionCounter = 1 - 1;
-    tim1Handle.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
+	tim3Handle.Instance = TIM3;                                //Timer 3 general purpose timer
+    tim3Handle.Init.Period            = 30 - 1;               //Timer count = (period+1)*(prescaler+1), Period of 30 = 1 msec
+    tim3Handle.Init.Prescaler         = 800 - 1;              // 24 MHz / 800 = 30 KHz
+    tim3Handle.Init.ClockDivision     = TIM_CLOCKDIVISION_DIV1; //Use full clock rate
+    tim3Handle.Init.CounterMode       = TIM_COUNTERMODE_UP;
+    tim3Handle.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
 
-    if (HAL_TIM_Base_Init(&tim1Handle) != HAL_OK)
+    if (HAL_TIM_Base_Init(&tim3Handle) != HAL_OK)
     {
         APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
     }
 
-    if (HAL_TIM_Base_Start_IT(&tim1Handle) != HAL_OK)
+    if (HAL_TIM_Base_Start_IT(&tim3Handle) != HAL_OK)
     {
         APP_ErrorHandler(ERR_FIRMWARE_CONFIG);
     }
@@ -81,9 +83,9 @@ bool Enable_timer(int8_t TimerNumber) {
     
     // align timers >= 1 second on the 1 second boundary:
     if (ISRTimers[TimerNumber].TimerTickInterval >= TICKS_PER_SEC) {
-        ISRTimers[TimerNumber].TimerNextTickTime = TIM1_tick_count + TICKS_PER_SEC - (TIM1_tick_count%TICKS_PER_SEC) + ISRTimers[TimerNumber].TimerTickInterval;
+        ISRTimers[TimerNumber].TimerNextTickTime = SYS_tick_count + TICKS_PER_SEC - (SYS_tick_count%TICKS_PER_SEC) + ISRTimers[TimerNumber].TimerTickInterval;
     } else {
-        ISRTimers[TimerNumber].TimerNextTickTime = TIM1_tick_count + ISRTimers[TimerNumber].TimerTickInterval;
+        ISRTimers[TimerNumber].TimerNextTickTime = SYS_tick_count + ISRTimers[TimerNumber].TimerTickInterval;
     }
     ISRTimers[TimerNumber].enabled = true;
     return true;
@@ -103,15 +105,15 @@ bool Update_TimerTickInterval(int8_t TimerNumber, uint32_t new_TimerTickInterval
 	  return true;
 }
 
-// Wait_until_tick uses the Timer1 callback variable TIM1_tick_count for precise timing delays in user space
+// Wait_until_tick uses the system timer callback variable SYS_tick_count for precise timing delays in user space
 uint32_t Wait_until_tick(uint32_t tick, uint32_t max_wait)
 {
     uint32_t start_tick, current_tick, wait_time;
-	start_tick = TIM1_tick_count;
+	start_tick = SYS_tick_count;
     if (start_tick >= tick) return 0;
     
     do {
-        current_tick = TIM1_tick_count;
+        current_tick = SYS_tick_count;
         wait_time = current_tick - start_tick;
     } while (current_tick < tick  && wait_time < max_wait);
     return wait_time;
@@ -120,22 +122,23 @@ uint32_t Wait_until_tick(uint32_t tick, uint32_t max_wait)
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
 {   
     static uint8_t msec_subcounter = 0;
-    TIM1_tick_count++;
-    
-    /* Prevent unused argument(s) compilation warning */
-    UNUSED(htim);    
-    
-    // __disable_irq(); // Set PRIMASK
+
+    // Only process for TIM3
+    if (htim->Instance == TIM3)
+    {
+        SYS_tick_count++;
+        
+        // __disable_irq(); // Set PRIMASK
     
     for (int timer=0; timer < MAX_REGISTERED_TIMERS; timer++) {
         if (ISRTimers[timer].enabled) {
-            if (TIM1_tick_count >= ISRTimers[timer].TimerNextTickTime) {
+            if (SYS_tick_count >= ISRTimers[timer].TimerNextTickTime) {
                 ISRTimers[timer].TimerLastTickTime = ISRTimers[timer].TimerNextTickTime;
                 ISRTimers[timer].TimerNextTickTime = ISRTimers[timer].TimerLastTickTime + ISRTimers[timer].TimerTickInterval;
                 
                 // This means that we are not keeping up or that the timer has just been enabled:
-                if (ISRTimers[timer].TimerNextTickTime <= TIM1_tick_count) {        
-                    ISRTimers[timer].TimerNextTickTime = TIM1_tick_count + ISRTimers[timer].TimerTickInterval;
+                if (ISRTimers[timer].TimerNextTickTime <= SYS_tick_count) {        
+                    ISRTimers[timer].TimerNextTickTime = SYS_tick_count + ISRTimers[timer].TimerTickInterval;
                 }
                 
                 if (ISRTimers[timer].TimerCallbackFunc)
@@ -152,6 +155,7 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim)
     }
     
     // __enable_irq(); // Clear PRIMASK    
+    }
 }
 
 void APP_SystemClockConfig(void)

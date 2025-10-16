@@ -42,12 +42,30 @@ void HAL_MspInit(void)
 
 void HAL_TIM_Base_MspInit(TIM_HandleTypeDef *htim)
 {
-  /* Prevent unused argument(s) compilation warning */
-  UNUSED(htim);    
-    
-  __HAL_RCC_TIM1_CLK_ENABLE();                          /* 使能TIM1时钟 */
-  HAL_NVIC_SetPriority(TIM1_BRK_UP_TRG_COM_IRQn, 0, 0); /* 设置中断优先级 */
-  HAL_NVIC_EnableIRQ(TIM1_BRK_UP_TRG_COM_IRQn);         /* 使能TIM1中断 */
+    if (htim->Instance == TIM3)
+    {
+        __HAL_RCC_TIM3_CLK_ENABLE();                   /* Enable TIM3 clock */
+        HAL_NVIC_SetPriority(TIM3_IRQn, 0, 0);        /* Set interrupt priority */
+        HAL_NVIC_EnableIRQ(TIM3_IRQn);                /* Enable TIM3 interrupt */
+    }
+    else if (htim->Instance == TIM14)
+    {
+        __HAL_RCC_TIM14_CLK_ENABLE();                 /* Enable TIM14 clock */
+        HAL_NVIC_SetPriority(TIM14_IRQn, 0, 0);       /* Set interrupt priority */
+        HAL_NVIC_EnableIRQ(TIM14_IRQn);               /* Enable TIM14 interrupt */
+    }
+    else if (htim->Instance == TIM16)
+    {
+        __HAL_RCC_TIM16_CLK_ENABLE();                 /* Enable TIM16 clock */
+        HAL_NVIC_SetPriority(TIM16_IRQn, 0, 0);       /* Set interrupt priority */
+        HAL_NVIC_EnableIRQ(TIM16_IRQn);               /* Enable TIM16 interrupt */
+    }
+    else if (htim->Instance == TIM17)
+    {
+        __HAL_RCC_TIM17_CLK_ENABLE();                 /* Enable TIM17 clock */
+        HAL_NVIC_SetPriority(TIM17_IRQn, 0, 0);       /* Set interrupt priority */
+        HAL_NVIC_EnableIRQ(TIM17_IRQn);               /* Enable TIM17 interrupt */
+    }
 }
 
 /************************ (C) COPYRIGHT Puya *****END OF FILE******************/

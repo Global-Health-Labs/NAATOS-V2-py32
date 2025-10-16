@@ -29,6 +29,6 @@ typedef enum {
     self_test_2,         /*!< Secondary self-test phase (high power) */
     preheat,             /*!< Initial heating phase */
     NUM_STATES           /*!< Total number of states (always keep last) */
-} state_machine_t;       /* Use _t suffix for type consistency */
+} state_machine_t;       
 
 #endif /* STATE_MACHINE_H_*/

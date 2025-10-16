@@ -48,11 +48,11 @@
  * 
  * These constants define the duration of each major test phase in minutes.
  */
-#define AMPLIFICATION_TIME_MIN          17      /*!< Duration of amplification phase in minutes */
+#define AMPLIFICATION_TIME_MIN          2//17      /*!< Duration of amplification phase in minutes */
 #define ACTUATION_TIME_MIN              5       /*!< Duration of actuation phase in minutes */
 #define DETECTION_TIME_MIN              7       /*!< Duration of detection phase in minutes */
 
-#define PWM_MAX                         250     /*!< Maximum PWM bit count */
+#define PWM_MAX                         255     /*!< Maximum PWM bit count */
 
 /**
  * @brief Self-Test and Preheat Parameters
@@ -111,6 +111,16 @@
 #define HEATER_ELEMENT_POWER_RATIO      45      /*!< Power scaling factor for heater control */
 #define OVERTEMP_ERR_C                  120     /*!< Over-temperature error threshold */
 #define SLEW_RATE_LIMIT                 250     /*!< Maximum temperature change rate limit */
+
+/* USB Power Limiting */
+#define USB_POWER_LIMIT_ENABLED         0       /*!< Enable USB power budget management */
+#define USB_MAX_COMBINED_PWM            191     /*!< Maximum combined PWM (75% of 255) for USB power limiting */
+#define USB_PWM_SAFETY_MARGIN           10      /*!< Safety margin below max combined PWM */
+
+/* Phase-Shifted Heater Control */
+#define HEATER_PHASE_SHIFT_ENABLED      0       /*!< Enable out-of-phase heater operation */
+#define HEATER_PHASE_PERIOD_MS          1000    /*!< Period for phase alternation (1 second) */
+#define HEATER_PHASE_DUTY_PERCENT       50      /*!< Duty cycle percentage for each heater phase */
 
 #else
     FAIL -- invalid board type
@@ -181,12 +191,14 @@ struct CONTROL
 typedef struct app_data_t {
     /* System State */
     bool test_active;                    /*!< True when test is running */
-    bool heater_control_not_simultaneous; /*!< True to prevent simultaneous heater operation */
     bool cold_ambient_temp_mode;          /*!< True when operating in cold temperature mode */
+    bool usb_power_limit_mode;            /*!< True when USB power budget limiting is active */
+    bool heater_phase_shift_mode;         /*!< True when phase-shifted heater operation is active */
     
     /* Heater Control */
     uint8_t sample_heater_pwm_value;      /*!< Current PWM duty cycle for sample heater */
     uint8_t valve_heater_pwm_value;       /*!< Current PWM duty cycle for valve heater */
+    uint32_t heater_phase_counter_ms;     /*!< Phase counter for alternating heater operation */
     
     /* Temperature Data */
     float self_test_sh_start_temp_c;      /*!< Initial sample heater temperature for self-test */

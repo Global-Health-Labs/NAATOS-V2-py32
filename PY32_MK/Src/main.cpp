@@ -4,6 +4,80 @@
 *   Project: NAATOS V2
 *   Copyright 2025, Global Health Labs
 *   Written by: Ryan Calderon, Mike Deeds
+*
+*   Description:
+*   Main application file for NAATOS V2 nucleic acid amplification and detection system.
+*   Implements state machine control, PID-based heater management, and test sequencing.
+*
+*   Heater Control Architecture:
+*   ---------------------------
+*   The system uses four PWM-controlled heater elements for thermal management:
+*   
+*   Amplification Heaters (Independent Control):
+*     - AMP_CTRL1 (PB6): TIM16_CH1N complementary output
+*     - AMP_CTRL2 (PB7): TIM17_CH1N complementary output
+*     - Both can operate simultaneously with independent duty cycles
+*   
+*   Valve Heaters (Multiplexed Control):
+*     - VALVE_CTRL1 (PF0): TIM14_CH1 via AF2
+*     - VALVE_CTRL2 (PF1): TIM14_CH1 via AF13
+*     - Hardware constraint: Only ONE can be active at a time
+*     - GPIO alternate function switching routes single timer output to active pin
+*   
+*   Heater Operating Modes:
+*   ----------------------
+*   1. High-Side Control (heater_level_high = true):
+*      - PWM applied to CH1 (AMP_CTRL1 or VALVE_CTRL1)
+*      - CH2 remains off
+*      - Used for cold ambient conditions or high-power requirements
+*   
+*   2. Low-Side Control (heater_level_high = false):
+*      - PWM applied to CH2 (AMP_CTRL2 or VALVE_CTRL2)
+*      - CH1 remains off
+*      - Standard operating mode
+*   
+*   3. USB Power Limiting Mode (usb_power_limit_mode = true):
+*      - Dynamically limits combined PWM to stay within USB current specifications
+*      - Proportionally scales both heaters if total exceeds USB_MAX_COMBINED_PWM
+*      - Maintains relative power ratio while respecting total power budget
+*      - Automatically enabled when system_on_usb_power is detected
+*      - Maximum combined PWM: 191 (75% of 255) = ~1.35A @ 5V with typical heaters
+*   
+*   4. Phase-Shifted Heater Control (heater_phase_shift_mode = true):
+*      - Alternates amplification and valve heaters out of phase over time
+*      - Reduces peak instantaneous power draw by ~50%
+*      - Each heater active for 50% of phase period (default 1 second)
+*      - Complements USB power limiting: magnitude + time domain power management
+*      - Automatically enabled when system_on_usb_power is detected
+*      - Thermal mass smooths temperature variations from duty cycling
+*   
+*   PID Temperature Control:
+*   -----------------------
+*   - Two independent PID controllers (sample heater and valve heater)
+*   - Setpoints adjusted based on test phase and cold ambient conditions
+*   - PWM output (0-255) derived from PID controller output
+*   - Update rate: 500ms (configurable via PID_TIMER_INTERVAL)
+*   
+*   State Machine Overview:
+*   ----------------------
+*   The system progresses through multiple states during a test cycle:
+*   
+*   1. low_power        - Heaters off, waiting for test start
+*   2. self_test_1/2    - Verify heater functionality (if enabled)
+*   3. preheat          - Initial warmup to base temperature
+*   4. amplification_ramp - Rapid heating to amplification temperature
+*   5. amplification    - Hold temperature for nucleic acid amplification
+*   6. actuation_ramp   - Heat valve zone for actuation
+*   7. actuation        - Maintain valve temperature for sample transfer
+*   8. detection        - Cool down, await result
+*   
+*   Each state has specific temperature targets and PID parameters defined
+*   in sample_amp_control[] and valve_amp_control[] arrays.
+*   
+*   For detailed PWM implementation, see:
+*   - Src/io/pwm_init.c - PWM timer configuration and GPIO multiplexing
+*   - Inc/io/pwm_init.h - Public API documentation
+*   - PWM_ARCHITECTURE.md - Comprehensive architecture documentation
 */
 
 /* Includes ------------------------------------------------------------------*/
@@ -26,6 +100,7 @@ extern "C" {
 #include "io/gpio_init.h"
 #include "io/uart_init.h"
 #include "io/adc_init.h"
+#include "io/pwm_init.h"
 
 
 #define USB_MIN_VALID_SOURCE_V      4.5         // Minimum USB power supply voltage for NAATOS operation
@@ -334,35 +409,24 @@ void system_setup() {
   
     APP_SystemClockConfig(); 
     
-    //Initialize periperhals
+    //Initialize peripherals
     GPIO_Init();
-    pushbutton_value = GPIO_PIN_SET;
-    last_pushbutton_value = GPIO_PIN_SET;
-
-    pwm_amp_ctrl.enabled = false;
-    pwm_amp_ctrl.suspended = false;
-    pwm_amp_ctrl.pwm_state = 0;
-    pwm_amp_ctrl.pwm_tick_count = 0;
-    
-    // always start in low power, not_simultaneous mode
-    data.heater_control_not_simultaneous = true;    
-    pwm_amp_ctrl.heater_level_high = false;
-    pwm_valve_ctrl.heater_level_high = false;
-
-    HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL1, Pins.GPIO_Pin_AMP_CTRL1, GPIO_PIN_RESET);
-    HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL2, Pins.GPIO_Pin_AMP_CTRL2, GPIO_PIN_RESET);
-            
-    pwm_valve_ctrl.enabled = false;
-    pwm_valve_ctrl.suspended = false;    
-    pwm_valve_ctrl.pwm_state = 0;
-    pwm_valve_ctrl.pwm_tick_count = 0;
-    HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL1, Pins.GPIO_Pin_VALVE_CTRL1, GPIO_PIN_RESET);    
-    HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL2, Pins.GPIO_Pin_VALVE_CTRL2, GPIO_PIN_RESET); 
-
     TIMER_Init();
     UART_Init();
     ADC_Init();
+    PWM_Init();
     Data_init();
+
+    pushbutton_value = GPIO_PIN_SET;
+    last_pushbutton_value = GPIO_PIN_SET;
+
+    // Initialize PWM control structures
+    pwm_amp_ctrl.enabled = false;
+    pwm_valve_ctrl.enabled = false;
+    
+    // Start with both heaters on low-side control
+    pwm_amp_ctrl.heater_level_high = false;
+    pwm_valve_ctrl.heater_level_high = false;
 
     sprintf(outputStr, "NAATOS V2 PY32F003 MK. %s %s\r\n", FW_VERSION_STR, BUILD_HW_STR);		
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
@@ -436,6 +500,22 @@ void init_adc_data(void){
     ADC_Read();
     if (data.system_input_voltage > USB_MIN_VALID_SOURCE_V) {
         data.system_on_usb_power = true;
+        
+        #if USB_POWER_LIMIT_ENABLED
+        // Enable USB power limiting when running on USB power
+        data.usb_power_limit_mode = true;
+        sprintf(outputStr, "USB power limiting enabled (max combined PWM: %d)\r\n", USB_MAX_COMBINED_PWM);
+        HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
+        #endif
+        
+        #if HEATER_PHASE_SHIFT_ENABLED
+        // Enable phase-shifted heater control when running on USB power
+        // This further reduces peak power draw by alternating heaters over time
+        data.heater_phase_shift_mode = true;
+        sprintf(outputStr, "Phase-shift control enabled (period: %dms, duty: %d%%)\r\n", 
+                HEATER_PHASE_PERIOD_MS, HEATER_PHASE_DUTY_PERCENT);
+        HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);
+        #endif
     }
 
     //sprintf(outputStr, "ADCs: %d %d %d %d %d %d %d\r\n", data.adcReading[0], data.adcReading[1], data.adcReading[2], data.adcReading[3], data.adcReading[4], data.adcReading[5], data.adcReading[6]);
@@ -521,15 +601,12 @@ void APP_UpdateState(void){
             if (data.sample_temperature_c >= PREHEAT_TEMP_C && data.valve_temperature_c >= PREHEAT_TEMP_C) {
                 data.state = amplification_ramp;
                 #if defined(BOARDCONFIG_MK5AA) || defined(BOARDCONFIG_MK6AA)
-                            data.heater_control_not_simultaneous = false;
                             pwm_amp_ctrl.heater_level_high = false;
                             pwm_valve_ctrl.heater_level_high = false;
                 #elif defined(BOARDCONFIG_MK6C)
-                            data.heater_control_not_simultaneous = false;
                             pwm_amp_ctrl.heater_level_high = true;
                             pwm_valve_ctrl.heater_level_high = true;
                 #else
-                            data.heater_control_not_simultaneous = false;
                             pwm_amp_ctrl.heater_level_high = false;
                             pwm_valve_ctrl.heater_level_high = false;
                 #endif    							
@@ -620,7 +697,6 @@ void APP_UpdateState(void){
                 
                 data.valve_ramp_start_time_msec = data.msec_test_count;
                 // set valve heater high strength and 100%. (sample heater will be off)
-                data.heater_control_not_simultaneous = false;
                 pwm_amp_ctrl.heater_level_high = false;
                 pwm_valve_ctrl.heater_level_high = true;   // mk8
                 //pwm_valve_ctrl.heater_level_high = true;   
@@ -647,7 +723,6 @@ void APP_UpdateState(void){
 
                     data.valve_ramp_start_time_msec = data.msec_test_count;
                     // set valve heater high strength and 100%. (sample heater will be off)
-                    data.heater_control_not_simultaneous = false;
                     pwm_valve_ctrl.heater_level_high = true;   
                     
                     // set PID values
@@ -821,6 +896,7 @@ int main(void)
  * @brief Starts a NAAT test, initializes state and PID controllers.
  */
 void start_naat_test(void) {
+    // Reset test counters and states
     data.msec_test_count = 0;
     data.minute_test_count = 0;
     data.state = low_power;
@@ -830,50 +906,58 @@ void start_naat_test(void) {
     data.valve_ramp_time_sec = 0;    
     data.sample_ramp_time_sec = 0;    
 
+    // Reset PWM values
     data.sample_heater_pwm_value = 0;
     data.valve_heater_pwm_value = 0;
     
+    // Enable minute timer if not ignoring ramp time
     #ifndef IGNORE_RAMP_TIME        
         Enable_timer(MinuteTimerNumber);    
     #endif	
-    // Upon system start, a self-test is performed:
-    // self_test_1: heaters are turned on in low power mode for up to 10 seconds.
-    //      If either heater does not rise in temperature by at least SELFTEST_MIN_TEMP_RISE_C, go to the error state.
-    // self_test_2: heaters are turned on in high power mode for up to 10 seconds.
-    //      If either heater does not rise in temperature by at least SELFTEST_MIN_TEMP_RISE_C, go to the error state.
-    // 
+
+    // Store initial temperatures for self-test
     data.self_test_sh_start_temp_c = data.sample_temperature_c;
     data.self_test_vh_start_temp_c = data.valve_temperature_c;
 
+    // Enable PWM outputs
     pwm_amp_ctrl.enabled = true;    
     pwm_valve_ctrl.enabled = true;
+    
+    // Initialize PWM values to 0
+    PWM_Set_Sample_Heater_Channels(0, 0);
+    PWM_Set_Valve_Heater_Channels(0, 0);
 
+    // Set LED2 state
     HAL_GPIO_WritePin(Pins.GPIOx_LED2, Pins.GPIO_Pin_LED2, GPIO_PIN_SET); // Turn off LED2    
     
     data.test_active = true;
 
     if (data.state == low_power) {
-        // INITIALIZE STATE
+        // Set initial state based on build configuration
         #if defined(DEBUG_HEATERS)
-                data.state = amplification;     // skip the self test if we are debugging 
-                data.heater_control_not_simultaneous = true;
+                data.state = amplification;     // Skip self-test in debug mode
+                //data.heater_phase_shift_mode = false;
                 pwm_amp_ctrl.heater_level_high = false;
                 pwm_valve_ctrl.heater_level_high = false;
 
         #elif ENABLE_POWER_ON_TESTS
-                data.heater_control_not_simultaneous = true;
+                //data.heater_phase_shift_mode = false;
                 pwm_amp_ctrl.heater_level_high = false;
                 pwm_valve_ctrl.heater_level_high = false;
                 data.state = self_test_1;
         #else         
+                /*
                 if (data.system_on_usb_power) {
-                    // limit instintaneous power from USB source, it's overpowered for heater design so can reach current limit
-                    data.heater_control_not_simultaneous = true;
-                } else {data.heater_control_not_simultaneous = false;}
-                
+                    data.heater_phase_shift_mode = true;
+                }else {
+                    data.heater_phase_shift_mode = false;
+                }
+                */
+                // Default to low-side control
                 pwm_amp_ctrl.heater_level_high = false;
                 pwm_valve_ctrl.heater_level_high = false;
 
+                // Use high-side control in cold ambient mode
                 if (data.cold_ambient_temp_mode) {
                     pwm_amp_ctrl.heater_level_high = true;
                     pwm_valve_ctrl.heater_level_high = true;
@@ -881,36 +965,44 @@ void start_naat_test(void) {
                 data.state = amplification_ramp;
         #endif
 
-        // PID init
+        // Initialize PID controllers
         pid_init(SAMPLE_HEATER, sample_amp_control[data.state]);
-        pid_init(VALVE_HEATER,valve_amp_control[data.state]);
+        pid_init(VALVE_HEATER, valve_amp_control[data.state]);
 
     } else {
         sprintf(outputStr, "Err: Invalid test starting state.\r\n");		   
         HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
     }
     
-    // start PID timer
+    // Start PID control timer
     Enable_timer(PIDTimerNumber);
-    
 }
 
 /**
  * @brief Stops the NAAT test and disables timers and PWM outputs.
  */
 void stop_naat_test(void) {
+    // Reset test state
     data.test_active = false;
     data.state = low_power;
+    
+    // Clear PWM values
     data.sample_heater_pwm_value = 0;
     data.valve_heater_pwm_value = 0;
     
+    // Disable PWM outputs
     pwm_amp_ctrl.enabled = false;    
     pwm_valve_ctrl.enabled = false;
     
+    // Set all PWM channels to 0
+    PWM_Set_Sample_Heater_Channels(0, 0);
+    PWM_Set_Valve_Heater_Channels(0, 0);
+    
+    // Disable timers
     Disable_timer(LogTimerNumber);                
     Disable_timer(MinuteTimerNumber);
     
-    
+    // Notify user
     sprintf(outputStr, "Test stopped.\r\n");		
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);	
 }
@@ -935,6 +1027,9 @@ void Data_init(void)
     data.self_test_sh_start_temp_c = 0;
     data.self_test_vh_start_temp_c = 0;
     data.cold_ambient_temp_mode = false;
+    data.usb_power_limit_mode = false;  // Will be set based on power source detection
+    data.heater_phase_shift_mode = false;  // Will be enabled based on power source
+    data.heater_phase_counter_ms = 0;  // Initialize phase tracking counter
     
     data.sample_heater_pwm_value = 0;
     data.valve_heater_pwm_value = 0;
@@ -961,33 +1056,31 @@ void Data_init(void)
  */
 void ADC_data_collect(void) 
 {
-    // Fix the heaters to a known state while reading the ADCs (to minimize measurement error and noise)
+    // Stop PWM outputs before reading ADCs to minimize measurement error and noise
     if (pwm_amp_ctrl.enabled) {              
-    pwm_amp_ctrl.enabled = false;
-    pwm_amp_ctrl.suspended = true;
-    HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL1, Pins.GPIO_Pin_AMP_CTRL1, GPIO_PIN_RESET);
-    if (data.sample_heater_pwm_value > 0) 
-        HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL2, Pins.GPIO_Pin_AMP_CTRL2, GPIO_PIN_SET);
-    else 
-        HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL2, Pins.GPIO_Pin_AMP_CTRL2, GPIO_PIN_RESET);
+        pwm_amp_ctrl.enabled = false;
+        pwm_amp_ctrl.suspended = true;
+        PWM_Set_Sample_Heater_Channels(0, 0);
     }
 
     if (pwm_valve_ctrl.enabled) {              
         pwm_valve_ctrl.enabled = false;      
         pwm_valve_ctrl.suspended = true;
-        HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL1, Pins.GPIO_Pin_VALVE_CTRL1, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL2, Pins.GPIO_Pin_VALVE_CTRL2, GPIO_PIN_RESET);
+        PWM_Set_Valve_Heater_Channels(0, 0);
     }
 
     ADC_Read();
 
+    // Restore PWM outputs 
     if (pwm_amp_ctrl.suspended) {
         pwm_amp_ctrl.suspended = false;
         pwm_amp_ctrl.enabled = true;
+        // PWM values will be updated in next Update_PID() call
     }
     if (pwm_valve_ctrl.suspended) {
         pwm_valve_ctrl.suspended = false;
         pwm_valve_ctrl.enabled = true;
+        // PWM values will be updated in next Update_PID() call
     }
 
     // Measure the number of seconds it takes to ramp to the minimum valve temperature:
@@ -997,45 +1090,263 @@ void ADC_data_collect(void)
 }
 
 /**
+ * @brief Apply USB power budget limiting to heater PWM values
+ * 
+ * When operating on USB power (current limited), this function ensures the
+ * combined PWM duty cycle of both heaters stays within safe limits to prevent
+ * exceeding the USB current specification.
+ * 
+ * Power Limiting Strategy:
+ * -----------------------
+ * 1. Calculate total requested PWM (sample + valve)
+ * 2. If total exceeds USB_MAX_COMBINED_PWM:
+ *    a. Scale both heaters down proportionally
+ *    b. Maintain relative power ratio between heaters
+ *    c. Keep total at or below USB_MAX_COMBINED_PWM
+ * 
+ * USB Current Budgets:
+ * -------------------
+ * - USB 2.0:      500mA max (USB_MAX_COMBINED_PWM = 191 = 75%)
+ * - USB 3.0:      900mA max (could use higher limit)
+ * - USB-C PD:     1.5A-3A max (negotiated, could disable limiting)
+ * 
+ * Example Scaling:
+ * ---------------
+ * If sample PWM = 200 and valve PWM = 150:
+ *   Total = 350 (exceeds 191 limit)
+ *   Scale factor = 191 / 350 = 0.546
+ *   New sample PWM = 200 * 0.546 = 109
+ *   New valve PWM = 150 * 0.546 = 82
+ *   New total = 191 (within limit)
+ * 
+ * @note This function modifies data.sample_heater_pwm_value and data.valve_heater_pwm_value
+ * @note Only active when data.usb_power_limit_mode is true
+ * @note PID controllers compute target values; this function limits actual output
+ * @note Proportional scaling maintains temperature control characteristics
+ * 
+ * @warning Excessive power limiting may cause inability to reach target temperatures
+ * @warning Application should adjust setpoints if continuous limiting occurs
+ */
+static void Apply_USB_Power_Limiting(void)
+{
+#if USB_POWER_LIMIT_ENABLED
+    // Only apply limiting when in USB power limit mode
+    if (!data.usb_power_limit_mode) {
+        return;
+    }
+    
+    // Calculate total requested PWM
+    uint16_t total_pwm = data.sample_heater_pwm_value + data.valve_heater_pwm_value;
+    
+    // Check if total exceeds the USB power budget
+    if (total_pwm > USB_MAX_COMBINED_PWM) {
+        // Calculate scaling factor to bring total within limit
+        // Use integer math with fixed-point to avoid float operations in time-critical code
+        // Scale factor = (USB_MAX_COMBINED_PWM * 1000) / total_pwm
+        uint32_t scale_factor = ((uint32_t)USB_MAX_COMBINED_PWM * 1000) / total_pwm;
+        
+        // Apply proportional scaling to both heaters
+        // Maintains relative power ratio while respecting total power budget
+        data.sample_heater_pwm_value = (data.sample_heater_pwm_value * scale_factor) / 1000;
+        data.valve_heater_pwm_value = (data.valve_heater_pwm_value * scale_factor) / 1000;
+        
+        // Verify we're within limits (should always be true with correct math)
+        uint16_t new_total = data.sample_heater_pwm_value + data.valve_heater_pwm_value;
+        
+        // If due to rounding we're still slightly over, reduce the larger heater by 1
+        if (new_total > USB_MAX_COMBINED_PWM) {
+            if (data.sample_heater_pwm_value > data.valve_heater_pwm_value) {
+                data.sample_heater_pwm_value--;
+            } else {
+                data.valve_heater_pwm_value--;
+            }
+        }
+    }
+#endif
+}
+
+/**
+ * @brief Apply phase-shifted heater control to reduce peak power draw
+ * 
+ * When enabled, this function alternates the amplification and valve heaters
+ * out of phase over a defined time period. This time-domain power distribution
+ * reduces peak instantaneous current draw while maintaining average heating power.
+ * 
+ * Phase Control Strategy:
+ * ----------------------
+ * 1. Track elapsed time using phase counter
+ * 2. Calculate current phase position within period (0.0 to 1.0)
+ * 3. First half of period:  Amplification heater active, Valve heater off
+ * 4. Second half of period: Valve heater active, Amplification heater off
+ * 5. Heaters alternate continuously with 50% duty cycle each
+ * 
+ * Timing Configuration:
+ * --------------------
+ * - Phase Period:      HEATER_PHASE_PERIOD_MS (default 1000ms = 1 second)
+ * - Phase Duty Cycle:  HEATER_PHASE_DUTY_PERCENT (default 50%)
+ * - Update Rate:       PID_TIMER_INTERVAL (500ms)
+ * 
+ * Example Timeline (1-second period):
+ * ----------------------------------
+ * Time (ms) | Phase | Amp Heater | Valve Heater
+ * ----------|-------|------------|-------------
+ *    0-499  |  0%   |  ACTIVE    |  OFF
+ *  500-999  | 50%   |  OFF       |  ACTIVE
+ * 1000-1499 |  0%   |  ACTIVE    |  OFF (cycle repeats)
+ * 
+ * Power Management Benefits:
+ * -------------------------
+ * - Reduces peak instantaneous current draw by ~50%
+ * - Maintains average heating power over time
+ * - Complements USB power limiting (magnitude + time domain)
+ * - Prevents both heaters from drawing max current simultaneously
+ * - Smooths power supply load and reduces electrical noise
+ * 
+ * Temperature Control Considerations:
+ * ----------------------------------
+ * - Each heater receives heating for 50% of time
+ * - Thermal mass of heaters smooths temperature variations
+ * - PID controllers adjust output to maintain target temperatures
+ * - May require increased proportional gain to compensate for duty cycle
+ * - Average temperature control remains stable
+ * 
+ * Integration with USB Power Limiting:
+ * -----------------------------------
+ * - Phase shifting is applied AFTER USB power limiting
+ * - USB limiting caps instantaneous total power (magnitude domain)
+ * - Phase shifting spreads power over time (time domain)
+ * - Combined effect: Both magnitude and time-domain power management
+ * - USB limiting ensures compliance even if phase shift disabled
+ * 
+ * @note This function modifies data.sample_heater_pwm_value and data.valve_heater_pwm_value
+ * @note Only active when data.heater_phase_shift_mode is true
+ * @note Updates data.heater_phase_counter_ms to track phase position
+ * @note Phase counter wraps at HEATER_PHASE_PERIOD_MS
+ * @note Works on PWM values already processed by USB power limiting
+ * 
+ * @warning Temperature control loop must be tuned for 50% duty cycle operation
+ * @warning Rapid temperature changes may be slower due to reduced duty cycle
+ * @warning Not recommended for applications requiring fast thermal response
+ */
+static void Apply_Phase_Shift_Control(void)
+{
+#if HEATER_PHASE_SHIFT_ENABLED
+    // Only apply phase shifting when mode is enabled
+    if (!data.heater_phase_shift_mode) {
+        return;
+    }
+    
+    // Update phase counter (increments by PID_TIMER_INTERVAL each call)
+    data.heater_phase_counter_ms += PID_TIMER_INTERVAL;
+    
+    // Wrap phase counter at period boundary
+    if (data.heater_phase_counter_ms >= HEATER_PHASE_PERIOD_MS) {
+        data.heater_phase_counter_ms = 0;
+    }
+    
+    // Save original PWM values before phase gating
+    uint8_t sample_pwm_original = data.sample_heater_pwm_value;
+    uint8_t valve_pwm_original = data.valve_heater_pwm_value;
+    
+    // Calculate phase position (0-100% of period)
+    // Using integer math: phase_percent = (counter * 100) / period
+    uint8_t phase_percent = (data.heater_phase_counter_ms * 100) / HEATER_PHASE_PERIOD_MS;
+    
+    // Apply phase-shifted gating: Only ONE heater active at a time
+    // IMPORTANT: Always zero out BOTH heaters first to prevent overlap
+    data.sample_heater_pwm_value = 0;
+    data.valve_heater_pwm_value = 0;
+    
+    // Determine which heater should be active based on phase position
+    // Using strict inequality to ensure clean phase boundaries
+    if (phase_percent < HEATER_PHASE_DUTY_PERCENT) {
+        // First half of period (0-49%): Amplification heater active only
+        data.sample_heater_pwm_value = sample_pwm_original;
+        // Valve explicitly kept at 0
+    } else {
+        // Second half of period (50-100%): Valve heater active only  
+        data.valve_heater_pwm_value = valve_pwm_original;
+        // Amplification explicitly kept at 0
+    }
+    
+    // Note: This ensures ONLY ONE heater is ever active at a time.
+    // The active heater uses its PID-computed and USB-limited PWM value.
+    // The inactive heater is forced to 0 to prevent simultaneous operation.
+#endif
+}
+
+/**
  * @brief Updates the PID controllers for sample and valve heaters.
  */
 void Update_PID(void)
 {    
-    
     pid_controller_compute(SAMPLE_HEATER, data.sample_temperature_c);
     pid_controller_compute(VALVE_HEATER, data.valve_temperature_c);
 
-    // When heater_control_not_simultaneous is enabled, each heater is run at a fraction of the its PWM value, 
-    // based on the HEATER_ELEMENT_POWER_RATIO. Each heater will run at a fraction of its max power output.
-    // Since the 2 heater controls are aligned with opposite sides of the PWM period, they will not be
-    // turned on simultaniously when in this mode. 
-    if (data.heater_control_not_simultaneous) {
-        #ifdef DEBUG_HEATERS
-                // turn on the heaters at full power (no PWM). This should not be done unattended!
-                //data.sample_heater_pwm_value = SH_FIXED_PWM_TEST /2;
-                data.sample_heater_pwm_value = 0;       // disable SH
-                data.valve_heater_pwm_value = VH_FIXED_PWM_TEST /2;
-                //data.valve_heater_pwm_value = 0;       // disable SH
-        #else        
-            // Distribute maximum power such that heaters are not on simultaneously:
-            data.sample_heater_pwm_value = (pid_data[SAMPLE_HEATER].out / PWM_MAX) * ((PWM_MAX * (100-HEATER_ELEMENT_POWER_RATIO)) /100);
-            data.valve_heater_pwm_value = (pid_data[VALVE_HEATER].out / PWM_MAX) * ((PWM_MAX * HEATER_ELEMENT_POWER_RATIO) /100);
-        #endif
-    } else {
-        #ifdef DEBUG_HEATERS
-                //data.sample_heater_pwm_value = SH_FIXED_PWM_TEST;
-                data.sample_heater_pwm_value = 0;       // disable SH
-                data.valve_heater_pwm_value = VH_FIXED_PWM_TEST;
-                //data.valve_heater_pwm_value = 0;       // disable SH
-        #else        
-                data.sample_heater_pwm_value = pid_data[SAMPLE_HEATER].out;
-                data.valve_heater_pwm_value = pid_data[VALVE_HEATER].out;
-        #endif
-    }
+    data.sample_heater_pwm_value = 128;
+    data.valve_heater_pwm_value = 128;
     
-    // Start the PWM controller at a new cycle after updating the PWM values:
-    pwm_amp_ctrl.pwm_tick_count = 0;
-    pwm_valve_ctrl.pwm_tick_count = 0;
+    // Get PID outputs directly
+    #ifdef DEBUG_HEATERS
+        data.sample_heater_pwm_value = 0;       // disable SH
+        data.valve_heater_pwm_value = VH_FIXED_PWM_TEST;
+    #else        
+        data.sample_heater_pwm_value = pid_data[SAMPLE_HEATER].out;
+        data.valve_heater_pwm_value = pid_data[VALVE_HEATER].out;
+    #endif
+
+    // Apply USB power limiting if enabled
+    // This ensures total power draw stays within USB current specifications
+    Apply_USB_Power_Limiting();
+
+    // Apply phase-shifted heater control if enabled
+    // This alternates heaters over time to reduce peak instantaneous power draw
+    // Must be called AFTER USB power limiting to work on already-limited values
+    Apply_Phase_Shift_Control();
+
+    // Update PWM duty cycles for sample heater
+    if (pwm_amp_ctrl.enabled) {
+        if (pwm_amp_ctrl.heater_level_high) {
+            // High-side control: PWM CH1 high, CH2 low
+            PWM_Set_Sample_Heater_Channels(data.sample_heater_pwm_value, 0);
+        } else {
+            // Low-side control: PWM CH1 low, CH2 high
+            PWM_Set_Sample_Heater_Channels(0, data.sample_heater_pwm_value);
+        }
+    } else {
+        PWM_Set_Sample_Heater_Channels(0, 0);
+    }
+
+    // Update PWM duty cycles for valve heater
+    if (pwm_valve_ctrl.enabled) {//&& data.valve_heater_pwm_value > 0
+        if (pwm_valve_ctrl.heater_level_high) {
+            // High-side control: PWM CH1 high, CH2 low
+            PWM_Set_Valve_Heater_Channels(data.valve_heater_pwm_value, 0);
+        } else {
+            // Low-side control: PWM CH1 low, CH2 high
+            PWM_Set_Valve_Heater_Channels(0, data.valve_heater_pwm_value);
+        }
+    } else {
+        PWM_Set_Valve_Heater_Channels(0, 0);
+    }
+
+    /*
+    // Update PWM duty cycles for sample heater
+    if (pwm_amp_ctrl.enabled && data.sample_heater_pwm_value > 0) {
+        if (pwm_amp_ctrl.heater_level_high) {
+            // High-side control: PWM CH1 high, CH2 low
+            PWM_Set_Sample_Heater_Channels(data.sample_heater_pwm_value, 0);
+        } else {
+            // Low-side control: PWM CH1 low, CH2 high
+            PWM_Set_Sample_Heater_Channels(0, data.sample_heater_pwm_value);
+        }
+    } else {
+        PWM_Set_Sample_Heater_Channels(0, 0);
+    }
+        
+
+    
+        */
 }
 
 void print_log_data(void) 
@@ -1400,8 +1711,7 @@ void Distribute_PWM_Bits(uint8_t pwm_val, uint64_t *pwm_bit_array)
     pwm_amp_ctrl.pwm_state = 0;
     pwm_amp_ctrl.pwm_tick_count = 0;
     
-    // always start in low power, not_simultaneous mode
-    data.heater_control_not_simultaneous = true;    
+    // Always start with both heaters on low-side control
     pwm_amp_ctrl.heater_level_high = false;
     pwm_valve_ctrl.heater_level_high = false;
 
@@ -1425,86 +1735,32 @@ void Distribute_PWM_Bits(uint8_t pwm_val, uint64_t *pwm_bit_array)
 
 void PWMTimer_ISR(void)
 {   
-    // Control the sample heater control outputs
-    // This is aligned with the start of the PWM period
-
-    #if 0
-    HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL1, Pins.GPIO_Pin_AMP_CTRL1, GPIO_PIN_RESET);
-    if ((TIM1_tick_count & 0x1) == 0)
-        HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL2, Pins.GPIO_Pin_AMP_CTRL2, GPIO_PIN_SET);
-    else
-        HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL2, Pins.GPIO_Pin_AMP_CTRL2, GPIO_PIN_RESET);
-    //HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL1, Pins.GPIO_Pin_VALVE_CTRL1, GPIO_PIN_SET);
-    //HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL2, Pins.GPIO_Pin_VALVE_CTRL2, GPIO_PIN_SET);
-    #endif     
-    
-    if (pwm_amp_ctrl.enabled && data.sample_heater_pwm_value > 0) {
-        if (pwm_amp_ctrl.pwm_tick_count  < data.sample_heater_pwm_value) {
-            if (pwm_amp_ctrl.heater_level_high) {
-                HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL1, Pins.GPIO_Pin_AMP_CTRL1, GPIO_PIN_SET);
-                HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL2, Pins.GPIO_Pin_AMP_CTRL2, GPIO_PIN_RESET);
-            } else {
-                HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL1, Pins.GPIO_Pin_AMP_CTRL1, GPIO_PIN_RESET);
-                HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL2, Pins.GPIO_Pin_AMP_CTRL2, GPIO_PIN_SET);
-            }
-            pwm_amp_ctrl.pwm_state++;
-        } else {
-            HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL1, Pins.GPIO_Pin_AMP_CTRL1, GPIO_PIN_RESET);
-            HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL2, Pins.GPIO_Pin_AMP_CTRL2, GPIO_PIN_RESET);
-        }
-    } else {
-        HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL1, Pins.GPIO_Pin_AMP_CTRL1, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(Pins.GPIOx_AMP_CTRL2, Pins.GPIO_Pin_AMP_CTRL2, GPIO_PIN_RESET);
-        pwm_amp_ctrl.pwm_state = 0;
-    }
-    pwm_amp_ctrl.pwm_tick_count += 1;
-    if (pwm_amp_ctrl.pwm_tick_count >= PWM_MAX) pwm_amp_ctrl.pwm_tick_count = 0;
-
-    // Control the valve heater control outputs
-    // This is aligned with the end of the PWM period
-    if (pwm_valve_ctrl.enabled && data.valve_heater_pwm_value > 0) {
-        if (pwm_valve_ctrl.pwm_tick_count  > (PWM_MAX - data.valve_heater_pwm_value)) {
-            if (pwm_valve_ctrl.heater_level_high) {
-                HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL1, Pins.GPIO_Pin_VALVE_CTRL1, GPIO_PIN_SET);
-                HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL2, Pins.GPIO_Pin_VALVE_CTRL2, GPIO_PIN_RESET);
-            } else {
-                HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL1, Pins.GPIO_Pin_VALVE_CTRL1, GPIO_PIN_RESET);
-                HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL2, Pins.GPIO_Pin_VALVE_CTRL2, GPIO_PIN_SET);
-            }
-            pwm_valve_ctrl.pwm_state++;
-        } else {
-            HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL1, Pins.GPIO_Pin_VALVE_CTRL1, GPIO_PIN_RESET);
-            HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL2, Pins.GPIO_Pin_VALVE_CTRL2, GPIO_PIN_RESET);
-            pwm_valve_ctrl.pwm_state = 0;
-        }
-    } else {
-        HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL1, Pins.GPIO_Pin_VALVE_CTRL1, GPIO_PIN_RESET);
-        HAL_GPIO_WritePin(Pins.GPIOx_VALVE_CTRL2, Pins.GPIO_Pin_VALVE_CTRL2, GPIO_PIN_RESET);
-        pwm_valve_ctrl.pwm_state = 0;
-    }
-    pwm_valve_ctrl.pwm_tick_count += 1;
-    if (pwm_valve_ctrl.pwm_tick_count >= PWM_MAX) pwm_valve_ctrl.pwm_tick_count = 0;
-
+    // Hardware PWM update is handled by Update_PID now
 }
 
 void LEDTimer_ISR(void)
 {
+    GPIO_PinState ledState;
+
+    // Default to LED on (PIN_RESET) unless in specific states
     if (data.state == self_test_1 || data.state == self_test_2 || data.state == preheat) {
-        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_SET);       // turn LED off during self-test and preheat
+        ledState = GPIO_PIN_SET;         // LED off during self-test and preheat
     } else if (data.state == amplification_ramp) {
-        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_RESET);     // turn LED on during amplification_ramp
+        ledState = GPIO_PIN_RESET;       // LED on during amplification_ramp
     } else if (data.state == amplification) {
-        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_SET);       // turn LED off during amplification
+        ledState = GPIO_PIN_SET;         // LED off during amplification
     } else if (data.state == actuation || data.state == actuation_ramp) {
-        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_RESET);     // turn LED on during actuation
+        ledState = GPIO_PIN_RESET;       // LED on during actuation
     } else if (data.state == detection) {
-        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_SET);       // turn LED off during detection
+        ledState = GPIO_PIN_SET;         // LED off during detection
     } else if (data.minute_test_count == 0) {
-        HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_RESET);     // turn LED on after system setup completes
+        ledState = GPIO_PIN_RESET;       // LED on after system setup
     } else {
-        HAL_GPIO_TogglePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1);                    // flashing LED
-        //HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, GPIO_PIN_RESET);     // turn LED on at the end of the test
+        // Toggle LED in other states
+        ledState = (HAL_GPIO_ReadPin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1) == GPIO_PIN_SET) ? GPIO_PIN_RESET : GPIO_PIN_SET;
     }
+
+    HAL_GPIO_WritePin(Pins.GPIOx_LED1, Pins.GPIO_Pin_LED1, ledState);
 }
 
 void PIDTimer_ISR(void)
@@ -1539,10 +1795,15 @@ void LogData_ISR(void)
 
 void Pushbutton_ISR(void)
 {
-    // Latch the pushbutton_flag when the button is pressed (falling edge of PA12)
-    pushbutton_value = HAL_GPIO_ReadPin(Pins.GPIOx_PUSHBUTTON, Pins.GPIO_Pin_PUSHBUTTON);
-    if (pushbutton_value == GPIO_PIN_RESET && last_pushbutton_value == GPIO_PIN_SET) flags.flagPushbutton = true;
-    last_pushbutton_value = pushbutton_value;    
+    // Sample button state
+    GPIO_PinState currentButtonState = HAL_GPIO_ReadPin(Pins.GPIOx_PUSHBUTTON, Pins.GPIO_Pin_PUSHBUTTON);
+    
+    // Detect falling edge (button press)
+    if (currentButtonState == GPIO_PIN_RESET && last_pushbutton_value == GPIO_PIN_SET) {
+        flags.flagPushbutton = true;
+    }
+    
+    last_pushbutton_value = currentButtonState;
 }
 
 // USB CC1 and CC2 readings: Per the USB standard only one will be valid. (USB cables typically tie either CC1 or CC2 to ground)

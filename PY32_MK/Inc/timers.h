@@ -20,8 +20,8 @@ extern "C" {
 
 #define MAX_REGISTERED_TIMERS 12
 
-extern TIM_HandleTypeDef tim1Handle;
-extern uint32_t TIM1_tick_count;
+extern TIM_HandleTypeDef tim3Handle;
+extern uint32_t SYS_tick_count;
 
 typedef void (*TimerCallback) ();
 typedef struct 

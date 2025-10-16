@@ -32,6 +32,8 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "timers.h"
 #include "py32f0xx_hal.h"
+#include "py32f0xx_hal_gpio.h"
+#include "py32f0xx_hal_rcc.h"
 #include <py32f0xx_hal_iwdg.h>
 #include "py32f0xx_hal_flash_ex.h"
 //#include "py32f002x5.h"
@@ -71,12 +73,9 @@ void ADC_data_collect(void);
 void Update_PID(void);
 
 typedef struct {
-    bool    enabled;
-    bool    suspended;
-    bool    heater_level_high;
-    uint16_t pwm_state;
-    uint64_t pwm_bits[4];
-    uint8_t  pwm_tick_count;
+    bool    enabled;          /*!< Enable/disable PWM output */
+    bool    suspended;       /*!< Temporarily disabled for ADC measurement */
+    bool    heater_level_high; /*!< High-side vs low-side control */
 } Pin_pwm_t;
 
 /*
