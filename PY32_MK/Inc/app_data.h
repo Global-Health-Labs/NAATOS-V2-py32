@@ -48,7 +48,7 @@
  * 
  * These constants define the duration of each major test phase in minutes.
  */
-#define AMPLIFICATION_TIME_MIN          2//17      /*!< Duration of amplification phase in minutes */
+#define AMPLIFICATION_TIME_MIN          17      /*!< Duration of amplification phase in minutes */
 #define ACTUATION_TIME_MIN              5       /*!< Duration of actuation phase in minutes */
 #define DETECTION_TIME_MIN              7       /*!< Duration of detection phase in minutes */
 
@@ -113,7 +113,7 @@
 #define SLEW_RATE_LIMIT                 250     /*!< Maximum temperature change rate limit */
 
 /* USB Power Limiting */
-#define USB_POWER_LIMIT_ENABLED         0       /*!< Enable USB power budget management */
+#define USB_POWER_LIMIT_ENABLED         1       /*!< Enable USB power budget management */
 #define USB_MAX_COMBINED_PWM            191     /*!< Maximum combined PWM (75% of 255) for USB power limiting */
 #define USB_PWM_SAFETY_MARGIN           10      /*!< Safety margin below max combined PWM */
 

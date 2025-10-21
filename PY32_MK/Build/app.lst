@@ -4602,7 +4602,7 @@ Disassembly of section .text:
  80025e2:	0020      	movs	r0, r4
  80025e4:	bdfe      	pop	{r1, r2, r3, r4, r5, r6, r7, pc}
  80025e6:	46c0      	nop			@ (mov r8, r8)
- 80025e8:	0800ac28 	.word	0x0800ac28
+ 80025e8:	0800ac2c 	.word	0x0800ac2c
  80025ec:	0800a92d 	.word	0x0800a92d
  80025f0:	0800a9ae 	.word	0x0800a9ae
  80025f4:	00000271 	.word	0x00000271
@@ -5220,7 +5220,7 @@ Disassembly of section .text:
  8002adc:	f000 f864 	bl	8002ba8 <abort>
  8002ae0:	200000cc 	.word	0x200000cc
  8002ae4:	0800aa12 	.word	0x0800aa12
- 8002ae8:	0800ab7a 	.word	0x0800ab7a
+ 8002ae8:	0800ab7b 	.word	0x0800ab7b
  8002aec:	0800aa1f 	.word	0x0800aa1f
 
 08002af0 <_calloc_r>:
@@ -12567,7 +12567,7 @@ void init_adc_data(void){
  80053d0:	0030      	movs	r0, r6
  80053d2:	009b      	lsls	r3, r3, #2
  80053d4:	f7ff fc54 	bl	8004c80 <HAL_UART_Transmit>
-    sprintf(outputStr, "rcc->csr: %08X usb_cc1_voltage: %1.2f usb_cc2_voltage: %1.2f\r\n", rcc_csr_bootstate, data.usb_cc1_voltage, data.usb_cc2_voltage);
+    sprintf(outputStr, "rcc->csr: %08lX usb_cc1_voltage: %1.2f usb_cc2_voltage: %1.2f\r\n", (unsigned long)rcc_csr_bootstate, data.usb_cc1_voltage, data.usb_cc2_voltage);
  80053d8:	002b      	movs	r3, r5
  80053da:	3394      	adds	r3, #148	@ 0x94
  80053dc:	6818      	ldr	r0, [r3, #0]
@@ -12636,7 +12636,7 @@ void init_adc_data(void){
  800546c:	0800aa9a 	.word	0x0800aa9a
  8005470:	200007cc 	.word	0x200007cc
  8005474:	0800aacf 	.word	0x0800aacf
- 8005478:	0800ab0e 	.word	0x0800ab0e
+ 8005478:	0800ab0f 	.word	0x0800ab0f
 
 0800547c <_Z15start_naat_testv>:
 void start_naat_test(void) {
@@ -12809,7 +12809,7 @@ void start_naat_test(void) {
  800558c:	20000294 	.word	0x20000294
  8005590:	20000975 	.word	0x20000975
  8005594:	2000086e 	.word	0x2000086e
- 8005598:	0800ab47 	.word	0x0800ab47
+ 8005598:	0800ab48 	.word	0x0800ab48
  800559c:	200007cc 	.word	0x200007cc
 
 080055a0 <_Z14stop_naat_testv>:
@@ -12878,7 +12878,7 @@ void stop_naat_test(void) {
  8005608:	20000971 	.word	0x20000971
  800560c:	20000974 	.word	0x20000974
  8005610:	2000086e 	.word	0x2000086e
- 8005614:	0800ab6b 	.word	0x0800ab6b
+ 8005614:	0800ab6c 	.word	0x0800ab6c
  8005618:	200007cc 	.word	0x200007cc
 
 0800561c <_Z9Data_initv>:
@@ -13204,9 +13204,9 @@ void system_setup() {
  80057ec:	2000096e 	.word	0x2000096e
  80057f0:	20000868 	.word	0x20000868
  80057f4:	2000086b 	.word	0x2000086b
- 80057f8:	0800ab8a 	.word	0x0800ab8a
- 80057fc:	0800ab7b 	.word	0x0800ab7b
- 8005800:	0800ab82 	.word	0x0800ab82
+ 80057f8:	0800ab8b 	.word	0x0800ab8b
+ 80057fc:	0800ab7c 	.word	0x0800ab7c
+ 8005800:	0800ab83 	.word	0x0800ab83
  8005804:	200007cc 	.word	0x200007cc
  8005808:	0800522d 	.word	0x0800522d
  800580c:	20000977 	.word	0x20000977
@@ -13400,11 +13400,11 @@ void system_setup() {
 08005970 <print_log_data>:
 {
  8005970:	b5f0      	push	{r4, r5, r6, r7, lr}
-    sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.sample_temperature_c, pid_data[SAMPLE_HEATER].setpoint, data.sh_pwm_during_adc_meas, data.valve_temperature_c, pid_data[VALVE_HEATER].setpoint, data.vh_pwm_during_adc_meas, data.vcc_mcu_voltage, data.state);
+    sprintf(outputStr, "%4lu, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.sample_temperature_c, pid_data[SAMPLE_HEATER].setpoint, data.sh_pwm_during_adc_meas, data.valve_temperature_c, pid_data[VALVE_HEATER].setpoint, data.vh_pwm_during_adc_meas, data.vcc_mcu_voltage, data.state);
  8005972:	4c1e      	ldr	r4, [pc, #120]	@ (80059ec <print_log_data+0x7c>)
 {
  8005974:	b093      	sub	sp, #76	@ 0x4c
-    sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.sample_temperature_c, pid_data[SAMPLE_HEATER].setpoint, data.sh_pwm_during_adc_meas, data.valve_temperature_c, pid_data[VALVE_HEATER].setpoint, data.vh_pwm_during_adc_meas, data.vcc_mcu_voltage, data.state);
+    sprintf(outputStr, "%4lu, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.sample_temperature_c, pid_data[SAMPLE_HEATER].setpoint, data.sh_pwm_during_adc_meas, data.valve_temperature_c, pid_data[VALVE_HEATER].setpoint, data.vh_pwm_during_adc_meas, data.vcc_mcu_voltage, data.state);
  8005976:	6ba3      	ldr	r3, [r4, #56]	@ 0x38
  8005978:	4d1d      	ldr	r5, [pc, #116]	@ (80059f0 <print_log_data+0x80>)
  800597a:	9311      	str	r3, [sp, #68]	@ 0x44
@@ -13460,19 +13460,19 @@ void system_setup() {
  80059ea:	bdf0      	pop	{r4, r5, r6, r7, pc}
  80059ec:	20000980 	.word	0x20000980
  80059f0:	2000086e 	.word	0x2000086e
- 80059f4:	0800aba9 	.word	0x0800aba9
+ 80059f4:	0800abaa 	.word	0x0800abaa
  80059f8:	20000a30 	.word	0x20000a30
  80059fc:	200007cc 	.word	0x200007cc
 
 08005a00 <send_max_temps>:
 void send_max_temps(void) {
  8005a00:	b5f0      	push	{r4, r5, r6, r7, lr}
-    sprintf(outputStr, "SH_MAX: %1.2f VH_MAX: %1.2f sample_ramp_time: %d valve_ramp_time: %d\r\n", data.sample_max_temperature_c, data.valve_max_temperature_c, data.sample_ramp_time_sec, data.valve_ramp_time_sec);
+    sprintf(outputStr, "SH_MAX: %1.2f VH_MAX: %1.2f sample_ramp_time: %lu valve_ramp_time: %lu\r\n", data.sample_max_temperature_c, data.valve_max_temperature_c, data.sample_ramp_time_sec, data.valve_ramp_time_sec);
  8005a02:	4b15      	ldr	r3, [pc, #84]	@ (8005a58 <send_max_temps+0x58>)
  8005a04:	4c15      	ldr	r4, [pc, #84]	@ (8005a5c <send_max_temps+0x5c>)
 void send_max_temps(void) {
  8005a06:	b085      	sub	sp, #20
-    sprintf(outputStr, "SH_MAX: %1.2f VH_MAX: %1.2f sample_ramp_time: %d valve_ramp_time: %d\r\n", data.sample_max_temperature_c, data.valve_max_temperature_c, data.sample_ramp_time_sec, data.valve_ramp_time_sec);
+    sprintf(outputStr, "SH_MAX: %1.2f VH_MAX: %1.2f sample_ramp_time: %lu valve_ramp_time: %lu\r\n", data.sample_max_temperature_c, data.valve_max_temperature_c, data.sample_ramp_time_sec, data.valve_ramp_time_sec);
  8005a08:	6fd8      	ldr	r0, [r3, #124]	@ 0x7c
  8005a0a:	f003 fc67 	bl	80092dc <__aeabi_f2d>
  8005a0e:	0023      	movs	r3, r4
@@ -13512,7 +13512,7 @@ void send_max_temps(void) {
  8005a56:	46c0      	nop			@ (mov r8, r8)
  8005a58:	20000988 	.word	0x20000988
  8005a5c:	20000980 	.word	0x20000980
- 8005a60:	0800abde 	.word	0x0800abde
+ 8005a60:	0800abe0 	.word	0x0800abe0
  8005a64:	2000086e 	.word	0x2000086e
  8005a68:	200007cc 	.word	0x200007cc
 

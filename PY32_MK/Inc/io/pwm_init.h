@@ -56,7 +56,7 @@
 #ifndef PWM_INIT_H_
 #define PWM_INIT_H_
 
-#define PY32F003x8
+//#define PY32F003x8
 
 #ifdef __cplusplus
 extern "C" {

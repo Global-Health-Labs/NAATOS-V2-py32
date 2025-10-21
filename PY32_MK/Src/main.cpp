@@ -350,7 +350,7 @@ void PrintOptionBytes(void)
                 HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000); 
 
                 printf("Option Bytes:\r\n");
-                printf("  RDP Level   : 0x%02X\r\n", OBInit.RDPLevel);
+                printf("  RDP Level   : 0x%02lX\r\n", (unsigned long)OBInit.RDPLevel);
             
                 if (OBInit.USERConfig & OB_USER_BOR_EN) {
                     printf("  BOR Level   : ");
@@ -369,7 +369,7 @@ void PrintOptionBytes(void)
                     printf("BOR disabled\r\n");
                 }
 
-                printf("  User Config : 0x%02X\r\n", OBInit.USERConfig);
+                printf("  User Config : 0x%02lX\r\n", (unsigned long)OBInit.USERConfig); 
                 printf("    WDG: %s\r\n", (OBInit.USERConfig & OB_IWDG_SW) ? "Software" : "Hardware");
                 printf("    STOP Reset: %s\r\n", (OBInit.USERConfig & OB_RESET_MODE_RESET) ? "Disabled" : "Enabled");
                 //printf("    STDBY Reset: %s\r\n", (OBInit.USERConfig & OB_STDBY_NO_RST) ? "Disabled" : "Enabled");
@@ -527,7 +527,7 @@ void init_adc_data(void){
     //sprintf(outputStr, "py32_temperature_c: %1.2f ADC->CHSELR: %08X bits: %d vrefint:%d HAL_ADC_TSCAL1: %d HAL_ADC_TSCAL2: %d\r\n", data.py32_temperature_c, ADC1->CHSELR, data.adcReading[5], data.adcReading[6], HAL_ADC_TSCAL1, HAL_ADC_TSCAL2);
     //HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
     
-    sprintf(outputStr, "rcc->csr: %08X usb_cc1_voltage: %1.2f usb_cc2_voltage: %1.2f\r\n", rcc_csr_bootstate, data.usb_cc1_voltage, data.usb_cc2_voltage);
+    sprintf(outputStr, "rcc->csr: %08lX usb_cc1_voltage: %1.2f usb_cc2_voltage: %1.2f\r\n", (unsigned long)rcc_csr_bootstate, data.usb_cc1_voltage, data.usb_cc2_voltage);
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
     sprintf(outputStr, "sample_temperature_c: %1.2f valve_temperature_c: %1.2f\r\n", data.sample_temperature_c, data.valve_temperature_c);
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);   
@@ -1356,14 +1356,14 @@ void print_log_data(void)
     sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.sample_temperature_c, pid_data[SAMPLE_HEATER].setpoint, data.sh_pwm_during_adc_meas, data.valve_temperature_c, pid_data[VALVE_HEATER].setpoint, data.vh_pwm_during_adc_meas, data.system_input_voltage, data.state);
 #else
     //sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d %d %d\r\n", data.msec_test_count, data.sample_temperature_c, pid_data[SAMPLE_HEATER].setpoint, data.sh_pwm_during_adc_meas, data.valve_temperature_c, pid_data[VALVE_HEATER].setpoint, data.vh_pwm_during_adc_meas, data.vcc_mcu_voltage, data.state, (int) pid_data[VALVE_HEATER].integrator,(int) pid_data[VALVE_HEATER].dTerm);
-    sprintf(outputStr, "%4d, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.sample_temperature_c, pid_data[SAMPLE_HEATER].setpoint, data.sh_pwm_during_adc_meas, data.valve_temperature_c, pid_data[VALVE_HEATER].setpoint, data.vh_pwm_during_adc_meas, data.vcc_mcu_voltage, data.state);
+    sprintf(outputStr, "%4lu, %1.2f, %1.2f, %d, %1.2f, %1.2f, %d, %1.2f, %d\r\n", data.msec_test_count, data.sample_temperature_c, pid_data[SAMPLE_HEATER].setpoint, data.sh_pwm_during_adc_meas, data.valve_temperature_c, pid_data[VALVE_HEATER].setpoint, data.vh_pwm_during_adc_meas, data.vcc_mcu_voltage, data.state);
 #endif
     
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
 }
 
 void send_max_temps(void) {
-    sprintf(outputStr, "SH_MAX: %1.2f VH_MAX: %1.2f sample_ramp_time: %d valve_ramp_time: %d\r\n", data.sample_max_temperature_c, data.valve_max_temperature_c, data.sample_ramp_time_sec, data.valve_ramp_time_sec);
+    sprintf(outputStr, "SH_MAX: %1.2f VH_MAX: %1.2f sample_ramp_time: %lu valve_ramp_time: %lu\r\n", data.sample_max_temperature_c, data.valve_max_temperature_c, data.sample_ramp_time_sec, data.valve_ramp_time_sec);
     HAL_UART_Transmit(&UartHandle, (uint8_t *)outputStr, strlen(outputStr), 1000);    
 }
 

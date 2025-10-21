@@ -1,154 +1,256 @@
-##### Project #####
+################################################################################
+# Makefile for PY32 NAATOS V2 Project
+# 
+# Description:
+#   Build configuration for PY32F0xx microcontroller projects using GCC ARM
+#   toolchain. Supports multiple PY32 variants with HAL/LL driver options.
+#
+# Usage:
+#   make -f Makefile_windows          # Build the project
+#   make -f Makefile_windows clean    # Clean build artifacts
+#   make -f Makefile_windows flash    # Flash to device (see rules.mk)
+#
+# Requirements:
+#   - ARM GCC Toolchain (arm-none-eabi-gcc)
+#   - MSYS2 or compatible shell (for 'tr' and 'shell' commands)
+#   - JLink or PyOCD programmer (for flashing)
+#
+# Author: Ryan Calderon, Mike Deeds
+# Date: October 2025
+# Copyright: Global Health Labs, Inc.
+################################################################################
 
+##### Project Configuration #####
+
+# Output binary name (without extension)
+# Generated files: app.elf, app.bin, app.hex
 PROJECT			?= app
-# The path for generated files
+
+# Directory for build artifacts (object files, binaries, listings, etc.)
 BUILD_DIR		= Build
 
-# MCU types: 
-#   PY32F002Ax5
-#   PY32F002Bx5
-#   PY32F003x4, PY32F003x6, PY32F003x8,
-#   PY32F030x6, PY32F030x8, 
-#   PY32F072xB
+# Target MCU type - determines which HAL/startup files to use
+# Supported types: 
+#   PY32F002Ax5  - 20KB Flash, 3KB RAM
+#   PY32F002Bx5  - 24KB Flash, 3KB RAM
+#   PY32F003x4   - 16KB Flash, 2KB RAM
+#   PY32F003x6   - 32KB Flash, 4KB RAM
+#   PY32F003x8   - 64KB Flash, 8KB RAM (NAATOS V2 target)
+#   PY32F030x6   - 32KB Flash, 4KB RAM
+#   PY32F030x8   - 64KB Flash, 8KB RAM
+#   PY32F072xB   - 128KB Flash, 16KB RAM
 MCU_TYPE		= PY32F003x8
 
-##### Options #####
+##### Build Options #####
 
-# Use LL library instead of HAL, y:yes, n:no
+# Use Low-Level (LL) library instead of HAL
+# y: Use LL drivers (lighter weight, more direct register access)
+# n: Use HAL drivers (higher abstraction, easier to use) [default]
 USE_LL_LIB ?= n
-# Enable printf float %f support, y:yes, n:no
+
+# Enable floating-point printf support (%f format specifier)
+# y: Include float formatting (adds ~5-10KB to binary) [default]
+# n: Disable float formatting (smaller binary, %f will not work)
 ENABLE_PRINTF_FLOAT	?= y
-# Build with FreeRTOS, y:yes, n:no
+
+# Build with FreeRTOS kernel
+# y: Include FreeRTOS multitasking support
+# n: Bare-metal application [default]
 USE_FREERTOS	?= n
-# Build with CMSIS DSP functions, y:yes, n:no
+
+# Build with CMSIS DSP library
+# y: Include optimized math/signal processing functions
+# n: Exclude DSP library [default]
 USE_DSP			?= n
-# Build with Waveshare e-paper lib, y:yes, n:no
+
+# Build with Waveshare e-paper display library
+# y: Include e-paper display drivers
+# n: Exclude e-paper library [default]
 USE_EPAPER		?= n
-# Programmer, jlink or pyocd
+
+# Programmer/debugger selection for flashing
+# Options: jlink (default), pyocd
 FLASH_PROGRM	?= jlink
 
-##### Toolchains #######
+##### Toolchain Paths #####
 
+# Path to ARM GCC toolchain binaries
+# Linux example: /usr/bin
+# Windows (default): C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin
+# Verify this path matches your installation
 #ARM_TOOLCHAIN	?= /usr/bin
 ARM_TOOLCHAIN	?= "C:/Program Files (x86)/Arm GNU Toolchain arm-none-eabi/14.2 rel1/bin"
 
-# path to JLinkExe
+# Path to SEGGER J-Link executable for flashing/debugging
+# Linux example: /opt/SEGGER/JLink/JLinkExe
+# Windows (default): C:/Program Files/SEGGER/JLink/JLink
+# Used when FLASH_PROGRM=jlink
 #JLINKEXE		?= /opt/SEGGER/JLink/JLinkExe
 JLINKEXE		?= "C:/Program Files/SEGGER/JLink/JLink"
-# path to PyOCD
+
+# Path to PyOCD executable (alternative programmer)
+# Used when FLASH_PROGRM=pyocd
+# Install via: pip install pyocd
 PYOCD_EXE		?= pyocd
 
-##### Paths ############
+##### Source File Paths ############
 
-# C and CPP source folders
+# Directories containing C/C++ source files
+# These directories will be recursively searched for .c and .cpp files
 CDIRS		:= Src Src/io
-# Single C and CPP source files
+
+# Individual C source files (if not in CDIRS)
+# Add specific .c files here that are outside CDIRS
 CFILES		:= 
+
+# Individual C++ source files (if not in CDIRS)
+# Add specific .cpp files here that are outside CDIRS
 CPPFILES	:= 
 
-# ASM source folders
+# Directories containing assembly (.s) source files
+# These directories will be searched for startup and other ASM files
 ADIRS		:= Src
-# Single ASM source files
+
+# Individual assembly source files (if not in ADIRS)
+# Startup files are typically added here by MCU-specific sections below
 AFILES		:= 
 
-# Include paths
+# Include directories for header files
+# These paths are passed to the compiler with -I flag
+# Automatically includes CDIRS for convenience
 INCLUDES	:= Libraries/CMSIS/Core/Include \
 			Libraries/CMSIS/Device/PY32F0xx/Include \
 			Inc \
 			Inc/io \
 			$(CDIRS)
 
-##### Library Paths ############
+##### MCU-Specific Library Configuration ############
 
-# Library flags
+# Compiler/linker flags based on MCU type
+# This will be passed as -D$(MCU_TYPE) to define the chip variant
 LIB_FLAGS		= $(MCU_TYPE)
-# JLink device (Uppercases)
+
+# J-Link requires uppercase device name (e.g., PY32F003X8)
+# Uses shell command 'tr' to convert to uppercase
 JLINK_DEVICE	?= $(shell echo $(MCU_TYPE) | tr '[:lower:]' '[:upper:]')
-# PyOCD device (Lowercases)
+
+# PyOCD requires lowercase device name (e.g., py32f003x8)
+# Uses shell command 'tr' to convert to lowercase
 PYOCD_DEVICE	?= $(shell echo $(MCU_TYPE) | tr '[:upper:]' '[:lower:]')
-# Link descript file: 
+
+# Linker script path - defines memory layout for the specific MCU
+# Located in Libraries/LDScripts/ directory
 LDSCRIPT		= Libraries/LDScripts/$(PYOCD_DEVICE).ld
 
+################################################################################
+# MCU Family-Specific Configuration
+# 
+# This section configures HAL/LL drivers and startup files based on MCU type.
+# Each family has different peripheral sets and memory configurations.
+################################################################################
 
 ifneq (,$(findstring PY32F002B,$(MCU_TYPE)))
 
-# PY32F002B >>>
+### PY32F002B Configuration ###
+# System initialization file for PY32F002B
 CFILES		+= ../Libraries/CMSIS/Device/PY32F0xx/Source/system_py32f002b.c
 
+# Select between LL (Low-Level) or HAL (Hardware Abstraction Layer) drivers
 ifeq ($(USE_LL_LIB),y)
+# LL driver sources and includes
 CDIRS		+= ../Libraries/PY32F002B_LL_Driver/Src \
 		../Libraries/PY32F002B_LL_BSP/Src
 INCLUDES	+= ../Libraries/PY32F002B_LL_Driver/Inc \
 		../Libraries/PY32F002B_LL_BSP/Inc
 LIB_FLAGS   += USE_FULL_LL_DRIVER
 else
+# HAL driver sources and includes
 CDIRS		+= ../Libraries/PY32F002B_HAL_Driver/Src \
 		../Libraries/PY32F002B_HAL_BSP/Src
 INCLUDES	+= ../Libraries/PY32F002B_HAL_Driver/Inc \
 		../Libraries/PY32F002B_HAL_BSP/Inc
 endif
-# Startup file
+
+# Startup assembly file - initializes stack, heap, and vector table
 AFILES	:= ../Libraries/CMSIS/Device/PY32F0xx/Source/gcc/startup_py32f002b.s
-# PY32F002B <<<
 
 else ifneq (,$(findstring PY32F07,$(MCU_TYPE)))
 
-#  PY32F07x >>>
+### PY32F07x Configuration ###
+# System initialization file for PY32F07x
 CFILES		+= ../Libraries/CMSIS/Device/PY32F0xx/Source/system_py32f07x.c
 
+# PY32F07x only supports HAL drivers (no LL option available)
 CDIRS		+= ../Libraries/PY32F07x_HAL_Driver/Src \
 		../Libraries/PY32F07x_HAL_BSP/Src
 INCLUDES	+= ../Libraries/PY32F07x_HAL_Driver/Inc \
 		../Libraries/PY32F07x_HAL_BSP/Inc
 LIB_FLAGS   += USE_HAL_DRIVER
-# Startup file
+
+# Startup assembly file for PY32F072
 AFILES	:= ../Libraries/CMSIS/Device/PY32F0xx/Source/gcc/startup_py32f072.s
-#  PY32F07 <<<
 
 else
 
-# PY32F002A,003,030 >>>
+### PY32F002A/003/030 Configuration ###
+# System initialization file for PY32F0xx (002A/003/030)
 CFILES		+= Libraries/CMSIS/Device/PY32F0xx/Source/system_py32f0xx.c
 
+# Select between LL or HAL drivers
 ifeq ($(USE_LL_LIB),y)
+# LL driver sources and includes
 CDIRS		+= ../Libraries/PY32F0xx_LL_Driver/Src \
 		../Libraries/PY32F0xx_LL_BSP/Src
 INCLUDES	+= ../Libraries/PY32F0xx_LL_Driver/Inc \
 		../Libraries/PY32F0xx_LL_BSP/Inc
 LIB_FLAGS   += USE_FULL_LL_DRIVER
 else
+# HAL driver sources and includes (default for NAATOS V2)
 CDIRS		+= Libraries/PY32F0xx_HAL_Driver/Src \
 		Libraries/PY32F0xx_HAL_BSP/Src
 INCLUDES	+= Libraries/PY32F0xx_HAL_Driver/Inc \
 		Libraries/PY32F0xx_HAL_BSP/Inc
 endif
-# Startup file
+
+# Select appropriate startup file based on specific MCU variant
 ifneq (,$(findstring PY32F002A,$(LIB_FLAGS)))
 AFILES	:= Libraries/CMSIS/Device/PY32F0xx/Source/gcc/startup_py32f002a.s
 endif
 ifneq (,$(findstring PY32F003,$(LIB_FLAGS)))
+# NAATOS V2 uses this startup file (PY32F003x8)
 AFILES	:= Libraries/CMSIS/Device/PY32F0xx/Source/gcc/startup_py32f003.s
 endif
 ifneq (,$(findstring PY32F030,$(LIB_FLAGS)))
 AFILES	:= Libraries/CMSIS/Device/PY32F0xx/Source/gcc/startup_py32f030.s
 endif
-# PY32F002A,003,030 <<<
 
 endif
+################################################################################
+# Optional Additional Libraries
+# 
+# These libraries can be enabled via build options at the top of this file.
+################################################################################
 
-######## Additional Libs ########
-
+### FreeRTOS Real-Time Operating System ###
 ifeq ($(USE_FREERTOS),y)
+# FreeRTOS kernel sources and port for ARM Cortex-M0
 CDIRS		+= ../Libraries/FreeRTOS \
 			../Libraries/FreeRTOS/portable/GCC/ARM_CM0
 
+# FreeRTOS heap memory management implementation
+# heap_4 = fragmentation-aware allocator, suitable for most applications
 CFILES		+= ../Libraries/FreeRTOS/portable/MemMang/heap_4.c
 
+# FreeRTOS header includes
 INCLUDES	+= ../Libraries/FreeRTOS/include \
 			../Libraries/FreeRTOS/portable/GCC/ARM_CM0
 endif
 
+### CMSIS DSP Library (Digital Signal Processing) ###
 ifeq ($(USE_DSP),y)
+# Pre-compiled DSP function sources
+# Includes optimized math operations, FFT, filters, matrix operations, etc.
+# Optimized for ARM Cortex-M processors
 CFILES 		+= ../Libraries/CMSIS/DSP/Source/BasicMathFunctions/BasicMathFunctions.c \
 		../Libraries/CMSIS/DSP/Source/BayesFunctions/BayesFunctions.c \
 		../Libraries/CMSIS/DSP/Source/CommonTables/CommonTables.c \
@@ -164,20 +266,33 @@ CFILES 		+= ../Libraries/CMSIS/DSP/Source/BasicMathFunctions/BasicMathFunctions.
 		../Libraries/CMSIS/DSP/Source/SupportFunctions/SupportFunctions.c \
 		../Libraries/CMSIS/DSP/Source/SVMFunctions/SVMFunctions.c \
 		../Libraries/CMSIS/DSP/Source/TransformFunctions/TransformFunctions.c
+
+# DSP library include directories
 INCLUDES	+= ../Libraries/CMSIS/DSP/Include \
 		../Libraries/CMSIS/DSP/PrivateInclude
 endif
 
+### Waveshare E-Paper Display Library ###
 ifeq ($(USE_EPAPER),y)
+# E-paper driver library for Waveshare displays
+# Includes GUI functions, fonts, and examples
 CDIRS		+= ../Libraries/EPaper/Lib \
 			../Libraries/EPaper/Examples \
 			../Libraries/EPaper/Fonts \
 			../Libraries/EPaper/GUI
 
+# E-paper library include directories
 INCLUDES	+= ../Libraries/EPaper/Lib \
 			../Libraries/EPaper/Examples \
 			../Libraries/EPaper/Fonts \
 			../Libraries/EPaper/GUI
 endif
+
+################################################################################
+# Build Rules
+# 
+# Include the main build rules and compiler configuration
+# This file contains targets like: all, clean, flash, erase, etc.
+################################################################################
 
 include ./rules.mk

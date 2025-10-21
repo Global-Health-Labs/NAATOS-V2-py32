@@ -60,7 +60,7 @@
  ******************************************************************************
  */
 
-#define PY32F003x8
+//#define PY32F003x8
 
 #include "py32f0xx.h"
 #include "py32f0xx_hal.h"
@@ -140,8 +140,8 @@ static uint8_t active_valve = 0;
  */
 void PWM_Init(void)
 {
-    TIM_ClockConfigTypeDef sClockSourceConfig = {0};
-    TIM_MasterConfigTypeDef sMasterConfig = {0};
+    //TIM_ClockConfigTypeDef sClockSourceConfig = {0};
+    //TIM_MasterConfigTypeDef sMasterConfig = {0};
     TIM_OC_InitTypeDef sConfigOC = {0};
     GPIO_InitTypeDef GPIO_InitStruct = {0};
 

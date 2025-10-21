@@ -78,47 +78,6 @@ typedef struct {
     bool    heater_level_high; /*!< High-side vs low-side control */
 } Pin_pwm_t;
 
-/*
-// Store the pin assignments in this structure
-typedef struct {
-    GPIO_TypeDef    *GPIOx_AMP_TEMP_V;
-    uint16_t        GPIO_Pin_AMP_TEMP_V;
-    uint32_t        ADC_CHANNEL_AMP_TEMP_V;
-    
-    GPIO_TypeDef    *GPIOx_AMP_VALVE_TEMP_V;
-    uint16_t        GPIO_Pin_AMP_VALVE_TEMP_V;
-    uint32_t        ADC_CHANNEL_VALVE_TEMP_V;
-    
-    GPIO_TypeDef    *GPIOx_AMP_V_BATT_SENSE;
-    uint16_t        GPIO_Pin_V_BATT_SENSE;
-    uint32_t        ADC_CHANNEL_V_BATT_SENSE;
-
-    GPIO_TypeDef    *GPIOx_USB_CC1;
-    uint16_t        GPIO_Pin_USB_CC1;
-    uint32_t        ADC_CHANNEL_USB_CC1;
-    
-    GPIO_TypeDef    *GPIOx_USB_CC2;
-    uint16_t        GPIO_Pin_USB_CC2;
-    uint32_t        ADC_CHANNEL_USB_CC2;
-    
-    GPIO_TypeDef    *GPIOx_LED1;
-    uint16_t        GPIO_Pin_LED1;
-    GPIO_TypeDef    *GPIOx_LED2;
-    uint16_t        GPIO_Pin_LED2;
-    GPIO_TypeDef    *GPIOx_ADC_SPARE;
-    uint16_t        GPIO_Pin_ADC_SPARE;
-    GPIO_TypeDef    *GPIOx_AMP_CTRL1;
-    uint16_t        GPIO_Pin_AMP_CTRL1;
-    GPIO_TypeDef    *GPIOx_AMP_CTRL2;
-    uint16_t        GPIO_Pin_AMP_CTRL2;
-    GPIO_TypeDef    *GPIOx_VALVE_CTRL1;
-    uint16_t        GPIO_Pin_VALVE_CTRL1;
-    GPIO_TypeDef    *GPIOx_VALVE_CTRL2;
-    uint16_t        GPIO_Pin_VALVE_CTRL2;
-    GPIO_TypeDef    *GPIOx_PUSHBUTTON;
-    uint16_t        GPIO_Pin_PUSHBUTTON;
-} Pin_assignments_t;
-*/
 /* Exported variables prototypes ---------------------------------------------*/
 extern struct app_data_t data;
 extern struct flags_t flags;
